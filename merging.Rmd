@@ -1,0 +1,17 @@
+---
+title: "01_merging"
+author: "Puvvula"
+date: "2022-09-13"
+output: pdf_document
+---
+
+```{r}
+library(tidyverse)
+library(sas7bdat)
+```
+
+```{r}
+dat<- read.sas7bdat("data/thg.sas7bdat")
+
+```
+

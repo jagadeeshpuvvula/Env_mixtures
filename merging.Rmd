@@ -14,6 +14,6 @@ library(haven)
 
 ```{r}
 dat<- read_sas("/Users/jpuvvula/Documents/data/thg.sas7bdat")
-head(dat, n=10)
+skim(dat)
 ```
 

@@ -7,11 +7,13 @@ output: pdf_document
 
 ```{r}
 library(tidyverse)
-library(sas7bdat)
+library(skimr)
+library(haven)
+
 ```
 
 ```{r}
-dat<- read.sas7bdat("data/thg.sas7bdat")
-
+dat<- read_sas("/Users/jpuvvula/Documents/data/thg.sas7bdat")
+head(dat, n=10)
 ```
 

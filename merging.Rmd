@@ -12,8 +12,41 @@ library(haven)
 
 ```
 
+#BPB = blood lead
+#BCD = blood cadmium
+
 ```{r}
-dat<- read_sas("/Users/jpuvvula/Documents/data/thg.sas7bdat")
-skim(dat)
+#reading SAS data : Exposures
+
+arse<- read_sas("/Users/jpuvvula/Documents/data/ars_i_cd.sas7bdat")
+bl_cd<- read_sas("/Users/jpuvvula/Documents/data/bcd.sas7bdat")
+bl_pb<- read_sas("/Users/jpuvvula/Documents/data/bpb.sas7bdat")
+oc_pest<- read_sas("/Users/jpuvvula/Documents/data/ocpest.sas7bdat")
+op_pest<- read_sas("/Users/jpuvvula/Documents/data/op.sas7bdat")
+pbde<- read_sas("/Users/jpuvvula/Documents/data/pbde.sas7bdat")
+pcb<- read_sas("/Users/jpuvvula/Documents/data/pcb.sas7bdat")
+pfas<- read_sas("/Users/jpuvvula/Documents/data/pfas.sas7bdat")
+pheno<- read_sas("/Users/jpuvvula/Documents/data/phen.sas7bdat")
+bpa<- read_sas("/Users/jpuvvula/Documents/data/phthbpa.sas7bdat")
+pyre<- read_sas("/Users/jpuvvula/Documents/data/pyr.sas7bdat")
+ct <- read_sas("/Users/jpuvvula/Documents/data/ct.sas7bdat") #? conitine
+thg <- read_sas("/Users/jpuvvula/Documents/data/thg.sas7bdat")
+fr<- read_sas("/Users/jpuvvula/Documents/data/fr.sas7bdat")
+
+
 ```
+
+```{r}
+dt_arse<- arse[c(1,2,5,6,10)] |>
+  pivot_wider(names_from = c(Analyte_Code),
+              values_from = c(Result))
+
+dt<-dt_arse |> 
+  dplyr::group_by(Visit) |>
+  skim()
+
+write_csv(dt, "summ4.csv")
+```
+
+
 

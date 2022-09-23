@@ -37,15 +37,26 @@ fr<- read_sas("/Users/jpuvvula/Documents/data/fr.sas7bdat")
 ```
 
 ```{r}
-dt_arse<- arse[c(1,2,5,6,10)] |>
-  pivot_wider(names_from = c(Analyte_Code),
-              values_from = c(Result))
+#For conitine only (take values from result or from result machine)
+ct$Result <- ifelse(is.na(ct$Result), ct$Result_Machine, ct$Result)
 
-dt<-dt_arse |> 
+
+#create average for multiple entries [imputing average values]
+#Use for PFAS and Conitine only
+dt_imp<- ct|> 
+  group_by(SubjectID, Visit, Analyte_Code) |>
+  summarise_at(vars("Result"), mean)
+
+#summaries for all variables
+dt <- dt_imp[c(1:4)] |>
+  pivot_wider(names_from = c(Analyte_Code),
+              values_from = Result)
+
+dt_out <-dt |> 
   dplyr::group_by(Visit) |>
   skim()
 
-write_csv(dt, "summ4.csv")
+write_csv(dt_out, "con.csv")
 ```
 
 

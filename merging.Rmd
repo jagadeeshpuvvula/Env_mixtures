@@ -12,43 +12,57 @@ library(haven)
 
 ```
 
-#BPB = blood lead
-#BCD = blood cadmium
-
 ```{r}
-#reading SAS data : Exposures
+#reading SAS data
 
-arse<- read_sas("/Users/jpuvvula/Documents/data/ars_i_cd.sas7bdat")
+############### EXPOSURES ####################################
+#In long format - Need to be converted to wide
+
+# BLOOD
 bl_cd<- read_sas("/Users/jpuvvula/Documents/data/bcd.sas7bdat")
 bl_pb<- read_sas("/Users/jpuvvula/Documents/data/bpb.sas7bdat")
+thg <- read_sas("/Users/jpuvvula/Documents/data/thg.sas7bdat") # blood Hg
+
+# SERUM
 oc_pest<- read_sas("/Users/jpuvvula/Documents/data/ocpest.sas7bdat")
-op_pest<- read_sas("/Users/jpuvvula/Documents/data/op.sas7bdat")
 pbde<- read_sas("/Users/jpuvvula/Documents/data/pbde.sas7bdat")
 pcb<- read_sas("/Users/jpuvvula/Documents/data/pcb.sas7bdat")
 pfas<- read_sas("/Users/jpuvvula/Documents/data/pfas.sas7bdat")
+ct <- read_sas("/Users/jpuvvula/Documents/data/ct.sas7bdat") #Cotinine
+
+# URINE
+arse<- read_sas("/Users/jpuvvula/Documents/data/ars_i_cd.sas7bdat")
+fr<- read_sas("/Users/jpuvvula/Documents/data/fr.sas7bdat")
+op_pest<- read_sas("/Users/jpuvvula/Documents/data/op.sas7bdat")
 pheno<- read_sas("/Users/jpuvvula/Documents/data/phen.sas7bdat")
 bpa<- read_sas("/Users/jpuvvula/Documents/data/phthbpa.sas7bdat")
 pyre<- read_sas("/Users/jpuvvula/Documents/data/pyr.sas7bdat")
-ct <- read_sas("/Users/jpuvvula/Documents/data/ct.sas7bdat") #? conitine
-thg <- read_sas("/Users/jpuvvula/Documents/data/thg.sas7bdat")
-fr<- read_sas("/Users/jpuvvula/Documents/data/fr.sas7bdat")
+
+################## OUTCOME ###############################
+# In wide format
+dt_outcome<- read_sas("/Users/jpuvvula/Documents/data/outcomes.sas7bdat")
+
+################# COVARIATES #############################
+# In wide format
+dt_cov <- read_sas("/Users/jpuvvula/Documents/data/covariates.sas7bdat")
 
 
 ```
 
+
+# Processing exposure data
 ```{r}
 #For conitine only (take values from result or from result machine)
 ct$Result <- ifelse(is.na(ct$Result), ct$Result_Machine, ct$Result)
 
-
 #create average for multiple entries [imputing average values]
 #Use for PFAS and Conitine only
-dt_imp<- ct|> 
+dt_imp<- pfas |> 
   group_by(SubjectID, Visit, Analyte_Code) |>
   summarise_at(vars("Result"), mean)
 
 #summaries for all variables
-dt <- dt_imp[c(1:4)] |>
+dt <- thg [c(1,2,5,6)] |>
   pivot_wider(names_from = c(Analyte_Code),
               values_from = Result)
 

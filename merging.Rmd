@@ -42,6 +42,20 @@ dat<- dt_outcome[c(1,2,18:24,27:29,32:63)] |>
 ```
 
 ```{r}
+################# COVARIATES #############################
+# In wide format
+dt_cov <- read_sas("/Users/jpuvvula/Documents/data/covariates.sas7bdat")
+
+dat<- left_join(dt_out, dt_cov, by="SubjectID")
+
+cat<- names(dat[c(2:10,12,14:17,18,20,21,27,29,35,50:52,53,55,56,58,62,64,65)])
+dat[cat] <- lapply(dat[cat], factor)
+
+skim(dat)
+```
+
+
+```{r}
 #using outcome subjectID as filter
 dt_out<- read_csv("/Users/jpuvvula/Documents/out3_id.csv")
 
@@ -68,11 +82,6 @@ op_pest<- read_sas("/Users/jpuvvula/Documents/data/op.sas7bdat")
 pheno<- read_sas("/Users/jpuvvula/Documents/data/phen.sas7bdat")
 bpa<- read_sas("/Users/jpuvvula/Documents/data/phthbpa.sas7bdat")
 pyre<- read_sas("/Users/jpuvvula/Documents/data/pyr.sas7bdat")
-
-################# COVARIATES #############################
-# In wide format
-dt_cov <- read_sas("/Users/jpuvvula/Documents/data/covariates.sas7bdat")
-
 
 ```
 

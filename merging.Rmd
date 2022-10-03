@@ -12,9 +12,40 @@ library(haven)
 
 ```
 
+Filter outcome data by year of child visit
 ```{r}
-#reading SAS data
+################## OUTCOME ###############################
+# In wide format
+dt_outcome<- read_sas("/Users/jpuvvula/Documents/data/outcomes.sas7bdat")
 
+#subset for age 3 years (263 obs.)
+dat<- dt_outcome[c(1,2,16:18,20,21,23:26,30, 34:40,42:44,46:55,60:63)] |> 
+  filter(Visit == "M36")
+
+#236 obs with all values
+dt<- dat |> drop_na()
+
+#summary for 3 year outcome
+skim(dt)
+
+##subset for age 5 years (193 obs.)
+dat<- dt_outcome[c(1:6)] |> 
+  filter(Visit == "M60")
+
+#subset for age 7.5-10 years ( obs.)
+dat<- dt_outcome[c(1,2,7:15,18:24,28,29,31,34:44,46:55,60:63)] |> 
+  filter(Visit == "P3")
+
+#subset for age 7.5-10 years (242 obs.with BRIEF and BASC)
+dat<- dt_outcome[c(1,2,18:24,27:29,32:63)] |> 
+  filter(Visit == "P4")
+```
+
+```{r}
+#using outcome subjectID as filter
+dt_out<- read_csv("/Users/jpuvvula/Documents/out3_id.csv")
+
+#reading SAS data
 ############### EXPOSURES ####################################
 #In long format - Need to be converted to wide
 
@@ -38,10 +69,6 @@ pheno<- read_sas("/Users/jpuvvula/Documents/data/phen.sas7bdat")
 bpa<- read_sas("/Users/jpuvvula/Documents/data/phthbpa.sas7bdat")
 pyre<- read_sas("/Users/jpuvvula/Documents/data/pyr.sas7bdat")
 
-################## OUTCOME ###############################
-# In wide format
-dt_outcome<- read_sas("/Users/jpuvvula/Documents/data/outcomes.sas7bdat")
-
 ################# COVARIATES #############################
 # In wide format
 dt_cov <- read_sas("/Users/jpuvvula/Documents/data/covariates.sas7bdat")
@@ -49,8 +76,7 @@ dt_cov <- read_sas("/Users/jpuvvula/Documents/data/covariates.sas7bdat")
 
 ```
 
-
-# Processing exposure data
+Processing exposure data
 ```{r}
 #For conitine only (take values from result or from result machine)
 ct$Result <- ifelse(is.na(ct$Result), ct$Result_Machine, ct$Result)

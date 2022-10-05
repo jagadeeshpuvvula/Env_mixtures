@@ -8,14 +8,29 @@ output: pdf_document
 ```{r}
 
 library(tidyverse)
-
+library(janitor)
 
 ```
 
-
+First trimester - Exposure
 ```{r}
-df<-read_csv2("1. BBK17_June10 2022//LAB//CDPlus_RESEARCHERS RESULTS table_code 133//QueryData_code133.csv")
+#Urine BPA, Triclosan, Arsenic, OP pesticides, Specific gravity, 
+df_1 <-read_csv2("E://BBK17//1. BBK17_June10 2022//LAB//MIREC_TEST RESULTS table_codes 001.002.009.013.016.049.054.060.096.097.101//QueryData_code001.csv") |> clean_names()
 
+#Urine: Phthalates
+df_2 <-read_csv2("E://BBK17//1. BBK17_June10 2022//LAB//MIREC_TEST RESULTS table_codes 001.002.009.013.016.049.054.060.096.097.101//QueryData_code002.csv") |> clean_names()
+
+#Plasma: PBDE, PCB, OC Pesticides
+df_3 <-read_csv2("E://BBK17//1. BBK17_June10 2022//LAB//MIREC_TEST RESULTS table_codes 001.002.009.013.016.049.054.060.096.097.101//QueryData_code009.csv") |> clean_names()
+
+#Plasma: Tobacco and PFCs
+df_4 <-read_csv2("E://BBK17//1. BBK17_June10 2022//LAB//MIREC_TEST RESULTS table_codes 001.002.009.013.016.049.054.060.096.097.101//QueryData_code013.csv") |> clean_names()
+
+#Whole Blood: - metals
+df_5 <-read_csv2("E://BBK17//1. BBK17_June10 2022//LAB//MIREC_TEST RESULTS table_codes 001.002.009.013.016.049.054.060.096.097.101//QueryData_code016.csv") |> clean_names()
+
+#Urine: Creatinine
+df_6 <-read_csv2("E://BBK17//1. BBK17_June10 2022//LAB//MIREC_TEST RESULTS table_codes 001.002.009.013.016.049.054.060.096.097.101//QueryData_code049.csv") |> clean_names()
 
 ```
 

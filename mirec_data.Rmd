@@ -1,0 +1,21 @@
+---
+title: "mirec_data"
+author: "puvvula"
+date: "2022-10-05"
+output: pdf_document
+---
+
+```{r}
+
+library(tidyverse)
+
+
+```
+
+
+```{r}
+df<-read_csv2("1. BBK17_June10 2022//LAB//CDPlus_RESEARCHERS RESULTS table_code 133//QueryData_code133.csv")
+
+
+```
+

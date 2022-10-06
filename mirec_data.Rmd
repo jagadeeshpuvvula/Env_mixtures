@@ -15,7 +15,7 @@ library(janitor)
 
 Outcome: child 3 Yr scores
 ```{r}
-dt_out<- read_excel("E://BBK17//1. BBK17_June10 2022//DV//2. MIREC-CD Plus STUDY//BBK17_CDPlus_BABY_DVs.xlsx") |> clean_names()
+dt_out<- read_excel("E://BBK17//1. BBK17_June10 2022//DV//2. MIREC-CD Plus STUDY//BBK17_CDPlus_BABY_DVs.xlsx") |> clean_names() |> drop_na()
 
 dt <- dt_out |> drop_na()
 
@@ -26,10 +26,16 @@ dt <- dt_out |> drop_na()
 First trimester - Exposure
 ```{r}
 #Urine BPA, Triclosan, Arsenic, OP pesticides, OPFR Specific gravity, 
-df_1 <-read_csv2("E://BBK17//1. BBK17_June10 2022//LAB//MIREC_TEST RESULTS table_codes 001.002.009.013.016.049.054.060.096.097.101//QueryData_code001.csv") |> clean_names()
+df_1 <-read_csv2("E://BBK17//1. BBK17_June10 2022//LAB//MIREC_TEST RESULTS table_codes 001.002.009.013.016.049.054.060.096.097.101//QueryData_code001.csv") |>
+  clean_names() |> 
+  mutate(id_join = str_sub(specimen_bar_code, 1,6))
 
 #Urine: Phthalates
-df_2 <-read_csv2("E://BBK17//1. BBK17_June10 2022//LAB//MIREC_TEST RESULTS table_codes 001.002.009.013.016.049.054.060.096.097.101//QueryData_code002.csv") |> clean_names()
+df_2 <-read_csv2("E://BBK17//1. BBK17_June10 2022//LAB//MIREC_TEST RESULTS table_codes 001.002.009.013.016.049.054.060.096.097.101//QueryData_code002.csv") |> 
+  clean_names() 
+
+#Urine: Creatinine
+df_6 <-read_csv2("E://BBK17//1. BBK17_June10 2022//LAB//MIREC_TEST RESULTS table_codes 001.002.009.013.016.049.054.060.096.097.101//QueryData_code049.csv") |> clean_names()
 
 #Plasma: PBDE, PCB, OC Pesticides
 df_3 <-read_csv2("E://BBK17//1. BBK17_June10 2022//LAB//MIREC_TEST RESULTS table_codes 001.002.009.013.016.049.054.060.096.097.101//QueryData_code009.csv") |> clean_names()
@@ -40,8 +46,17 @@ df_4 <-read_csv2("E://BBK17//1. BBK17_June10 2022//LAB//MIREC_TEST RESULTS table
 #Whole Blood: - metals
 df_5 <-read_csv2("E://BBK17//1. BBK17_June10 2022//LAB//MIREC_TEST RESULTS table_codes 001.002.009.013.016.049.054.060.096.097.101//QueryData_code016.csv") |> clean_names()
 
-#Urine: Creatinine
-df_6 <-read_csv2("E://BBK17//1. BBK17_June10 2022//LAB//MIREC_TEST RESULTS table_codes 001.002.009.013.016.049.054.060.096.097.101//QueryData_code049.csv") |> clean_names()
+```
+
+
+test - organizing exposure data
+```{r}
+dt_work<- df_1[c(2,5,6)] |>
+  filter(!is.na(as.numeric(tests_results_raw_result))) 
+
+dt_test<- dt_work |> pivot_wider(names_from = c(tests_results_test_name),
+                                 values_from = tests_results_raw_result)
+
 
 ```
 

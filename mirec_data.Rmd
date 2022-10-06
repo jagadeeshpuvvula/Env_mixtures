@@ -11,6 +11,7 @@ library(tidyverse)
 library(readxl)
 library(janitor)
 library(skimr)
+library(reshape2)
 ```
 
 Outcome: child 3 Yr scores
@@ -103,9 +104,36 @@ df<- mirec_full[colnames(mirec_full)[var_names]]
 write_csv(df, "E://BBK17//pj//pj_dat//corr.csv")
 
 #load corr dataset for building correlation matrix
+df<- read_csv("E://BBK17//pj//pj_dat//corr.csv")
+
+#exclude ID variable 
+cormat<- round(x=cor(df[2:34], method = "spearman", 
+                     use= "complete.obs"), digits=2) |>
+  melt() |> clean_names()
+
+ggplot(cormat, aes(x=var1, y=var2, fill=value)) +
+  geom_tile(color="white")+
+  scale_fill_gradient(limit=c(-1,1), space= "Lab",
+                      name="Spearman\nCorrelation")+
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, 
+                                   size = 10, hjust = 1))
+
 
 ```
 
+```{r}
+library(heatmaply)
+
+heatmaply_cor(x=cor(df[2:34], method = "spearman", 
+                     use= "complete.obs"),
+              xlab = "Features",
+              ylab = "Features",
+              k_col = 2,
+              k_row = 2)
+ggsave("E://BBK17//pj//pj_dat//corplot.tiff",width=10,dpi=300)
+
+```
 
 
 

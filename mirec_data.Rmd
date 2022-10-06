@@ -17,10 +17,13 @@ Outcome: child 3 Yr scores
 ```{r}
 dt_out<- read_excel("E://BBK17//1. BBK17_June10 2022//DV//2. MIREC-CD Plus STUDY//BBK17_CDPlus_BABY_DVs.xlsx") |> clean_names() 
 
-dt <- dt_out[c(4:45)] |> drop_na()
-
 #123 observations with missing all outcomes 
 skim(dt_out)
+
+#select relevant variables and rename join field
+out_1 <- dt_out[c(1,4:45)] |> 
+  rename(id_join=subject_id)
+
 ```
 
 
@@ -38,7 +41,7 @@ df_1a <- df_1[c(5,6,10)] |>
 num<- names(df_1a[c(2:15)])
 df_1a[num]<- sapply(df_1a[num], as.numeric)
 
-write_csv(df_1a, "E://BBK17//pj//pj_dat//ex_dat1.csv")
+write_csv(df_1a, "E://BBK17//pj//pj_dat//ex_dat6.csv")
 
 #Urine: Phthalates
 df_2 <-read_csv2("E://BBK17//1. BBK17_June10 2022//LAB//MIREC_TEST RESULTS table_codes 001.002.009.013.016.049.054.060.096.097.101//QueryData_code002.csv") 
@@ -58,15 +61,51 @@ df_5 <-read_csv2("E://BBK17//1. BBK17_June10 2022//LAB//MIREC_TEST RESULTS table
 ```
 
 
-test - organizing exposure data
+Join exposure and cotinine, creatinine data
 ```{r}
-dt_work<- df_1[c(2,5,6)] |>
-  filter(!is.na(as.numeric(tests_results_raw_result))) 
+df_1<- read_csv("E://BBK17//pj//pj_dat//ex_dat1.csv")
+df_2<- read_csv("E://BBK17//pj//pj_dat//ex_dat2.csv")
+df_3<- read_csv("E://BBK17//pj//pj_dat//ex_dat3.csv")
+df_4<- read_csv("E://BBK17//pj//pj_dat//ex_dat4.csv")
+df_5<- read_csv("E://BBK17//pj//pj_dat//ex_dat5.csv")
+df_6<- read_csv("E://BBK17//pj//pj_dat//ex_dat6.csv")
 
-dt_test<- dt_work |> pivot_wider(names_from = c(tests_results_test_name),
-                                 values_from = tests_results_raw_result)
 
+x<- df_1 |> 
+  full_join(df_2, by="id_join") |> 
+  full_join(df_3, by="id_join") |> 
+  full_join(df_4, by="id_join") |> 
+  full_join(df_5, by="id_join") |> 
+  full_join(df_6, by="id_join") 
+  
+#all exposures - Visit 3 year 
+write_csv(x, "E://BBK17//pj//pj_dat//exp_all.csv")
+```
+
+
+join 1 trimester exposure with child 3-yr outcome
+```{r}
+exp<- read_csv("E://BBK17//pj//pj_dat//exp_all.csv")
+
+mirec_full<- exp |> full_join(out_1, by="id_join")
 
 
 ```
+
+correlation matrix
+```{r}
+#filter variables that has vales for at least 50% observations
+var_names<- sapply(colnames(mirec_full), function(x) sum(is.na(mirec_full[x])) 
+             < nrow(mirec_full)/2)
+
+#subset of 34 out of 114 variables
+df<- mirec_full[colnames(mirec_full)[var_names]]
+write_csv(df, "E://BBK17//pj//pj_dat//corr.csv")
+
+#load corr dataset for building correlation matrix
+
+```
+
+
+
 

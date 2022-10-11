@@ -75,31 +75,79 @@ dt_out<- read_csv("/Users/jpuvvula/Documents/out3_id.csv")
 #In long format - Need to be converted to wide
 
 # BLOOD 216
-bl_cd<- read_sas("/Users/jpuvvula/Documents/data/bcd.sas7bdat") |> filter(Visit=="M36")
-bl_pb<- read_sas("/Users/jpuvvula/Documents/data/bpb.sas7bdat") |> filter(Visit=="16W")
+bl_cd<- read_sas("/Users/jpuvvula/Documents/data/bcd.sas7bdat") |>
+  clean_names()
+
+bl_pb<- read_sas("/Users/jpuvvula/Documents/data/bpb.sas7bdat") |>
+  clean_names()
+
 thg <- read_sas("/Users/jpuvvula/Documents/data/thg.sas7bdat")  |> 
-  filter(Visit=="16W") |>
   clean_names()# blood Hg
 
-dat_bld <- rbind(bl_cd, bl_pb, thg)
-write_csv(dat_bld, "/Users/jpuvvula/Documents/data/working/dat_bld.csv")
-
 # SERUM
-oc_pest<- read_sas("/Users/jpuvvula/Documents/data/ocpest.sas7bdat") |> filter(Visit=="M36")
-pbde<- read_sas("/Users/jpuvvula/Documents/data/pbde.sas7bdat") |> filter(Visit=="M36")
-pcb<- read_sas("/Users/jpuvvula/Documents/data/pcb.sas7bdat") |> filter(Visit=="M36")
-pfas<- read_sas("/Users/jpuvvula/Documents/data/pfas.sas7bdat") |> filter(Visit=="M36")
-ct <- read_sas("/Users/jpuvvula/Documents/data/ct.sas7bdat") |> filter(Visit=="M36")
+
+############ OC Pest ###########
+oc_pest<- read_sas("/Users/jpuvvula/Documents/data/ocpest.sas7bdat") |> 
+  clean_names() 
+
+oc_pest$flg_lod_lp<- replace_na(oc_pest$flg_lod_lp, 1)
+
+dat<- oc_pest |>
+  group_by(analyte_grp, analyte_code, visit) |>
+  summarise(tested=n(),
+            bel_lod= sum(flg_lod_lp)) |>
+  mutate(pct_lod= round((bel_lod/tested)*100,2))
+
+###############
+
+pbde<- read_sas("/Users/jpuvvula/Documents/data/pbde.sas7bdat") |> clean_names()
+
+pbde$flg_lod_lp<- replace_na(pbde$flg_lod_lp, 1)
+
+dat<- pbde |>
+  group_by(analyte_grp, analyte_code, visit) |>
+  summarise(tested=n(),
+            bel_lod= sum(flg_lod_lp)) |>
+  mutate(pct_lod= round((bel_lod/tested)*100,2))
+####################
+
+pcb<- read_sas("/Users/jpuvvula/Documents/data/pcb.sas7bdat") |> clean_names()
+
+pcb$flg_lod_lp<- replace_na(pcb$flg_lod_lp, 1)
+
+dat<- pcb |>
+  group_by(analyte_grp, analyte_code, visit) |>
+  summarise(tested=n(),
+            bel_lod= sum(flg_lod_lp)) |>
+  mutate(pct_lod= round((bel_lod/tested)*100,2))
+######################
+
+#pfas and ct doesnt have missing values flagging obs below LOD
+pfas<- read_sas("/Users/jpuvvula/Documents/data/pfas.sas7bdat") |> clean_names()
+ct <- read_sas("/Users/jpuvvula/Documents/data/ct.sas7bdat") |> clean_names()
 
 # URINE
-arse<- read_sas("/Users/jpuvvula/Documents/data/ars_i_cd.sas7bdat") |> filter(Visit=="M36")
-fr<- read_sas("/Users/jpuvvula/Documents/data/fr.sas7bdat") |> filter(Visit=="M36")
-op_pest<- read_sas("/Users/jpuvvula/Documents/data/op.sas7bdat") |> filter(Visit=="M36")
-pheno<- read_sas("/Users/jpuvvula/Documents/data/phen.sas7bdat") |> filter(Visit=="M36")
-bpa<- read_sas("/Users/jpuvvula/Documents/data/phthbpa.sas7bdat") |> filter(Visit=="M36")
-pyre<- read_sas("/Users/jpuvvula/Documents/data/pyr.sas7bdat") |> filter(Visit=="M36")
+arse<- read_sas("/Users/jpuvvula/Documents/data/ars_i_cd.sas7bdat") |> clean_names()
+opfr<- read_sas("/Users/jpuvvula/Documents/data/fr.sas7bdat") |> clean_names()
 
+pheno<- read_sas("/Users/jpuvvula/Documents/data/phen.sas7bdat") |> clean_names()
+bpa<- read_sas("/Users/jpuvvula/Documents/data/phthbpa.sas7bdat") |> clean_names()
+pyre<- read_sas("/Users/jpuvvula/Documents/data/pyr.sas7bdat") |> clean_names()
+
+
+op_pest<- read_sas("/Users/jpuvvula/Documents/data/op.sas7bdat") |> clean_names()
+op_pest$flg_lod<- replace_na(op_pest$flg_lod, 1)
 ```
+
+```{r}
+dat<- pyre |>
+  group_by(analyte_grp, analyte_code, visit) |>
+  summarise(tested=n(),
+            bel_lod= sum(flg_lod)) |>
+  mutate(pct_lod= round((bel_lod/tested)*100,2))
+```
+
+
 
 Processing exposure data
 ```{r}

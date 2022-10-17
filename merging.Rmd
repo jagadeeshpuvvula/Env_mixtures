@@ -75,7 +75,7 @@ dt_out<- read_csv("/Users/jpuvvula/Documents/out3_id.csv")
 #In long format - Need to be converted to wide
 
 # BLOOD 216
-bl_cd<- read_sas("/Users/jpuvvula/Documents/data/bcd.sas7bdat") |>
+#bl_cd<- read_sas("/Users/jpuvvula/Documents/data/bcd.sas7bdat") |>
   clean_names()
 
 bl_pb<- read_sas("/Users/jpuvvula/Documents/data/bpb.sas7bdat") |>
@@ -130,7 +130,9 @@ ct <- read_sas("/Users/jpuvvula/Documents/data/ct.sas7bdat") |> clean_names()
 arse<- read_sas("/Users/jpuvvula/Documents/data/ars_i_cd.sas7bdat") |> clean_names()
 opfr<- read_sas("/Users/jpuvvula/Documents/data/fr.sas7bdat") |> clean_names()
 
+#flag lod if result is 0
 pheno<- read_sas("/Users/jpuvvula/Documents/data/phen.sas7bdat") |> clean_names()
+
 bpa<- read_sas("/Users/jpuvvula/Documents/data/phthbpa.sas7bdat") |> clean_names()
 pyre<- read_sas("/Users/jpuvvula/Documents/data/pyr.sas7bdat") |> clean_names()
 
@@ -154,7 +156,7 @@ Processing exposure data
 #For Cotinine only (take values from result or from result machine)
 ct$Result <- ifelse(is.na(ct$Result), ct$Result_Machine, ct$Result)
 
-#create average for multiple entries [imputing average values]
+#create average for multiple entries [replacing with average values]
 #Use for PFAS and Cotinine only
 dt_imp<- pfas |> 
   group_by(SubjectID, Visit, Analyte_Code) |>
@@ -171,11 +173,4 @@ dt_out <-dt |>
 
 write_csv(dt_out, "con.csv")
 ```
-
-Single imputation using fill-in method
-```{r}
-
-
-```
-
 

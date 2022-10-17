@@ -6,12 +6,7 @@ library(truncnorm)
 select <- dplyr::select
 rename <- dplyr::rename
 
-
-labres <- read_sas("/Users/jpuvvula/Documents/data/thg.sas7bdat")  |> 
-  filter(Visit=="16W") |>
-  clean_names()# blood Hg
-
-#### Dont functions below for HOME cohort
+####imputation function for HOME cohort
 fLOD <- function(result, meanlog2, sdlog2){ 
   impute <- rtruncnorm(1, b=log2(result), mean=meanlog2, sd=sdlog2) 
   return(impute) 
@@ -19,8 +14,8 @@ fLOD <- function(result, meanlog2, sdlog2){
 
 impute <- function(data, dist_data, name, short_name) {
   name <- as.character(name)
-  meanlog2 <- dist_data$meanlog2[dist_data$analyte_code == name]
-  sdlog2 <- dist_data$sdlog2[dist_data$analyte_code == name]
+  meanlog2 <- dist_data$meanlog2[dist_data$test.name == name]
+  sdlog2 <- dist_data$sdlog2[dist_data$test.name == name]
   
   data1 <- data %>% # make an updated dataset with a new column coresponding to the imputed data. 
     mutate(log2.imputed = ifelse(data$flg_lod==1, # if row is flagged for being below the LOD
@@ -46,16 +41,33 @@ impute <- function(data, dist_data, name, short_name) {
 ################ Function ends here #############
 
 #Impute values from data
-labres$result <- ifelse(labres$flg_lod==1, labres$analyte_lod/sqrt(2), labres$result)
+
+labres$result <- ifelse(labres$flg_lod==1, labres$analyte_lod/sqrt(2), 
+                        labres$result)
 labres <-  mutate(labres, log2.result = log2(labres$result)) 
 
-LODmeansd.all <- labres %>% 
-  group_by(analyte_code, visit) %>% 
-  summarise(meanlog2 = mean(log2.result, na.rm= TRUE), sdlog2 = sd(log2.result, na.rm=TRUE))
+LODmeansd.all <- labres |>
+  group_by(analyte_code, visit) |> 
+  summarise(meanlog2 = mean(log2.result, na.rm= TRUE), 
+            sdlog2 = sd(log2.result, na.rm=TRUE)) |>
+              mutate(test.name = (paste0(analyte_code, ".t", visit)))
 
-labres$result <- ifelse(labres$flg_lod==1, labres$result*(2/sqrt(2)), labres$result) 
+labres$result <- ifelse(labres$flg_lod==1, labres$result*(2/sqrt(2)), 
+                        labres$result) 
 labres$log2.result <- log2(labres$result) 
 
+###############################################################################
+#repeat per analyte per visit
+dat <- labres |> 
+  filter(analyte_code == "BP-3") |> 
+  filter(visit == "M12")
+
 set.seed(1010)
-labres$thg_imp <- impute(labres, LODmeansd.all, "THG", "thg.imp") 
+dat <- impute(dat, LODmeansd.all, "BP-3.tM12", "result")
+###############################################################################
+dat <- dat|>
+  mutate(visit="m12") |>
+  mutate(analyte="bp3")
+
+write_csv(dat[c(1,3:5)], "/Users/jpuvvula/Documents/data/imputed/bp3_m12.csv")
 ###############################################################################

@@ -59,15 +59,15 @@ labres$log2.result <- log2(labres$result)
 ###############################################################################
 #repeat per analyte per visit
 dat <- labres |> 
-  filter(analyte_code == "BP-3") |> 
-  filter(visit == "M12")
+  filter(analyte_code == "TCS") |> 
+  filter(visit == "M24")
 
 set.seed(1010)
-dat <- impute(dat, LODmeansd.all, "BP-3.tM12", "result")
+dat <- impute(dat, LODmeansd.all, "TCS.tM24", "result")
 ###############################################################################
 dat <- dat|>
-  mutate(visit="m12") |>
-  mutate(analyte="bp3")
+  mutate(visit="M24") |>
+  mutate(analyte="tcs")
 
-write_csv(dat[c(1,3:5)], "/Users/jpuvvula/Documents/data/imputed/bp3_m12.csv")
+write_csv(dat[c(1,3:5)], "/Users/jpuvvula/Documents/data/imputed/tcs_m24.csv")
 ###############################################################################

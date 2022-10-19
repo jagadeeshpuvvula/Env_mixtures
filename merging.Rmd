@@ -72,71 +72,53 @@ dt_out<- read_csv("/Users/jpuvvula/Documents/out3_id.csv")
 
 #reading SAS data
 ############### EXPOSURES ####################################
-#In long format - Need to be converted to wide
 
-# BLOOD 216
-#bl_cd<- read_sas("/Users/jpuvvula/Documents/data/bcd.sas7bdat") |>
-  clean_names()
-
-bl_pb<- read_sas("/Users/jpuvvula/Documents/data/bpb.sas7bdat") |>
-  clean_names()
-
-thg <- read_sas("/Users/jpuvvula/Documents/data/thg.sas7bdat")  |> 
-  clean_names()# blood Hg
+#BLOOD
+bl_cd<- read_sas("/Users/jpuvvula/Documents/data/bcd.sas7bdat") |> clean_names()
+bl_pb<- read_sas("/Users/jpuvvula/Documents/data/bpb.sas7bdat") |> clean_names()
+thg <- read_sas("/Users/jpuvvula/Documents/data/thg.sas7bdat") |> clean_names()
 
 # SERUM
-
 ############ OC Pest ###########
+#remove observations if flg_lod is NA for OP,OC,PBDE
 oc_pest<- read_sas("/Users/jpuvvula/Documents/data/ocpest.sas7bdat") |> 
   clean_names() 
-
-oc_pest$flg_lod_lp<- replace_na(oc_pest$flg_lod_lp, 1)
-
+#removing flg_lod = NA
+labres<-filter(oc_pest, complete.cases(flg_lod_lp))
+#summary stats
 dat<- oc_pest |>
   group_by(analyte_grp, analyte_code, visit) |>
   summarise(tested=n(),
             bel_lod= sum(flg_lod_lp)) |>
   mutate(pct_lod= round((bel_lod/tested)*100,2))
-
-###############
-
+####################
 pbde<- read_sas("/Users/jpuvvula/Documents/data/pbde.sas7bdat") |> clean_names()
 
-pbde$flg_lod_lp<- replace_na(pbde$flg_lod_lp, 1)
-
-dat<- pbde |>
-  group_by(analyte_grp, analyte_code, visit) |>
-  summarise(tested=n(),
-            bel_lod= sum(flg_lod_lp)) |>
-  mutate(pct_lod= round((bel_lod/tested)*100,2))
 ####################
-
 pcb<- read_sas("/Users/jpuvvula/Documents/data/pcb.sas7bdat") |> clean_names()
 
-pcb$flg_lod_lp<- replace_na(pcb$flg_lod_lp, 1)
-
-dat<- pcb |>
-  group_by(analyte_grp, analyte_code, visit) |>
-  summarise(tested=n(),
-            bel_lod= sum(flg_lod_lp)) |>
-  mutate(pct_lod= round((bel_lod/tested)*100,2))
 ######################
-
 #pfas and ct doesnt have missing values flagging obs below LOD
 pfas<- read_sas("/Users/jpuvvula/Documents/data/pfas.sas7bdat") |> clean_names()
 ct <- read_sas("/Users/jpuvvula/Documents/data/ct.sas7bdat") |> clean_names()
 
 # URINE
+###########################################################
+###########################################################
 arse<- read_sas("/Users/jpuvvula/Documents/data/ars_i_cd.sas7bdat") |> clean_names()
+
+arse$visit<-"16W" 
+
+#check duplicates by subject per visit per analyte
+arse_dat |> group_by(subject_id, visit) |> filter(n()>1)
+
+###########################################################
+###########################################################
+
 opfr<- read_sas("/Users/jpuvvula/Documents/data/fr.sas7bdat") |> clean_names()
-
-#flag lod if result is 0
 pheno<- read_sas("/Users/jpuvvula/Documents/data/phen.sas7bdat") |> clean_names()
-
 bpa<- read_sas("/Users/jpuvvula/Documents/data/phthbpa.sas7bdat") |> clean_names()
 pyre<- read_sas("/Users/jpuvvula/Documents/data/pyr.sas7bdat") |> clean_names()
-
-
 op_pest<- read_sas("/Users/jpuvvula/Documents/data/op.sas7bdat") |> clean_names()
 op_pest$flg_lod<- replace_na(op_pest$flg_lod, 1)
 ```

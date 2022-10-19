@@ -1,4 +1,3 @@
-
 library(tidyverse)
 library(haven)
 library(janitor)
@@ -6,7 +5,14 @@ library(truncnorm)
 select <- dplyr::select
 rename <- dplyr::rename
 
-####imputation function for HOME cohort
+#Load data
+labres<- read_sas("/Users/jpuvvula/Documents/data/ars_i_cd.sas7bdat") |> clean_names()
+#count by analyte
+summary(factor(labres$analyte_code))
+
+####imputation function for HOME cohort #############
+#################################################################################
+#################################################################################
 fLOD <- function(result, meanlog2, sdlog2){ 
   impute <- rtruncnorm(1, b=log2(result), mean=meanlog2, sd=sdlog2) 
   return(impute) 
@@ -39,6 +45,8 @@ impute <- function(data, dist_data, name, short_name) {
   return(data2)
 }
 ################ Function ends here #############
+#################################################################################
+#################################################################################
 
 #Impute values from data
 
@@ -59,15 +67,15 @@ labres$log2.result <- log2(labres$result)
 ###############################################################################
 #repeat per analyte per visit
 dat <- labres |> 
-  filter(analyte_code == "TCS") |> 
-  filter(visit == "M24")
+  filter(analyte_code == "I") |> 
+  filter(visit == "16W")
 
 set.seed(1010)
-dat <- impute(dat, LODmeansd.all, "TCS.tM24", "result")
+dat <- impute(dat, LODmeansd.all, "I.t16W", "result")
 ###############################################################################
 dat <- dat|>
-  mutate(visit="M24") |>
-  mutate(analyte="tcs")
+  mutate(visit="16w") |>
+  mutate(analyte="i")
 
-write_csv(dat[c(1,3:5)], "/Users/jpuvvula/Documents/data/imputed/tcs_m24.csv")
+write_csv(dat[c(1,3:5)], "/Users/jpuvvula/Documents/data/imputed/i_16w.csv")
 ###############################################################################

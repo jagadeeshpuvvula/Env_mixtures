@@ -30,7 +30,20 @@ out_1 <- dt_out[c(1,4:45)] |>
 
 First trimester - Exposure
 ```{r}
-#Urine BPA, Triclosan, Arsenic, OP pesticides, OPFR Specific gravity, 
+#BPA triclosan
+labres<- read_csv2("E://BBK17//1. BBK17_June10 2022//LAB/MIREC_RESEARCHERS RESULTS table_code 001//QueryData_code001.csv") |>
+  clean_names() |>
+  rename(tests_results_test_name = researcher_results_test_name,
+         tests_results_raw_result =researcher_results_raw_result)
+
+#Phthalates
+labres<- read_csv2("E://BBK17/2. BBK17_pending lab tests_July19 2022//LAB//MIREC_MICROALIQOUT RESULTS table code 001-01.001-03//QueryData_code 001-01.csv") |>
+  clean_names()|>
+  rename(tests_results_test_name = micro_aliquot_tests_results_test_name,
+         tests_results_raw_result =micro_aliquot_tests_results_raw_result)
+
+
+#Urine Arsenic, OP pesticides, OPFR Specific gravity, 
 df_1 <-read_csv2("E://BBK17//1. BBK17_June10 2022//LAB//MIREC_TEST RESULTS table_codes 001.002.009.013.016.049.054.060.096.097.101//QueryData_code001.csv") |>
   clean_names() |> 
   mutate(id_join = str_sub(specimen_bar_code, 1,6))
@@ -58,6 +71,13 @@ df_4 <-read_csv2("E://BBK17//1. BBK17_June10 2022//LAB//MIREC_TEST RESULTS table
 
 #Whole Blood: - metals
 df_5 <-read_csv2("E://BBK17//1. BBK17_June10 2022//LAB//MIREC_TEST RESULTS table_codes 001.002.009.013.016.049.054.060.096.097.101//QueryData_code016.csv") |> clean_names()
+
+
+#OPFR
+labres<- read_csv2("E://BBK17/2. BBK17_pending lab tests_July19 2022//LAB//MIREC_MICROALIQOUT RESULTS table code 001-01.001-03//QueryData_code001-03.csv") |>
+    clean_names()|>
+    rename(tests_results_test_name = micro_aliquot_tests_results_test_name,
+           tests_results_raw_result =micro_aliquot_tests_results_raw_result)
 
 ```
 

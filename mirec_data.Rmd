@@ -27,21 +27,49 @@ out_1 <- dt_out[c(1,4:45)] |>
 
 ```
 
+1.677∗(total cholest − free cholest) + free cholest + triglyceri + phospholip
+
 
 First trimester - Exposure
 ```{r}
-#BPA triclosan
-labres<- read_csv2("E://BBK17//1. BBK17_June10 2022//LAB/MIREC_RESEARCHERS RESULTS table_code 001//QueryData_code001.csv") |>
+#BPA triclosan (removing not reported records)
+dat<- read_csv2("E://BBK17//1. BBK17_June10 2022//LAB/MIREC_RESEARCHERS RESULTS table_code 001//QueryData_code001.csv") |>
   clean_names() |>
-  rename(tests_results_test_name = researcher_results_test_name,
-         tests_results_raw_result =researcher_results_raw_result)
+  rename(tests_results_raw_result =researcher_results_raw_result) |>
+  filter(complete.cases(researcher_results_unit_set))
+
+dat$tests_results_test_name<- str_extract(dat$researcher_results_test_name, "^.{3}")
+
+dat$tests_results_raw_result<-as.numeric(dat$tests_results_raw_result)
+
+labres <- dat |> 
+  group_by(specimen_bar_code, tests_results_test_name) |>
+  summarise_at(vars("tests_results_raw_result"), sum)
+
+labres<- labres |> mutate(flg_lod = case_when((
+  tests_results_test_name=="BPA" & tests_results_raw_result<0.11) ~ "1",
+  (tests_results_test_name=="BPA" & tests_results_raw_result>=0.11) ~ "0",
+  (tests_results_test_name=="TRI" & tests_results_raw_result<0.12) ~ "1",
+  (tests_results_test_name=="TRI" & tests_results_raw_result>=0.12) ~ "0")) |>
+  filter(complete.cases(flg_lod))
+  
+
+dat$tests_results_test_name<- str_extract(dat$researcher_results_test_name, "^.{3}")
+
+labres <- dat |> 
+  group_by(specimen_bar_code, tests_results_test_name) |>
+  summarise_at(vars("tests_results_raw_result"), sum)
+
+x<-labres |> group_by(tests_results_test_name, flg_lod) |>
+  summarise(tested=n())
+
+
 
 #Phthalates
 labres<- read_csv2("E://BBK17/2. BBK17_pending lab tests_July19 2022//LAB//MIREC_MICROALIQOUT RESULTS table code 001-01.001-03//QueryData_code 001-01.csv") |>
   clean_names()|>
   rename(tests_results_test_name = micro_aliquot_tests_results_test_name,
          tests_results_raw_result =micro_aliquot_tests_results_raw_result)
-
 
 #Urine Arsenic, OP pesticides, OPFR Specific gravity, 
 df_1 <-read_csv2("E://BBK17//1. BBK17_June10 2022//LAB//MIREC_TEST RESULTS table_codes 001.002.009.013.016.049.054.060.096.097.101//QueryData_code001.csv") |>

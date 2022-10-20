@@ -46,13 +46,9 @@ impute <- function(data, dist_data, name, short_name) {
 ###############################################################################
 ###############################################################################
 
-# Create a new column in labres which acts as a flag: indicates whether or not a lab result value is is BELOW the LOD
 labres <- mutate(labres, lod.flag = ifelse((substr(labres$tests_results_raw_result,1,1) == "<"), 1, 0))
-
-# removing the "<" (this code actually removes all symbols except for ".") 
 labres$test.result <- str_replace_all(labres$tests_results_raw_result, "[^[:alnum:]\\.\\s]","")
 
-## Step 3: Dividing test results below the LOD by sqrt(2)
 labres$test.result <- as.numeric(labres$test.result)
 labres$test.result <- ifelse(labres$lod.flag==1, labres$test.result/sqrt(2), 
                              labres$test.result)
@@ -66,29 +62,16 @@ summ<- labres |>
             bel_lod= sum(lod.flag)) |>
   mutate(pct_lod= round((bel_lod/tested)*100,2))
 
-write_csv(summ, "E://BBK17//pj//imputed_data//summ.csv")
 
-
-##Step 4: Make a new column in the labres dataframe representing the log (base 2) of the test results data
 labres <-  mutate(labres, log2.test.result = log2(labres$test.result)) 
 
-
-##Step 5: Making a new dataframe with columns for each chemicals' log2(mean) and log2(sd). 
-#Information used in imputation later
 LODmeansd.all <- labres %>% 
   group_by(tests_results_test_name) %>% 
   summarise(meanlog2 = mean(log2.test.result, na.rm= TRUE), 
             sdlog2 = sd(log2.test.result, na.rm=TRUE)) %>% 
   mutate(test.name = (tests_results_test_name))
 
-##Step 6: Undo step 3
-#This step is necessary because I will need to have the correct test.result value 
-#in flagged rows. If not, there will be problems performing the imputation. As we will see, 
-#the test.result value is the upper limit for imputation, so if the test.result value is wrong, 
-#imputation will be wrong. 
 
-
-#fix test.result values for flagged rows:
 labres$test.result <- ifelse(labres$lod.flag==1, labres$test.result*(2/sqrt(2)), 
                              labres$test.result) 
 labres$log2.test.result <- log2(labres$test.result) 
@@ -96,17 +79,18 @@ labres$log2.test.result <- log2(labres$test.result)
 ## Step 7: Complete the imputation for each chemical, and store the 
 #results in a dataset for each individual chemical/ timepoint.  
 
-analyte<-"CRE-KC"
+analyte<-"DPhPUR"
 
-dat <- labres %>%
+dat <- labres |>
   filter(tests_results_test_name == analyte)
 
 set.seed(1010) 
-result <- impute(dat, LODmeansd.all, analyte, "result") 
+dat <- impute(dat, LODmeansd.all, analyte, "result") 
 
-result<- result |>
+dat<- dat |>
   rename(subject_id=specimen_bar_code) |>
   mutate(visit="12w") |>
-  mutate(analyte=analyte)
+  mutate(analyte="DPhP") |>
+  drop_na()
 
-write_csv(result[c(1,3:5)], "E://BBK17//pj//imputed_data//CRE-KC.csv")
+write_csv(dat[c(1,3:5)], "E://BBK17//pj//imputed_data//DPhP.csv")

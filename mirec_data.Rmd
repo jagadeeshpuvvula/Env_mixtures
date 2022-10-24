@@ -16,6 +16,14 @@ library(reshape2)
 
 Outcome: child 3 Yr scores
 ```{r}
+#parent: SRS-2
+#child: NEPSY, and WPPSI-3
+
+dat<-  read_csv("E:/BBK17/1. BBK17_June10 2022/CRF/2. MIREC-CD Plus STUDY/Data/NDEV.csv") |> clean_names() 
+wppsi<- dat[c(1,2,11,13:48)] |>
+  as.numeric(c(3:35))
+
+
 dt_out<- read_excel("E://BBK17//1. BBK17_June10 2022//DV//2. MIREC-CD Plus STUDY//BBK17_CDPlus_BABY_DVs.xlsx") |> clean_names() 
 
 #123 observations with missing all outcomes 
@@ -26,8 +34,6 @@ out_1 <- dt_out[c(1,4:45)] |>
   rename(id_join=subject_id)
 
 ```
-
-1.677∗(total cholest − free cholest) + free cholest + triglyceri + phospholip
 
 
 First trimester - Exposure
@@ -108,6 +114,40 @@ labres<- read_csv2("E://BBK17/2. BBK17_pending lab tests_July19 2022//LAB//MIREC
            tests_results_raw_result =micro_aliquot_tests_results_raw_result)
 
 ```
+
+Creatinine adjustment = analyte concentration / creatinine concentration
+lipid adjustment = (analyte concentration / lipid level)*102.6
+
+```{r}
+cre<- read_csv("E://BBK17/pj//imputed_data//CRE.csv")
+cre$join_id<- str_extract(cre$subject_id,  "^.{8}")
+
+dt<- read_csv("E://BBK17/pj//imputed_data//DMTPUR.csv") 
+dt$join_id<- str_extract(dt$subject_id,  "^.{8}")
+dat<- inner_join(dt,cre, by="join_id")
+
+dat$dmtp_cr <- (dat$result.res.x/dat$result.res.y)
+dat<- dat[c(1,2,10)] |> rename(dmtp = result.res.x) |>
+  pivot_longer(!subject_id.x, names_to = "analyte", values_to = "conc")
+
+write_csv(dat, "E://BBK17/pj//imputed_data//cre_adj//dmtp.csv")
+
+############ for DDE, PBDE, PCB, PFAS ############
+lipi<-  read_csv("E://BBK17/pj//imputed_data//LIPIPL.csv") 
+lipi$join_id<- str_extract(lipi$subject_id,  "^.{8}") 
+
+dt <- read_csv("E://BBK17/pj//imputed_data//PFOSPL.csv") 
+dt$join_id<- str_extract(dt$subject_id,  "^.{8}")
+dat<- inner_join(dt,lipi, by="join_id")
+ 
+dat$pfos_lp <- (dat$result.res.x/dat$result.res.y)*102.6
+dat<- dat[c(1,2,10)] |> rename(pfos = result.res.x) |>
+  pivot_longer(!subject_id.x, names_to = "analyte", values_to = "conc")
+
+write_csv(dat, "E://BBK17/pj//imputed_data//lipi_adj//pfos.csv")
+
+```
+
 
 
 Join exposure and cotinine, creatinine data

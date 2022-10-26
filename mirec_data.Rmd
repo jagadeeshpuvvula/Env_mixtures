@@ -122,21 +122,21 @@ lipid adjustment = (analyte concentration / lipid level)*102.6
 cre<- read_csv("E://BBK17/pj//imputed_data//CRE.csv")
 cre$join_id<- str_extract(cre$subject_id,  "^.{8}")
 
-dt<- read_csv("E://BBK17/pj//imputed_data//DMTPUR.csv") 
+dt<- read_csv("E://BBK17/pj//imputed_data//COTISE.csv") 
 dt$join_id<- str_extract(dt$subject_id,  "^.{8}")
 dat<- inner_join(dt,cre, by="join_id")
 
-dat$dmtp_cr <- (dat$result.res.x/dat$result.res.y)
-dat<- dat[c(1,2,10)] |> rename(dmtp = result.res.x) |>
+dat$cotinine_cr <- (dat$result.res.x/dat$result.res.y)
+dat<- dat[c(1,2,10)] |> rename(cotinine = result.res.x) |>
   pivot_longer(!subject_id.x, names_to = "analyte", values_to = "conc")
 
-write_csv(dat, "E://BBK17/pj//imputed_data//cre_adj//dmtp.csv")
+write_csv(dat, "E://BBK17/pj//imputed_data//cre_adj//cotinine.csv")
 
 ############ for DDE, PBDE, PCB, PFAS ############
 lipi<-  read_csv("E://BBK17/pj//imputed_data//LIPIPL.csv") 
 lipi$join_id<- str_extract(lipi$subject_id,  "^.{8}") 
 
-dt <- read_csv("E://BBK17/pj//imputed_data//PFOSPL.csv") 
+dt <- read_csv("E://BBK17/pj//imputed_data//PCB118.csv") 
 dt$join_id<- str_extract(dt$subject_id,  "^.{8}")
 dat<- inner_join(dt,lipi, by="join_id")
  
@@ -148,28 +148,48 @@ write_csv(dat, "E://BBK17/pj//imputed_data//lipi_adj//pfos.csv")
 
 ```
 
-
-
-Join exposure and cotinine, creatinine data
+Converting all exposures to long format - join
 ```{r}
-df_1<- read_csv("E://BBK17//pj//pj_dat//ex_dat1.csv")
-df_2<- read_csv("E://BBK17//pj//pj_dat//ex_dat2.csv")
-df_3<- read_csv("E://BBK17//pj//pj_dat//ex_dat3.csv")
-df_4<- read_csv("E://BBK17//pj//pj_dat//ex_dat4.csv")
-df_5<- read_csv("E://BBK17//pj//pj_dat//ex_dat5.csv")
-df_6<- read_csv("E://BBK17//pj//pj_dat//ex_dat6.csv")
+dat<- read_csv("E://BBK17/pj//imputed_data//HGSG.csv") 
+dat<- dat[c(1,2)] |> rename(hg = result.res) |>
+  pivot_longer(!subject_id, names_to = "analyte", values_to = "conc")
 
-
-x<- df_1 |> 
-  full_join(df_2, by="id_join") |> 
-  full_join(df_3, by="id_join") |> 
-  full_join(df_4, by="id_join") |> 
-  full_join(df_5, by="id_join") |> 
-  full_join(df_6, by="id_join") 
-  
-#all exposures - Visit 3 year 
-write_csv(x, "E://BBK17//pj//pj_dat//exp_all.csv")
+write_csv(dat, "E://BBK17/pj//imputed_data//merging//hg.csv")
 ```
+
+
+
+Merging exposures to long format
+```{r}
+file_names<- list.files(path= "E://BBK17//pj//imputed_data//merging",
+                        recursive = T,
+                        pattern = "\\.csv$",
+                        full.names = T)
+
+dat<- read_csv(file_names)
+
+write_csv(dat, "E://BBK17//pj//mirec_exposure_fin.csv")
+
+######## Exposure data summary ####################
+geomean <- function(x, na.rm = T, trim = 0, ...) 
+  { exp(mean(log(x, ...), na.rm = na.rm, trim = trim, ...)) }
+
+geosd <- function(x, na.rm = T, ...)
+  { exp(sd(log(x, ...), na.rm = na.rm, ...)) }
+
+dat_summ<- dat |> 
+  group_by(analyte) |>
+  summarise(no_obs= n(), pct_miss=(mean(is.na(conc))*100),
+            geometric_mean = geomean(conc), geometric_SD = geosd(conc),
+            arithmatic_mean=mean((conc), na.rm=T), arithmatic_std=sd((conc), na.rm = T),
+            median = median((conc), na.rm = T), q25 = quantile(conc, .25, na.rm=T),
+            q75 = quantile(conc, .75, na.rm=T)) |>
+  mutate_if(is.numeric, round, 3)
+
+write_csv(dat_summ, "E://BBK17//pj//mirec_exposure_summary.csv")
+
+```
+
 
 
 join 1 trimester exposure with child 3-yr outcome

@@ -18,11 +18,17 @@ Filter outcome data by year of child visit
 ```{r}
 ################## OUTCOME ###############################
 # In wide format
-dt_outcome<- read_sas("/Users/jpuvvula/Documents/data/outcomes.sas7bdat")
+dt_outcome<- read_sas("/Users/jpuvvula/Documents/data/outcomes.sas7bdat")|> 
+  filter(Visit == "M36")
 
 #subset for age 3 years (263 obs.)
-dat<- dt_outcome[c(1,2,16:18,20,21,23:26,30, 34:40,42:44,46:55,60:63)] |> 
-  filter(Visit == "M36")
+dat<- dt_outcome[c(1,16:18,20,21,23:26,30, 34:40,42:44,46:55,60:63)] 
+
+dat<- dat|> rename(subject_id = SubjectID) |>
+  pivot_longer(!subject_id, names_to = "analyte", values_to = "conc")
+dat$category = "outcome"
+
+write_csv(dat, "/Users/jpuvvula/Documents/data/home_16w_imp/mirec_transf/outcome.csv")
 
 #236 obs with all values
 dt<- dat |> drop_na()
@@ -55,7 +61,15 @@ gg_miss_upset(dat, nsets=20, nintersects=NA)
 ```{r}
 ################# COVARIATES #############################
 # In wide format
-dt_cov <- read_sas("/Users/jpuvvula/Documents/data/covariates.sas7bdat")
+dt_cov <- read_sas("/Users/jpuvvula/Documents/data/covariates.sas7bdat") |> 
+  filter(Visit == "M36")
+
+
+dat<- dat|> rename(subject_id = SubjectID) |>
+  pivot_longer(!subject_id, names_to = "analyte", values_to = "conc")
+dat$category = "outcome"
+
+write_csv(dat, "/Users/jpuvvula/Documents/data/home_16w_imp/mirec_transf/outcome.csv")
 
 dat<- left_join(dt_out, dt_cov, by="SubjectID")
 
@@ -65,11 +79,8 @@ dat[cat] <- lapply(dat[cat], factor)
 skim(dat)
 ```
 
-
+Exposure data
 ```{r}
-#using outcome subjectID as filter
-dt_out<- read_csv("/Users/jpuvvula/Documents/out3_id.csv")
-
 #reading SAS data
 ############### EXPOSURES ####################################
 
@@ -83,6 +94,7 @@ thg <- read_sas("/Users/jpuvvula/Documents/data/thg.sas7bdat") |> clean_names()
 #remove observations if flg_lod is NA for OP,OC,PBDE
 oc_pest<- read_sas("/Users/jpuvvula/Documents/data/ocpest.sas7bdat") |> 
   clean_names() 
+
 #removing flg_lod = NA
 labres<-filter(oc_pest, complete.cases(flg_lod_lp))
 #summary stats
@@ -131,8 +143,6 @@ dat<- pyre |>
   mutate(pct_lod= round((bel_lod/tested)*100,2))
 ```
 
-
-
 Processing exposure data
 ```{r}
 #For Cotinine only (take values from result or from result machine)
@@ -154,5 +164,61 @@ dt_out <-dt |>
   skim()
 
 write_csv(dt_out, "con.csv")
+```
+
+Creatnine adjustment  
+```{r}
+cre<- read_csv("/Users/jpuvvula/Documents/data/home_16w_imp/creat_sg.csv") |>
+  filter(visit=="16W")
+
+dt<- read_csv("/Users/jpuvvula/Documents/data/home_16w_imp/DMA_16w.csv") 
+
+dat<- inner_join(dt,cre, by="subject_id")
+
+dat$dma_cr <- (dat$result.res/dat$creat)
+dat<- dat[c(1,2,8)] |> rename(dma = result.res) |>
+  pivot_longer(!subject_id, names_to = "analyte", values_to = "conc")
+
+write_csv(dat, "/Users/jpuvvula/Documents/data/home_16w_imp/mirec_transf/dmaa.csv")
+
+```
+
+wide to long lipid adjusted and whole blood samples
+```{r}
+dat<- read_csv("/Users/jpuvvula/Documents/data/home_16w_imp/pfos_16w.csv") 
+dat<- dat[c(1,2)] |> rename(pfos = result.res) |>
+  pivot_longer(!subject_id, names_to = "analyte", values_to = "conc")
+
+write_csv(dat, "/Users/jpuvvula/Documents/data/home_16w_imp/mirec_transf/pfos.csv")
+```
+
+Merge all exposures to a csv
+```{r}
+file_names<- list.files(path= "/Users/jpuvvula/Documents/data/home_16w_imp/mirec_transf/",
+                        recursive = T,
+                        pattern = "\\.csv$",
+                        full.names = T)
+
+dat<- read_csv(file_names)
+
+write_csv(dat, "/Users/jpuvvula/Documents/data/home_16w_imp/mirec_transf/home_exp_fin.csv")
+
+######## Exposure data summary ####################
+geomean <- function(x, na.rm = T, trim = 0, ...) 
+  { exp(mean(log(x, ...), na.rm = na.rm, trim = trim, ...)) }
+
+geosd <- function(x, na.rm = T, ...)
+  { exp(sd(log(x, ...), na.rm = na.rm, ...)) }
+
+dat_summ<- dat |> 
+  group_by(analyte) |>
+  summarise(no_obs= n(), pct_miss=(mean(is.na(conc))*100),
+            geometric_mean = geomean(conc), geometric_SD = geosd(conc),
+            arithmatic_mean=mean((conc), na.rm=T), arithmatic_std=sd((conc), na.rm = T),
+            median = median((conc), na.rm = T), q25 = quantile(conc, .25, na.rm=T),
+            q75 = quantile(conc, .75, na.rm=T)) |>
+  mutate_if(is.numeric, round, 3)
+
+write_csv(dat, "/Users/jpuvvula/Documents/data/home_16w_imp/mirec_transf/exp_fin_summary.csv")
 ```
 

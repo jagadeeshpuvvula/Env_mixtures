@@ -78,7 +78,7 @@ labres<- read_csv2("E://BBK17/2. BBK17_pending lab tests_July19 2022//LAB//MIREC
          tests_results_raw_result =micro_aliquot_tests_results_raw_result)
 
 #Urine Arsenic, OP pesticides, OPFR Specific gravity, 
-df_1 <-read_csv2("E://BBK17//1. BBK17_June10 2022//LAB//MIREC_TEST RESULTS table_codes 001.002.009.013.016.049.054.060.096.097.101//QueryData_code001.csv") |>
+labres <-read_csv2("E://BBK17//1. BBK17_June10 2022//LAB//MIREC_TEST RESULTS table_codes 001.002.009.013.016.049.054.060.096.097.101//QueryData_code001.csv") |>
   clean_names() |> 
   mutate(id_join = str_sub(specimen_bar_code, 1,6))
 
@@ -115,10 +115,54 @@ labres<- read_csv2("E://BBK17/2. BBK17_pending lab tests_July19 2022//LAB//MIREC
 
 ```
 
+Standardizing units
+```{r}
+#Metals: Lead & Mercury (mol. wt from pubchem)
+
+#molecular weight x conversion factor to get values in mcg/L
+pb<- 207.2/1e6 # micromole/L -> mcg/L
+hg<-200.59/1e9 #nanomole/L -> mcg/L
+#multiply above values with absolute result from imputed dataset
+dt<- read_csv("E://BBK17/pj//imputed_data//HGSG.csv")
+dt$result.res<-dt$result.res*hg*1e6
+
+write_csv(dt, "E://BBK17/pj//imputed_unit_corr//HGSG.csv")
+
+# PCBs,PBDE, DDE (mcg/L -> ng/L)
+dt<- read_csv("E://BBK17/pj//imputed_data//COTISE.csv")
+dt$result.res <- dt$result.res*1000
+write_csv(dt, "E://BBK17/pj//imputed_unit_corr//DDE.csv")
+
+# DMAA micromol/L -> PPB (mol. wt from pubchem)
+dt<- read_csv("E://BBK17/pj//imputed_data//DMAAUR.csv")
+dt$result.res1 <- (dt$result.res*170)
+write_csv(dt, "E://BBK17/pj//imputed_unit_corr//DMA.csv")
+
+```
+
+specific gravity standardization = ((analyte concentration x (median urine specific grav. -1)) / (1-individual specific grav. -1))
 Creatinine adjustment = analyte concentration / creatinine concentration
 lipid adjustment = (analyte concentration / lipid level)*102.6
 
 ```{r}
+urine_sg<- read_csv("E://BBK17/pj//imputed_unit_corr//DENS.csv")
+urine_sg$join_id<- str_extract(urine_sg$subject_id,  "^.{8}")
+
+dt<- read_csv("E://BBK17/pj//imputed_unit_corr//DMA.csv") 
+dt$join_id<- str_extract(dt$subject_id,  "^.{8}")
+dat<- inner_join(dt,urine_sg, by="join_id")
+
+med_sg<- median(dat$result.res.y)
+dat$dma_sg <- ((dat$result.res.x*(med_sg-1))/(dat$result.res.y-1))
+
+dat<- dat[c(1,2,11)] |> rename(dma = result.res.x, subject_id = subject_id.x) |>
+  pivot_longer(!subject_id, names_to = "analyte", values_to = "conc")
+
+write_csv(dat, "E://BBK17/pj//imputed_unit_corr//sg_adj//dma.csv")
+
+
+################ creatinine adjustment ########################
+
 cre<- read_csv("E://BBK17/pj//imputed_data//CRE.csv")
 cre$join_id<- str_extract(cre$subject_id,  "^.{8}")
 
@@ -132,19 +176,20 @@ dat<- dat[c(1,2,10)] |> rename(cotinine = result.res.x) |>
 
 write_csv(dat, "E://BBK17/pj//imputed_data//cre_adj//cotinine.csv")
 
-############ for DDE, PBDE, PCB, PFAS ############
-lipi<-  read_csv("E://BBK17/pj//imputed_data//LIPIPL.csv") 
+############ lipid adjustment for DDE, PBDE, PCB ############
+
+lipi<-  read_csv("E://BBK17/pj//imputed_unit_corr//LIPIPL.csv") 
 lipi$join_id<- str_extract(lipi$subject_id,  "^.{8}") 
 
-dt <- read_csv("E://BBK17/pj//imputed_data//PCB118.csv") 
+dt <- read_csv("E://BBK17/pj//imputed_unit_corr//PBDE153.csv") 
 dt$join_id<- str_extract(dt$subject_id,  "^.{8}")
 dat<- inner_join(dt,lipi, by="join_id")
  
-dat$pfos_lp <- (dat$result.res.x/dat$result.res.y)*102.6
-dat<- dat[c(1,2,10)] |> rename(pfos = result.res.x) |>
-  pivot_longer(!subject_id.x, names_to = "analyte", values_to = "conc")
+dat$pbde153_lp <- (dat$result.res.x/dat$result.res.y)
+dat<- dat[c(1,2,10)] |> rename(pbde153 = result.res.x, subject_id = subject_id.x) |>
+  pivot_longer(!subject_id, names_to = "analyte", values_to = "conc")
 
-write_csv(dat, "E://BBK17/pj//imputed_data//lipi_adj//pfos.csv")
+write_csv(dat, "E://BBK17/pj//imputed_unit_corr//lipi_adj//pbde153.csv")
 
 ```
 

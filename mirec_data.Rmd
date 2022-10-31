@@ -18,21 +18,35 @@ Outcome: child 3 Yr scores
 ```{r}
 #parent: SRS-2
 #child: NEPSY, and WPPSI-3
+#get WPPSI composite scores from here
+################################################################################
+################################################################################
+ndev<-  read_csv("E:/BBK17/1. BBK17_June10 2022/CRF/2. MIREC-CD Plus STUDY/Data/NDEV.csv")
 
-dat<-  read_csv("E:/BBK17/1. BBK17_June10 2022/CRF/2. MIREC-CD Plus STUDY/Data/NDEV.csv") |> clean_names() 
-wppsi<- dat[c(1,2,11,13:48)] |>
-  as.numeric(c(3:35))
+ndev <- select(ndev, SUBJECT_ID, AgeTestingMonths, WPPSI1_2, WPPSI2_2, WPPSI3_2, 
+               WPPSI4_2, WPPSI5_2, WPPSI6_1, WPPSI7_1, WPPSI8_1, WPPSI9_1)
 
+colnames(ndev) <- c("subject.id", "age", "wppsi.1","wppsi.2", "wppsi.3",
+                    "wppsi.4", "wppsi.5", "viq", "piq", "fsiq", "general.language")
 
+#filter composite scores
+wppsi<- ndev[c(1,8:10)] |> clean_names()
+write_csv(wppsi, "E://BBK17//pj//wppsi.csv")
+
+################################################################################
+################################################################################
+#filter basc ext & int here
 dt_out<- read_excel("E://BBK17//1. BBK17_June10 2022//DV//2. MIREC-CD Plus STUDY//BBK17_CDPlus_BABY_DVs.xlsx") |> clean_names() 
 
-#123 observations with missing all outcomes 
-skim(dt_out)
+basc<- dt_out[c(1,28,29)] |>
+  rename(basc_ext=bastexcddv,
+         basc_int=bastincddv)
+write_csv(basc, "E://BBK17//pj//basc.csv")
 
-#select relevant variables and rename join field
-out_1 <- dt_out[c(1,4:45)] |> 
-  rename(id_join=subject_id)
 
+# join basc and wppsi
+mirec_out<- inner_join(basc, wppsi, by="subject_id")
+write_csv(mirec_out, "E://BBK17//pj//mirec_out.csv")
 ```
 
 
@@ -148,17 +162,17 @@ lipid adjustment = (analyte concentration / lipid level)*102.6
 urine_sg<- read_csv("E://BBK17/pj//imputed_unit_corr//DENS.csv")
 urine_sg$join_id<- str_extract(urine_sg$subject_id,  "^.{8}")
 
-dt<- read_csv("E://BBK17/pj//imputed_unit_corr//DMA.csv") 
+dt<- read_csv("E://BBK17/pj//imputed_unit_corr//MIBP.csv") 
 dt$join_id<- str_extract(dt$subject_id,  "^.{8}")
 dat<- inner_join(dt,urine_sg, by="join_id")
 
 med_sg<- median(dat$result.res.y)
-dat$dma_sg <- ((dat$result.res.x*(med_sg-1))/(dat$result.res.y-1))
+dat$mibp_sg <- ((dat$result.res.x*(med_sg-1))/(dat$result.res.y-1))
 
-dat<- dat[c(1,2,11)] |> rename(dma = result.res.x, subject_id = subject_id.x) |>
+dat<- dat[c(1,2,10)] |> rename(mibp = result.res.x, subject_id = subject_id.x) |>
   pivot_longer(!subject_id, names_to = "analyte", values_to = "conc")
 
-write_csv(dat, "E://BBK17/pj//imputed_unit_corr//sg_adj//dma.csv")
+write_csv(dat, "E://BBK17/pj//imputed_unit_corr//sg_adj//mibp.csv")
 
 
 ################ creatinine adjustment ########################
@@ -181,15 +195,15 @@ write_csv(dat, "E://BBK17/pj//imputed_data//cre_adj//cotinine.csv")
 lipi<-  read_csv("E://BBK17/pj//imputed_unit_corr//LIPIPL.csv") 
 lipi$join_id<- str_extract(lipi$subject_id,  "^.{8}") 
 
-dt <- read_csv("E://BBK17/pj//imputed_unit_corr//PBDE153.csv") 
+dt <- read_csv("E://BBK17/pj//imputed_unit_corr//PFOSPL.csv") 
 dt$join_id<- str_extract(dt$subject_id,  "^.{8}")
 dat<- inner_join(dt,lipi, by="join_id")
  
-dat$pbde153_lp <- (dat$result.res.x/dat$result.res.y)
-dat<- dat[c(1,2,10)] |> rename(pbde153 = result.res.x, subject_id = subject_id.x) |>
+dat$pfos_lp <- (dat$result.res.x/dat$result.res.y)
+dat<- dat[c(1,2,10)] |> rename(pfos = result.res.x, subject_id = subject_id.x) |>
   pivot_longer(!subject_id, names_to = "analyte", values_to = "conc")
 
-write_csv(dat, "E://BBK17/pj//imputed_unit_corr//lipi_adj//pbde153.csv")
+write_csv(dat, "E://BBK17/pj//imputed_unit_corr//lipi_adj//pfos.csv")
 
 ```
 
@@ -202,16 +216,15 @@ dat<- dat[c(1,2)] |> rename(hg = result.res) |>
 write_csv(dat, "E://BBK17/pj//imputed_data//merging//hg.csv")
 ```
 
-
-
 Merging exposures to long format
 ```{r}
-file_names<- list.files(path= "E://BBK17//pj//imputed_data//merging",
+file_names<- list.files(path= "E://BBK17//pj//imputed_unit_corr//mirec_fin_merge",
                         recursive = T,
                         pattern = "\\.csv$",
                         full.names = T)
 
 dat<- read_csv(file_names)
+dat$subject_id<- str_extract(dat$subject_id,  "^.{6}")
 
 write_csv(dat, "E://BBK17//pj//mirec_exposure_fin.csv")
 
@@ -224,7 +237,7 @@ geosd <- function(x, na.rm = T, ...)
 
 dat_summ<- dat |> 
   group_by(analyte) |>
-  summarise(no_obs= n(), pct_miss=(mean(is.na(conc))*100),
+  summarise(no_obs= n(),
             geometric_mean = geomean(conc), geometric_SD = geosd(conc),
             arithmatic_mean=mean((conc), na.rm=T), arithmatic_std=sd((conc), na.rm = T),
             median = median((conc), na.rm = T), q25 = quantile(conc, .25, na.rm=T),
@@ -236,56 +249,49 @@ write_csv(dat_summ, "E://BBK17//pj//mirec_exposure_summary.csv")
 ```
 
 
-
-join 1 trimester exposure with child 3-yr outcome
+Exposure missing data summary
 ```{r}
-exp<- read_csv("E://BBK17//pj//pj_dat//exp_all.csv")
+dat<- read_csv("E://BBK17//pj//mirec_exposure_fin.csv") |>
+  pivot_wider(names_from = analyte, values_from = conc)
 
-mirec_full<- exp |> full_join(out_1, by="id_join")
+# filter sg/lp adjusted variables
+dat<- dat[c(1,3,5,7,9,11,13,15,17,19,21,23,25,26,28,30,32,34,36,38,40,42,44,45,47,49,51,53:56)] 
 
+dat<- dat |> drop_na()
+
+#outcome data
+dat_out<- read_csv("E://BBK17//pj//mirec_out.csv")
 
 ```
 
-correlation matrix
+combine exposure and outcome
 ```{r}
-#filter variables that has vales for at least 50% observations
-var_names<- sapply(colnames(mirec_full), function(x) sum(is.na(mirec_full[x])) 
-             < nrow(mirec_full)/2)
+dat_fin<- inner_join(dat, dat_out, by="subject_id") |>
+  drop_na()
 
-#subset of 34 out of 114 variables
-df<- mirec_full[colnames(mirec_full)[var_names]]
-write_csv(df, "E://BBK17//pj//pj_dat//corr.csv")
-
-#load corr dataset for building correlation matrix
-df<- read_csv("E://BBK17//pj//pj_dat//corr.csv")
-
-#exclude ID variable 
-cormat<- round(x=cor(df[2:34], method = "spearman", 
+cormat<- round(x=cor(dat_fin[2:36], method = "spearman", 
                      use= "complete.obs"), digits=2) |>
   melt() |> clean_names()
 
-ggplot(cormat, aes(x=var1, y=var2, fill=value)) +
+ggplot(cormat, aes(x=var2, y=var1, fill=value)) +
   geom_tile(color="white")+
-  scale_fill_gradient(limit=c(-1,1), space= "Lab",
+  scale_fill_gradient2(low="red", high="blue", mid="white",
+                       midpoint=0,
+                       limit=c(-1,1), space= "Lab",
                       name="Spearman\nCorrelation")+
   theme_minimal()+
-  theme(axis.text.x = element_text(angle = 45, vjust = 1, 
-                                   size = 10, hjust = 1))
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, size = 12, hjust = 1),
+        axis.text.y = element_text(angle = 0, vjust = 1, size = 12, hjust = 1),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank(),
+        axis.ticks = element_blank())+
+  coord_fixed()
 
-
-```
-
-```{r}
-library(heatmaply)
-
-heatmaply_cor(x=cor(df[2:34], method = "spearman", 
-                     use= "complete.obs"),
-              xlab = "Features",
-              ylab = "Features",
-              k_col = 2,
-              k_row = 2)
-ggsave("E://BBK17//pj//pj_dat//corplot.tiff",width=10,dpi=300)
-
+ggsave("/Users/jpuvvula/Documents/data/corplot.tiff",
+       width=14, height= 12, dpi=300)
 ```
 
 

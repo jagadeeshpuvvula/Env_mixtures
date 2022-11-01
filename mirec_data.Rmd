@@ -31,17 +31,21 @@ colnames(ndev) <- c("subject.id", "age", "wppsi.1","wppsi.2", "wppsi.3",
 
 #filter composite scores
 wppsi<- ndev[c(1,8:10)] |> clean_names()
-write_csv(wppsi, "E://BBK17//pj//wppsi.csv")
+write_csv(wppsi, "E://BBK17//pj//outcome//wppsi.csv")
 
 ################################################################################
 ################################################################################
-#filter basc ext & int here
+#filter basc ext, int & bsi here
 dt_out<- read_excel("E://BBK17//1. BBK17_June10 2022//DV//2. MIREC-CD Plus STUDY//BBK17_CDPlus_BABY_DVs.xlsx") |> clean_names() 
 
-basc<- dt_out[c(1,28,29)] |>
+basc<- dt_out[c(1,28,29,30)] |>
   rename(basc_ext=bastexcddv,
-         basc_int=bastincddv)
-write_csv(basc, "E://BBK17//pj//basc.csv")
+         basc_int=bastincddv,
+         basc_bsi=bastbscddv) #BSI=behavioral symptom index
+write_csv(basc, "E://BBK17//pj//outcome//basc.csv")
+
+
+
 
 
 # join basc and wppsi
@@ -143,9 +147,9 @@ dt$result.res<-dt$result.res*hg*1e6
 write_csv(dt, "E://BBK17/pj//imputed_unit_corr//HGSG.csv")
 
 # PCBs,PBDE, DDE (mcg/L -> ng/L)
-dt<- read_csv("E://BBK17/pj//imputed_data//COTISE.csv")
+dt<- read_csv("E://BBK17/pj//imputed_data//BDE47PL.csv")
 dt$result.res <- dt$result.res*1000
-write_csv(dt, "E://BBK17/pj//imputed_unit_corr//DDE.csv")
+write_csv(dt, "E://BBK17/pj//imputed_unit_corr//BDE47PL.csv")
 
 # DMAA micromol/L -> PPB (mol. wt from pubchem)
 dt<- read_csv("E://BBK17/pj//imputed_data//DMAAUR.csv")
@@ -195,15 +199,15 @@ write_csv(dat, "E://BBK17/pj//imputed_data//cre_adj//cotinine.csv")
 lipi<-  read_csv("E://BBK17/pj//imputed_unit_corr//LIPIPL.csv") 
 lipi$join_id<- str_extract(lipi$subject_id,  "^.{8}") 
 
-dt <- read_csv("E://BBK17/pj//imputed_unit_corr//PFOSPL.csv") 
+dt <- read_csv("E://BBK17/pj//imputed_unit_corr//BDE47PL.csv") 
 dt$join_id<- str_extract(dt$subject_id,  "^.{8}")
 dat<- inner_join(dt,lipi, by="join_id")
  
-dat$pfos_lp <- (dat$result.res.x/dat$result.res.y)
-dat<- dat[c(1,2,10)] |> rename(pfos = result.res.x, subject_id = subject_id.x) |>
+dat$pbde47_lp <- (dat$result.res.x/dat$result.res.y)
+dat<- dat[c(1,2,10)] |> rename(pbde47 = result.res.x, subject_id = subject_id.x) |>
   pivot_longer(!subject_id, names_to = "analyte", values_to = "conc")
 
-write_csv(dat, "E://BBK17/pj//imputed_unit_corr//lipi_adj//pfos.csv")
+write_csv(dat, "E://BBK17/pj//imputed_unit_corr//lipi_adj//pbde47.csv")
 
 ```
 
@@ -255,7 +259,7 @@ dat<- read_csv("E://BBK17//pj//mirec_exposure_fin.csv") |>
   pivot_wider(names_from = analyte, values_from = conc)
 
 # filter sg/lp adjusted variables
-dat<- dat[c(1,3,5,7,9,11,13,15,17,19,21,23,25,26,28,30,32,34,36,38,40,42,44,45,47,49,51,53:56)] 
+dat<- dat[c(1,3,5,7,9,11,13,15,17,19,21,23,25,26,28,30,32,34,36,38,40,42,44,46,47,49,51,53,55:58)] 
 
 dat<- dat |> drop_na()
 

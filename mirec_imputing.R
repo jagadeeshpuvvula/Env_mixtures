@@ -79,7 +79,7 @@ labres$log2.test.result <- log2(labres$test.result)
 ## Step 7: Complete the imputation for each chemical, and store the 
 #results in a dataset for each individual chemical/ timepoint.  
 
-analyte<-"DENS"
+analyte<-"BDE47PL"
 
 dat <- labres |>
   filter(tests_results_test_name == analyte)
@@ -90,7 +90,7 @@ dat <- impute(dat, LODmeansd.all, analyte, "result")
 dat<- dat |>
   rename(subject_id=specimen_bar_code) |>
   mutate(visit="12w") |>
-  mutate(analyte="URI_SG") |>
+  mutate(analyte="BDE47PL") |>
   drop_na()
 
-write_csv(dat[c(1,3:5)], "E://BBK17//pj//imputed_data//URI_SG.csv")
+write_csv(dat[c(1,3:5)], "E://BBK17//pj//imputed_data//BDE47PL.csv")

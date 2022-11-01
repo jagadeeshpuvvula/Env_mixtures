@@ -67,15 +67,15 @@ labres$log2.result <- log2(labres$result)
 ###############################################################################
 #repeat per analyte per visit
 dat <- labres |> 
-  filter(analyte_code == "I") |> 
+  filter(analyte_code == "PBDE47") |> 
   filter(visit == "16W")
 
 set.seed(1010)
-dat <- impute(dat, LODmeansd.all, "I.t16W", "result")
+dat <- impute(dat, LODmeansd.all, "PBDE47.t16W", "result")
 ###############################################################################
 dat <- dat|>
   mutate(visit="16w") |>
-  mutate(analyte="i")
+  mutate(analyte="pbde47")
 
-write_csv(dat[c(1,3:5)], "/Users/jpuvvula/Documents/data/imputed/i_16w.csv")
+write_csv(dat[c(1,3:5)], "/Users/jpuvvula/Documents/data/imputed/pbde47_16w.csv")
 ###############################################################################

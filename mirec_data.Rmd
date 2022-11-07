@@ -38,56 +38,45 @@ write_csv(wppsi, "E://BBK17//pj//outcome//wppsi.csv")
 #filter basc ext, int & bsi here
 dt_out<- read_excel("E://BBK17//1. BBK17_June10 2022//DV//2. MIREC-CD Plus STUDY//BBK17_CDPlus_BABY_DVs.xlsx") |> clean_names() 
 
-basc<- dt_out[c(1,28,29,30)] |>
+basc_brief<- dt_out[c(1,28,29,30,40,42)] |>
   rename(basc_ext=bastexcddv,
          basc_int=bastincddv,
-         basc_bsi=bastbscddv) #BSI=behavioral symptom index
-write_csv(basc, "E://BBK17//pj//outcome//basc.csv")
+         basc_bsi=bastbscddv,
+         brief_wm=brietwmcddv,
+         brief_po=brietpocddv) #BSI=behavioral symptom index
+write_csv(basc, "E://BBK17//pj//outcome//basc_brief.csv")
 
-
-
-
-
+################################################################################
+################################################################################
 # join basc and wppsi
-mirec_out<- inner_join(basc, wppsi, by="subject_id")
+mirec_out<- full_join(basc_brief, wppsi, by="subject_id")
 write_csv(mirec_out, "E://BBK17//pj//mirec_out.csv")
 ```
 
 
 First trimester - Exposure
 ```{r}
-#BPA triclosan (removing not reported records)
-dat<- read_csv2("E://BBK17//1. BBK17_June10 2022//LAB/MIREC_RESEARCHERS RESULTS table_code 001//QueryData_code001.csv") |>
+
+# triclosan (removing not reported records)
+dat<- read_csv2("E://BBK17//3. BBK17_lab test correction on Dacima_Nov7 2022//MIREC_RESEARCHERS RESULTS table_code 001//QueryData_code001.csv") |>
   clean_names() |>
   rename(tests_results_raw_result =researcher_results_raw_result) |>
   filter(complete.cases(researcher_results_unit_set))
 
-dat$tests_results_test_name<- str_extract(dat$researcher_results_test_name, "^.{3}")
-
+dat$tests_results_test_name<- str_extract(dat$researcher_results_test_name, "^.{3}") 
+dat$tests_results_test_name<-as.factor(dat$tests_results_test_name)
 dat$tests_results_raw_result<-as.numeric(dat$tests_results_raw_result)
+dat<- dat |> filter(as.factor(tests_results_test_name) == "TRI")
 
+# sum of triclosan glusuronide, free and sulfate
 labres <- dat |> 
-  group_by(specimen_bar_code, tests_results_test_name) |>
-  summarise_at(vars("tests_results_raw_result"), sum)
+  group_by(specimen_bar_code) |>
+  summarise(test.result=sum(tests_results_raw_result)) |>
+  mutate(tests_results_test_name ="triclosan", visit = "12w")
 
-labres<- labres |> mutate(flg_lod = case_when((
-  tests_results_test_name=="BPA" & tests_results_raw_result<0.11) ~ "1",
-  (tests_results_test_name=="BPA" & tests_results_raw_result>=0.11) ~ "0",
-  (tests_results_test_name=="TRI" & tests_results_raw_result<0.12) ~ "1",
-  (tests_results_test_name=="TRI" & tests_results_raw_result>=0.12) ~ "0")) |>
-  filter(complete.cases(flg_lod))
-  
-
-dat$tests_results_test_name<- str_extract(dat$researcher_results_test_name, "^.{3}")
-
-labres <- dat |> 
-  group_by(specimen_bar_code, tests_results_test_name) |>
-  summarise_at(vars("tests_results_raw_result"), sum)
-
-x<-labres |> group_by(tests_results_test_name, flg_lod) |>
-  summarise(tested=n())
-
-
+#flag LT lod values for total triclosan 
+# LOD = 0.12; from https://ehp.niehs.nih.gov/doi/epdf/10.1289/ehp.1408187
+labres$lod.flag<-  as.numeric(ifelse(labres$test.result< 0.1200, 1, 0))
 
 #Phthalates
 labres<- read_csv2("E://BBK17/2. BBK17_pending lab tests_July19 2022//LAB//MIREC_MICROALIQOUT RESULTS table code 001-01.001-03//QueryData_code 001-01.csv") |>
@@ -95,7 +84,7 @@ labres<- read_csv2("E://BBK17/2. BBK17_pending lab tests_July19 2022//LAB//MIREC
   rename(tests_results_test_name = micro_aliquot_tests_results_test_name,
          tests_results_raw_result =micro_aliquot_tests_results_raw_result)
 
-#Urine Arsenic, OP pesticides, OPFR Specific gravity, 
+#BPA, Urine Arsenic, OP pesticides, OPFR, Specific gravity
 labres <-read_csv2("E://BBK17//1. BBK17_June10 2022//LAB//MIREC_TEST RESULTS table_codes 001.002.009.013.016.049.054.060.096.097.101//QueryData_code001.csv") |>
   clean_names() |> 
   mutate(id_join = str_sub(specimen_bar_code, 1,6))
@@ -166,17 +155,17 @@ lipid adjustment = (analyte concentration / lipid level)*102.6
 urine_sg<- read_csv("E://BBK17/pj//imputed_unit_corr//DENS.csv")
 urine_sg$join_id<- str_extract(urine_sg$subject_id,  "^.{8}")
 
-dt<- read_csv("E://BBK17/pj//imputed_unit_corr//MIBP.csv") 
+dt<- read_csv("E://BBK17/pj//imputed_unit_corr//triclosan.csv") 
 dt$join_id<- str_extract(dt$subject_id,  "^.{8}")
 dat<- inner_join(dt,urine_sg, by="join_id")
 
 med_sg<- median(dat$result.res.y)
-dat$mibp_sg <- ((dat$result.res.x*(med_sg-1))/(dat$result.res.y-1))
+dat$tcs_sg <- ((dat$result.res.x*(med_sg-1))/(dat$result.res.y-1))
 
-dat<- dat[c(1,2,10)] |> rename(mibp = result.res.x, subject_id = subject_id.x) |>
+dat<- dat[c(1,2,10)] |> rename(tcs = result.res.x, subject_id = subject_id.x) |>
   pivot_longer(!subject_id, names_to = "analyte", values_to = "conc")
 
-write_csv(dat, "E://BBK17/pj//imputed_unit_corr//sg_adj//mibp.csv")
+write_csv(dat, "E://BBK17/pj//imputed_unit_corr//sg_adj//tcs.csv")
 
 
 ################ creatinine adjustment ########################
@@ -273,7 +262,7 @@ combine exposure and outcome
 dat_fin<- inner_join(dat, dat_out, by="subject_id") |>
   drop_na()
 
-cormat<- round(x=cor(dat_fin[2:36], method = "spearman", 
+cormat<- round(x=cor(dat_fin[2:40], method = "spearman", 
                      use= "complete.obs"), digits=2) |>
   melt() |> clean_names()
 
@@ -282,10 +271,10 @@ ggplot(cormat, aes(x=var2, y=var1, fill=value)) +
   scale_fill_gradient2(low="red", high="blue", mid="white",
                        midpoint=0,
                        limit=c(-1,1), space= "Lab",
-                      name="Spearman\nCorrelation")+
+                       name="Spearman\nCorrelation")+
   theme_minimal()+
   theme(axis.text.x = element_text(angle = 45, vjust = 1, size = 12, hjust = 1),
-        axis.text.y = element_text(angle = 0, vjust = 1, size = 12, hjust = 1),
+        axis.text.y = element_text(angle = 0, vjust = 0.15, size = 12, hjust = 1),
         axis.title.x = element_blank(),
         axis.title.y = element_blank(),
         panel.grid.major = element_blank(),
@@ -294,7 +283,7 @@ ggplot(cormat, aes(x=var2, y=var1, fill=value)) +
         axis.ticks = element_blank())+
   coord_fixed()
 
-ggsave("/Users/jpuvvula/Documents/data/corplot.tiff",
+ggsave("E://BBK17//pj//corrplot.tiff",
        width=14, height= 12, dpi=300)
 ```
 

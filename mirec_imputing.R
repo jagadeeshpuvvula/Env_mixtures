@@ -50,6 +50,7 @@ labres <- mutate(labres, lod.flag = ifelse((substr(labres$tests_results_raw_resu
 labres$test.result <- str_replace_all(labres$tests_results_raw_result, "[^[:alnum:]\\.\\s]","")
 
 labres$test.result <- as.numeric(labres$test.result)
+#for triclosan replace with 0.12/sqrt2
 labres$test.result <- ifelse(labres$lod.flag==1, labres$test.result/sqrt(2), 
                              labres$test.result)
 
@@ -79,7 +80,7 @@ labres$log2.test.result <- log2(labres$test.result)
 ## Step 7: Complete the imputation for each chemical, and store the 
 #results in a dataset for each individual chemical/ timepoint.  
 
-analyte<-"BDE47PL"
+analyte<-"triclosan"
 
 dat <- labres |>
   filter(tests_results_test_name == analyte)
@@ -90,7 +91,7 @@ dat <- impute(dat, LODmeansd.all, analyte, "result")
 dat<- dat |>
   rename(subject_id=specimen_bar_code) |>
   mutate(visit="12w") |>
-  mutate(analyte="BDE47PL") |>
+  mutate(analyte="triclosan") |>
   drop_na()
 
-write_csv(dat[c(1,3:5)], "E://BBK17//pj//imputed_data//BDE47PL.csv")
+write_csv(dat[c(1,3:5)], "E://BBK17//pj//imputed_data//triclosan.csv")

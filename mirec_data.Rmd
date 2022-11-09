@@ -6,12 +6,12 @@ output: pdf_document
 ---
 
 ```{r}
-
 library(tidyverse)
 library(readxl)
 library(janitor)
 library(skimr)
 library(reshape2)
+library(naniar)
 ```
 
 Outcome: child 3 Yr scores
@@ -254,10 +254,18 @@ dat$site<- str_extract(dat$subject_id,  "^.{2}") |>
 
 dat<- dat |> drop_na()
 
-#outcome data
+#Select either WPPSI or BASC from here (dont use both outcomes from here)
 dat_out<- read_csv("E://BBK17//pj//mirec_out.csv")
+
+gg_miss_upset(dat_out, nsets=5, nintersects=NA)
+
 dat_out$site<- str_extract(dat_out$subject_id,  "^.{2}") |>
   as.factor()
+
+#site specific count by outcomes
+
+x<-dat_out[c(1:6,10)] |>
+  drop_na()
 
 ```
 

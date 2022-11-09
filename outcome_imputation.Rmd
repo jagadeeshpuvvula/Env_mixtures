@@ -1,0 +1,53 @@
+---
+title: "outcome imputation"
+author: "Puvvula"
+date: "2022-11-09"
+output: pdf_document
+---
+
+```{r}
+library(mice)
+```
+
+
+MICE - MAR
+```{r}
+dat<- left_join(dat_out, dat_exp, by="subject_id")
+
+dat_imp<- mice(dat, m=5, maxit = 50, method = "pmm", seed=2021)
+
+imp_mice <- complete(dat_imp, "long", inc=T)
+
+imp_mice_f <- imp_mice[c(1,3:40)] |>
+  filter(.imp !=0)|>
+  group_by(subject_id) |>
+  summarise_all(mean)
+
+write_csv(imp_mice_f, "/Users/jpuvvula/Documents/home_imputation/mice.csv")
+```
+
+PCA imputation
+```{r}
+library(pcaMethods)
+
+x<- pca(dat, method = "ppca", nPcs = 5, seed=2021)
+plotPcs(x, type = "scores")
+imp_pca<- completeObs(x) |>
+  as.data.frame()
+
+write_csv(imp_pca, "/Users/jpuvvula/Documents/home_imputation/pca.csv")
+```
+
+compare PPCA and mice
+```{r}
+ppca<- read_csv("/Users/jpuvvula/Documents/home_imputation/pca.csv")
+mice<- read_csv("/Users/jpuvvula/Documents/home_imputation/mice.csv")
+
+plot(mice$brief_po, ppca$brief_po, cex=0.8, 
+     main="brief_PO",
+     xlab = "MICE", ylab = "PPCA")
+
+
+```
+
+

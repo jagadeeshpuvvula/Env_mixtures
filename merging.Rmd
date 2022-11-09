@@ -245,6 +245,9 @@ gg_miss_upset(dat, nsets=5, nintersects=NA)
 
 combine exposure and outcome
 ```{r}
+#load outcome
+dat_out<- read_csv("/Users/jpuvvula/Documents/data/home_16w_imp/mirec_transf/outcome_wide.csv")
+
 dat_fin<- inner_join(dat, dat_out, by="subject_id") |>
   drop_na()
 

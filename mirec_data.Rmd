@@ -24,9 +24,12 @@ Outcome: child 3 Yr scores
 wppsi<-  read_csv("E:/BBK17/4. BBK17_CD+ CRF data corrections_Nov18 2022/CDPLUS.2_NEURO.9_20221117/NDEV_WPPSI_Yes to NEURO BBK.csv") |>
   clean_names()|>
   select(centre, subject_id, age_testing_yrs, wppsi6_1, wppsi7_1, wppsi8_1, wppsi9_1) |>
-  drop_na()
-
-colnames(wppsi) <- c("subject_id", "age",  "viq", "piq", "fsiq", "general_language")
+  drop_na() |>
+  rename(age= age_testing_yrs,
+         viq= wppsi6_1,
+         piq= wppsi7_1,
+         fsiq= wppsi8_1,
+         general_language= wppsi9_1)
 
 #filter composite scores
 write_csv(wppsi, "E://BBK17//pj//outcome//wppsi.csv")
@@ -57,9 +60,6 @@ write_csv(basc_brief, "E://BBK17//pj//outcome//basc_brief.csv")
 
 ################################################################################
 ################################################################################
-# join basc and wppsi
-mirec_out<- full_join(basc_brief, wppsi, by="subject_id")
-write_csv(mirec_out, "E://BBK17//pj//mirec_out.csv")
 ```
 
 

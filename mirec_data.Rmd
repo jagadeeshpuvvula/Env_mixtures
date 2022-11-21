@@ -21,30 +21,39 @@ Outcome: child 3 Yr scores
 #get WPPSI composite scores from here
 ################################################################################
 ################################################################################
-ndev<-  read_csv("E:/BBK17/1. BBK17_June10 2022/CRF/2. MIREC-CD Plus STUDY/Data/NDEV.csv")
+wppsi<-  read_csv("E:/BBK17/4. BBK17_CD+ CRF data corrections_Nov18 2022/CDPLUS.2_NEURO.9_20221117/NDEV_WPPSI_Yes to NEURO BBK.csv") |>
+  clean_names()|>
+  select(centre, subject_id, age_testing_yrs, wppsi6_1, wppsi7_1, wppsi8_1, wppsi9_1) |>
+  drop_na()
 
-ndev <- select(ndev, SUBJECT_ID, AgeTestingMonths, WPPSI1_2, WPPSI2_2, WPPSI3_2, 
-               WPPSI4_2, WPPSI5_2, WPPSI6_1, WPPSI7_1, WPPSI8_1, WPPSI9_1)
-
-colnames(ndev) <- c("subject.id", "age", "wppsi.1","wppsi.2", "wppsi.3",
-                    "wppsi.4", "wppsi.5", "viq", "piq", "fsiq", "general.language")
+colnames(wppsi) <- c("subject_id", "age",  "viq", "piq", "fsiq", "general_language")
 
 #filter composite scores
-wppsi<- ndev[c(1,8:10)] |> clean_names()
 write_csv(wppsi, "E://BBK17//pj//outcome//wppsi.csv")
 
 ################################################################################
 ################################################################################
-#filter basc ext, int & bsi here
-dt_out<- read_excel("E://BBK17//1. BBK17_June10 2022//DV//2. MIREC-CD Plus STUDY//BBK17_CDPlus_BABY_DVs.xlsx") |> clean_names() 
 
-basc_brief<- dt_out[c(1,28,29,30,40,42)] |>
+basc<- read_csv("E:/BBK17/4. BBK17_CD+ CRF data corrections_Nov18 2022/CDPLUS.2_NEURO.3_20221117/MSAQ_DATA_BASC_Yes to NEURO BBK.csv") |>
+  clean_names() |>
+  select(1,2,168:170)|>
   rename(basc_ext=bastexcddv,
          basc_int=bastincddv,
-         basc_bsi=bastbscddv,
-         brief_wm=brietwmcddv,
-         brief_po=brietpocddv) #BSI=behavioral symptom index
-write_csv(basc, "E://BBK17//pj//outcome//basc_brief.csv")
+         basc_bsi=bastbscddv) |>
+  drop_na()
+
+
+brief<- read_csv("E:/BBK17/4. BBK17_CD+ CRF data corrections_Nov18 2022/CDPLUS.2_NEURO.4_20221117/MSAQ_DATA_BRIEF_Yes to NEURO BBK.csv")|>
+  clean_names() |>
+  select(1,2,38,40)|>
+  rename(brief_wm=brietwmcddv,
+         brief_po=brietpocddv) |>
+  drop_na()
+
+basc_brief<- full_join(basc,brief[c(2:4)], by="subject_id")
+
+
+write_csv(basc_brief, "E://BBK17//pj//outcome//basc_brief.csv")
 
 ################################################################################
 ################################################################################

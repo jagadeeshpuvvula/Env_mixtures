@@ -40,6 +40,21 @@ gwqs_summary_tab(wqs_rh)
 gwqsrh_boxplot(wqs_rh, tau = 0.01)
 gwqs_weights_tab(wqs_rh)
 
+
+####### MIREC #########
+
+mixture<- names(wppsi_fin[(8:39)])
+
+wqs_rh<- gwqsrh(fsiq ~ wqs,
+                    mix_name=mixture,
+                    data=wppsi_fin,
+                    q=10, validation=0.6,b=100,b1_pos = F,b1_constr = F,
+                    family="gaussian",zilink = log, seed=2022,rh=10)
+
+gwqs_summary_tab(wqs_rh)
+gwqsrh_boxplot(wqs_rh, tau = 0.01)
+gwqs_weights_tab(wqs_rh)
+
 ```
 
 quantile g-computation
@@ -59,15 +74,30 @@ gcomp_fit<- qgcomp.boot(bayley_men_mdi ~ . ,
                         seed = 2022)
 
 plot(gcomp_fit)
+
+###### MIREC ##########
+gcomp_fit<- qgcomp.boot(fsiq ~ . ,
+                        expnms = mixture,
+                        data = wppsi_fin,
+                        family= gaussian(), q=10, B = 250,
+                        seed = 2022)
+
+plot(gcomp_fit)
+
+
 ```
 
 Bayesian Kernel machine regression
 ```{r}
 library(bkmr)
 
+out<-wppsi_fin$fsiq
 
-bkmr_fit<- kmbayes(y= bayley_men_mdi, Z = mixture, iter= 100,
-                   verbose=T, varsel = T)
+mixture<- wppsi_fin[(8:39)]
+
+set.seed(2021)
+bkmr_fit<- kmbayes(y= out, Z = mixture, iter= 100,
+                   verbose=T, varsel = T, family = "gaussian")
 ```
 
 

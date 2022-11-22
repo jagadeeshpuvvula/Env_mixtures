@@ -64,7 +64,8 @@ gg_miss_upset(dat, nsets=20, nintersects=NA)
 ```{r}
 ################# COVARIATES #############################
 # In wide format
-dt_cov <- read_sas("/Users/jpuvvula/Documents/data/covariates.sas7bdat") 
+dt_cov <- read_sas("/Users/jpuvvula/Documents/data/covariates.sas7bdat") |>
+  as.data.frame()
 
 dt_cov <- dt_cov[c(1:17,34,50:52,54,55,57,59:64)] 
 #convert all character inputs to factors

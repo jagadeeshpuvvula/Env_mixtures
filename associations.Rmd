@@ -7,11 +7,13 @@ output: pdf_document
 
 ```{r}
 #exposure
+library(tidyverse)
+
 dat<- read_csv("/Users/jpuvvula/Documents/data/home_16w_imp/mirec_transf/home_exp_fin.csv") |>
   pivot_wider(names_from = analyte, values_from = conc)
 
 # variable 18 for DMA
-dat<- dat[c(1,3,5,7,9,11,12,14, 16, 20,22, 24, 25, 27, 29, 31, 33, 35, 37, 39, 41, 42:50, 53)] 
+dat<- dat[c(1,3,5,7,9,11,12,14, 16, 18, 20,22, 24, 25, 27, 29, 31, 33, 35, 37, 39, 41, 42:50, 53)] 
 
 #outcome
 dat_out<- read_csv("/Users/jpuvvula/Documents/data/home_16w_imp/mirec_transf/outcome_wide.csv")
@@ -22,24 +24,51 @@ dat_fin<- inner_join(dat, dat_out, by="subject_id") |>
 
 ```
 
-gWQS
+Generalized weighted quantile sum regression
 ```{r}
 library(gWQS)
 
 mixture<- names(dat_fin[(2:31)])
 
-res.all<- gwqs(bayley_mot_pdi ~ wqs,
-           mix_name=mixture,
-           data=dat_fin,
-           q=10, validation=0.6,b=100,b1_pos = T,b1_constr = T,
-           family="gaussian", seed=2022)
+wqs_rh<- gwqsrh(bayley_men_mdi ~ wqs,
+                    mix_name=mixture,
+                    data=dat_fin,
+                    q=10, validation=0.6,b=100,b1_pos = F,b1_constr = F,
+                    family="gaussian",zilink = log, seed=2022,rh=10)
 
-summary(res.all)
-gwqs_scatterplot(res.all)
-gwqs_barplot(res.all)
+gwqs_summary_tab(wqs_rh)
+gwqsrh_boxplot(wqs_rh, tau = 0.01)
+gwqs_weights_tab(wqs_rh)
+
 ```
 
+quantile g-computation
+```{r}
+library(qgcomp)
 
+nb_gcomp_fit<- qgcomp.noboot(bayley_men_mdi ~ . ,
+                        expnms = mixture,
+                        data = dat_fin,
+                        family= gaussian(), q=10)
+
+
+gcomp_fit<- qgcomp.boot(bayley_men_mdi ~ . ,
+                        expnms = mixture,
+                        data = dat_fin,
+                        family= gaussian(), q=10, B = 250,
+                        seed = 2022)
+
+plot(gcomp_fit)
+```
+
+Bayesian Kernel machine regression
+```{r}
+library(bkmr)
+
+
+bkmr_fit<- kmbayes(y= bayley_men_mdi, Z = mixture, iter= 100,
+                   verbose=T, varsel = T)
+```
 
 
 

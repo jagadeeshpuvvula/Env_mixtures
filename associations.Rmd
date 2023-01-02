@@ -16,12 +16,27 @@ dat<- read_csv("/Users/jpuvvula/Documents/data/home_16w_imp/mirec_transf/home_ex
 dat<- dat[c(1,3,5,7,9,11,12,14, 16, 18, 20,22, 24, 25, 27, 29, 31, 33, 35, 37, 39, 41, 42:50, 53)] 
 
 #outcome
-dat_out<- read_csv("/Users/jpuvvula/Documents/data/home_16w_imp/mirec_transf/outcome_wide.csv")
+dat_out<- read_csv("/Users/jpuvvula/Documents/data/home_16w_imp/mirec_transf/outcome_wide.csv") |>
+  select(names(dat_out[c(1,6,7,8)])) |>
+  drop_na()
 
 #analytic dataset
 dat_fin<- inner_join(dat, dat_out, by="subject_id") |>
   drop_na()
 
+#wide to long for summary table
+
+dat_wide <- dat_fin |> 
+  pivot_longer(!subject_id,
+               names_to = "measure", values_to = "value")
+dat_summ<- dat_wide |> 
+    group_by(measure) |>
+    summarise(no_obs= n(), null = sum(is.na(value)),
+              geometric_mean = geomean(value), geometric_SD = geosd(value),
+              arithmatic_mean=mean((value), na.rm=T), arithmatic_std=sd((value), na.rm = T),
+              median = median((value), na.rm = T), q25 = quantile(value, .25, na.rm=T),
+              q75 = quantile(value, .75, na.rm=T)) |>
+    mutate_if(is.numeric, round, 3)
 ```
 
 Generalized weighted quantile sum regression

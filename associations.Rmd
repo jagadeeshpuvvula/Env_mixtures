@@ -13,7 +13,7 @@ dat<- read_csv("/Users/jpuvvula/Documents/data/home_16w_imp/mirec_transf/home_ex
   pivot_wider(names_from = analyte, values_from = conc)
 
 # variable 18 for DMA
-dat<- dat[c(1,3,5,7,9,11,12,14, 16, 18, 20,22, 24, 25, 27, 29, 31, 33, 35, 37, 39, 41, 42:51, 53)] 
+dat<- dat[c(1,3,5,7,8,10,11,13,15,17,19,21,23,24,26,28,30,32,34,36,38,40,41:50,52)] 
 
 #outcome
 dat_out<- read_csv("/Users/jpuvvula/Documents/data/home_16w_imp/mirec_transf/outcome_wide.csv") |>

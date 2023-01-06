@@ -224,8 +224,7 @@ geosd <- function(x, na.rm = T, ...)
 
 dat_summ<- dat |> 
   group_by(analyte) |>
-  summarise(no_obs= n(),
-            geometric_mean = geomean(conc), geometric_SD = geosd(conc),
+  summarise(geometric_mean = geomean(conc), geometric_SD = geosd(conc),
             arithmatic_mean=mean((conc), na.rm=T), arithmatic_std=sd((conc), na.rm = T),
             median = median((conc), na.rm = T), q25 = quantile(conc, .25, na.rm=T),
             q75 = quantile(conc, .75, na.rm=T)) |>
@@ -241,7 +240,7 @@ dat<- read_csv("/Users/jpuvvula/Documents/data/home_16w_imp/mirec_transf/home_ex
   pivot_wider(names_from = analyte, values_from = conc)
 
 # variable 18 for DMA
-dat_exp<- dat[c(1,3,5,7,9,11,12,14, 16, 20,22, 24, 25, 27, 29, 31, 33, 35, 37, 39, 41, 42:50, 53)] 
+dat_exp<- dat[c(1,3,5,7,9,11,12,14, 16, 18,20,22, 24, 25, 27, 29, 31, 33, 35, 37, 39, 41, 42:50, 53)] 
 
 dat<- dat |> drop_na()
 
@@ -257,7 +256,7 @@ dat_out<- read_csv("/Users/jpuvvula/Documents/data/home_16w_imp/mirec_transf/out
 dat_fin<- inner_join(dat, dat_out, by="subject_id") |>
   drop_na()
 
-cormat<- round(x=cor(dat_fin[2:32], method = "spearman", 
+cormat<- round(x=cor(dat[2:33], method = "spearman", 
                      use= "complete.obs"), digits=2) |>
   melt() |> clean_names()
 

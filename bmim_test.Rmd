@@ -18,3 +18,35 @@ library(MASS)
 library(qgcomp)
 ```
 
+
+```{r}
+## params
+R <- 120000            ## no. of iterations
+burn <- 0.40            ## percent burn-in
+thin <- 20             ## thinning number
+doLog <- FALSE         ## dont log transform the exposures
+# swapX <- TRUE          ## permute exposures (within groups) to avoid artifacts as a result of unique correlation structure
+# dir_alpha <- 10        ## alpha parameter for dirichlet (i.e. (alpha*(p1,p2,...p_k)) s.t. sum p_j =1 )
+# folds <- 4             ## no. of folds for CV
+jump <- 0.35           ## sd of random walk for theta* bsmim
+sel <- seq(burn*R+1,R,by=thin) 
+dat_names <- c("index3","all") ## different index settings
+mod_names <- c("unconstrained","constrained","ordered","dirichlet","dirichlet_varsel","TEQ") ## different models to fit
+prior_b0 <- 0.5 ## controls amount of variable selection: Beta(1,prior_b0)
+if(mod_names=="dirichlet"){
+  R <- 90000  ## dont need as many
+  burn <- 0.4            ## percent burn-in
+  thin <- 15             ## thinning number
+  sel <- seq(burn*R+1,R,by=thin) 
+}
+```
+
+
+```{r}
+fit <- bsmim2(y= wppsi_fsiq_z, x=ln_mixture_z,
+              niter=R,nburn=R*burn,nthin=thin,prior_sigma=c(0.001,0.001),
+              prior_lambda_shaperate=c(1,0.1),gaussian=TRUE,spike_slab=TRUE,
+              gauss_prior=TRUE,prior_theta_slab_sd=0.25,stepsize_theta=jump,
+              basis.opts=NULL,draw_h=FALSE,prior_pi=c(1,prior_b0))
+```
+

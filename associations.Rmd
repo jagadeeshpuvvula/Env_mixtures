@@ -111,13 +111,56 @@ library(Matrix)
 library(fields)
 library(bindrcpp)
 
-out<-wppsi_fin$fsiq
+#log conversion and scaling outcome
 
-mixture<- wppsi_fin[(8:39)]
+wppsi_fsiq_z <- scale(log(wppsi_fin$fsiq))
 
-set.seed(2021)
-bkmr_fit<- kmbayes(y= out, Z = mixture, iter= 100,
-                   verbose=T, varsel = T, family = "gaussian")
+#Creating mixture variable matrix
+mixture<- with(wppsi_fin, cbind(bcetp_sg, bdcpp_sg, bpa_sg, cotinine_sg,
+                                dbup_sg, dde_lp,dep_sg, detp_sg, dma_sg,
+                                dmp_sg, dmtp_sg, dphp_sg, HGSG, mbp_sg,
+                                mbzp_sg, mcpp_sg, mehhp_sg, mehp_sg, meohp_sg,
+                                mep_sg, mibp_sg, pbde153_lp, pbde47_lp, PBSG,
+                                pcb118_lp, pcb138_lp, pcb153_lp, pcb180_lp,
+                                PFHxSPL, PFOAPL, PFOSPL, tcs_sg))
+ 
+# log conversion and scaling exposure variables
+ln_mixture <- apply(mixture, 2, log) 
+ln_mixture_z <- scale(ln_mixture) 
+
+##### MODEL BUILDING #########
+set.seed(2023)
+
+knots100 <- fields::cover.design(ln_mixture_z, nd=100)$design
+ 
+mod<- kmbayes(y= wppsi_fsiq_z, Z=ln_mixture_z, iter = 10000, verbose = T,  varsel = T,
+              groups = c(1, 1, 2, 3, 1, 4,5, 5, 6, 5, 5, 1, 6, 7, 7, 7, 7, 7, 7,
+                         7, 7, 4, 4, 6, 4, 4, 4, 4, 8, 8, 8, 9),
+              knots=knots100)
+ 
+summary(mod)
+ 
+#for PIPs
+ExtractPIPs(mod)
+
+######### PLOTTING ##################
+modeltoplot <- mod
+ 
+modeltoplot.name <- "mod"
+ 
+plot.name <- "model"
+ 
+Z <- ln_mixture_z
+ 
+sel <- seq(1251, 2500, by =50)
+ 
+##############
+ 
+TracePlot(fit=modeltoplot, par = "beta", sel = sel)
+ 
+TracePlot(fit = modeltoplot, par = "sigsq.eps", sel= sel)
+ 
+save(mod, file = "E://BBK17//pj//bkmr//bkmr_test.rda")
 ```
 
 

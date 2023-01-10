@@ -116,7 +116,7 @@ library(bindrcpp)
 wppsi_fsiq_z <- scale(log(wppsi_fin$fsiq))
 
 #Creating mixture variable matrix
-mixture<- with(wppsi_fin, cbind(bcetp_sg, bdcpp_sg, bpa_sg, cotinine_sg,
+mixture<- with(wppsi_fin, cbind(bcetp_sg, bdcpp_sg, bpa_sg, cotinine,
                                 dbup_sg, dde_lp,dep_sg, detp_sg, dma_sg,
                                 dmp_sg, dmtp_sg, dphp_sg, HGSG, mbp_sg,
                                 mbzp_sg, mcpp_sg, mehhp_sg, mehp_sg, meohp_sg,

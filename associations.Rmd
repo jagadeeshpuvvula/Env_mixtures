@@ -50,7 +50,7 @@ mixture<- names(dat_fin[(2:33)])
 wqs_rh<- gwqsrh(bayley_men_mdi ~ wqs,
                     mix_name=mixture,
                     data=dat_fin,
-                    q=10, validation=0.6,b=100,b1_pos = T,b1_constr = F,
+                    q=10, validation=0.6,b=100,b1_pos = F,b1_constr = F,
                     family="gaussian",zilink = log, seed=2022,rh=10)
 
 gwqs_summary_tab(wqs_rh)

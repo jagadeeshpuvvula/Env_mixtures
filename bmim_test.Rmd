@@ -1,0 +1,20 @@
+---
+title: "bmim_test"
+author: "Puvvula"
+date: "2023-01-10"
+output: pdf_document
+---
+
+```{r}
+library(bsmim2)
+library(bkmr)
+library(GIGrvg)
+library(refund)
+library(ggplot2)
+library(gridExtra)
+library(tidyverse)
+library(splines)
+library(MASS)
+library(qgcomp)
+```
+

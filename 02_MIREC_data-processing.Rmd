@@ -23,13 +23,12 @@ Outcome: child 3 Yr scores
 ################################################################################
 wppsi<-  read_csv("E:/BBK17/4. BBK17_CD+ CRF data corrections_Nov18 2022/CDPLUS.2_NEURO.9_20221117/NDEV_WPPSI_Yes to NEURO BBK.csv") |>
   clean_names()|>
-  select(centre, subject_id, age_testing_yrs, wppsi6_1, wppsi7_1, wppsi8_1, wppsi9_1) |>
+  select(centre, subject_id, age_testing_yrs, wppsi6_1, wppsi7_1, wppsi8_1) |>
   drop_na() |>
   rename(age= age_testing_yrs,
          viq= wppsi6_1,
          piq= wppsi7_1,
-         fsiq= wppsi8_1,
-         general_language= wppsi9_1)
+         fsiq= wppsi8_1)
 
 #filter composite scores
 write_csv(wppsi, "E://BBK17//pj//outcome//wppsi.csv")
@@ -250,6 +249,7 @@ write_csv(dat_exp2, "E://BBK17//pj//wppsi_analy_dat/dat_exp_mirec.csv")
 
 #######################################
 #Final outcome data
+#BASC-BRIEF here: basc_brief<-  read_csv("E://BBK17//pj//outcome//basc_brief.csv")
 
 wppsi<-  read_csv("E:/BBK17/pj//wppsi_analy_dat/wppsi.csv") |>
   clean_names() |>
@@ -283,48 +283,22 @@ dat_wide <- dat_exp_out |>
   pivot_longer(!subject_id,
                names_to = "measure", values_to = "value")
 
-dat_summ<- dat |> 
-  group_by(analyte) |>
-  summarise(no_obs= n(),
-            geometric_mean = geomean(conc), geometric_SD = geosd(conc),
-            arithmatic_mean=mean((conc), na.rm=T), arithmatic_std=sd((conc), na.rm = T),
-            median = median((conc), na.rm = T), q25 = quantile(conc, .25, na.rm=T),
-            q75 = quantile(conc, .75, na.rm=T)) |>
-  mutate_if(is.numeric, round, 3)
+dat_summ<- dat_wide |> 
+    group_by(measure) |>
+    summarise(geometric_mean = geomean(value), geometric_SD = geosd(value),
+              arithmatic_mean=mean((value), na.rm=T), arithmatic_std=sd((value), na.rm = T),
+              median = median((value), na.rm = T), q25 = quantile(value, .25, na.rm=T),
+              q75 = quantile(value, .75, na.rm=T)) |>
+    mutate_if(is.numeric, round, 3)
 
-write_csv(dat_summ, "E://BBK17//pj//mirec_exposure_summary.csv")
+write_csv(dat_summ, "E:/BBK17/pj//wppsi_analy_dat/mirec_summary.csv")
 
 ```
 
-
-join exposure and outcome
-```{r}
-#Exposure
-dat<- read_csv("E://BBK17//pj//mirec_exposure_fin.csv") |>
-  pivot_wider(names_from = analyte, values_from = conc)
-
-# filter sg/lp adjusted variables
-dat_exp<- dat[c(1,3,5,7,8,11,13,15,17,19,21,23,25,26,28,30,32,34,36,38,40,42,44,46,47,49,51,53,55:58,60)] 
-dat$site<- str_extract(dat$subject_id,  "^.{2}") |>
-  as.factor()
-
-#Outcome
-wppsi<-  read_csv("E://BBK17//pj//outcome//wppsi.csv")
-basc_brief<-  read_csv("E://BBK17//pj//outcome//basc_brief.csv")
-
-#join data
-
-wppsi_fin<- inner_join(wppsi,dat_exp, by="subject_id") |> drop_na()
-basc_fin<- inner_join(dat_exp, basc_brief[c(2:5)], by="subject_id") |> drop_na()
-brief_fin<- inner_join(dat_exp,basc_brief[c(2,6,7)], by="subject_id") |> drop_na()
-```
 
 combine exposure and outcome
 ```{r}
-dat_fin<- inner_join(dat, dat_out, by="subject_id") |>
-  drop_na()
-
-cormat<- round(x=cor(basc_fin[2:33], method = "spearman", 
+cormat<- round(x=cor(dat_exp_out[c(2:33,36:38)], method = "spearman", 
                      use= "complete.obs"), digits=2) |>
   melt() |> clean_names()
 
@@ -345,59 +319,7 @@ ggplot(cormat, aes(x=var2, y=var1, fill=value)) +
         axis.ticks = element_blank())+
   coord_fixed()
 
-ggsave("E://BBK17//pj//corrplot.tiff",
+ggsave("E:/BBK17/pj//wppsi_analy_dat/corrplot.tiff",
        width=14, height= 12, dpi=300)
-```
-
-
-BKMR
-```{r}
-library(bkmr)
-library(Matrix)
-library(fields)
-library(bindrcpp)
-
-#log conversion and scaling outcome
-wppsi_fsiq_z <- scale(log(wppsi_fin$fsiq))
-
-#Creating mixture variable matrix
-mixture<- with(wppsi_fin, cbind(bcetp_sg, bdcpp_sg, bpa_sg, cotinine_sg, 
-                                dbup_sg, dde_lp,dep_sg, detp_sg, dma_sg, 
-                                dmp_sg, dmtp_sg, dphp_sg, HGSG, mbp_sg, 
-                                mbzp_sg, mcpp_sg, mehhp_sg, mehp_sg, meohp_sg, 
-                                mep_sg, mibp_sg, pbde153_lp, pbde47_lp, PBSG, 
-                                pcb118_lp, pcb138_lp, pcb153_lp, pcb180_lp, 
-                                PFHxSPL, PFOAPL, PFOSPL, tcs_sg))
-
-# log conversion and scaling exposure variables
-ln_mixture <- apply(mixture, 2, log) 
-ln_mixture_z <- scale(ln_mixture) 
-
-##### MODEL BUILDING #########
-set.seed(2023)
-knots100 <- fields::cover.design(ln_mixture_z, nd=100)$design
-
-mod<- kmbayes(y= wppsi_fsiq_z, Z=ln_mixture_z, iter = 10000, verbose = T,  varsel = T,
-              groups = c(1, 1, 2, 3, 1, 4,5, 5, 6, 5, 5, 1, 6, 7, 7, 7, 7, 7, 7, 
-                         7, 7, 4, 4, 6, 4, 4, 4, 4, 8, 8, 8, 9), 
-              knots=knots100)
-
-summary(mod)
-
-#for PIPs
-ExtractPIPs(mod)
-
-######### PLOTTING ##################
-modeltoplot <- mod
-modeltoplot.name <- "mod"
-plot.name <- "model"
-Z <- ln_mixture_z
-
-sel <- seq(1251, 2500, by =50)
-##############
-TracePlot(fit=modeltoplot, par = "beta", sel = sel)
-TracePlot(fit = modeltoplot, par = "sigsq.eps", sel= sel)
-
-save(mod, file = "E://BBK17//pj//bkmr//bkmr_test.rda")
 ```
 

@@ -296,7 +296,7 @@ write_csv(dat_summ, "E:/BBK17/pj//wppsi_analy_dat/mirec_summary.csv")
 ```
 
 
-combine exposure and outcome
+correlation plot
 ```{r}
 cormat<- round(x=cor(dat_exp_out[c(2:33,36:38)], method = "spearman", 
                      use= "complete.obs"), digits=2) |>

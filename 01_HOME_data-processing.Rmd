@@ -145,6 +145,37 @@ dat<- dat[c(1,2)] |> rename(pbde47 = result.res) |>
 write_csv(dat, "/Users/jpuvvula/Documents/data/home_16w_imp/mirec_transf/pbde47.csv")
 ```
 
+Comparing machine read vs imputed values below LOD
+```{r}
+ct <- read_sas("/Users/jpuvvula/Documents/data/ct.sas7bdat") |> 
+  clean_names() |> 
+  filter(visit =="16W", flg_lod == "1") |>
+  select("subject_id", "result_machine")
+
+ct_imp<- read_csv("/Users/jpuvvula/Documents/data/home_16w_imp/cotinine_16w.csv") |>
+  select("subject_id", "result.res")
+
+ct_compare<- left_join(ct, ct_imp, by="subject_id")
+
+ggplot(ct_compare, aes(x=result_machine, y=result.res))+
+  geom_point(size=1.5)+
+  xlim(-0.001, 0.016)+
+  ylim(-0.001, 0.016)+
+  geom_rug()+
+  geom_density2d(bins=5, color="grey20", linetype="dashed")+
+  geom_smooth(linetype="dashed", color="gray60", fill="gray75")+
+  labs(x="Machine read - Cotinine",
+       y="Left truncated imputation - Cotinine",
+       caption = "Generated using 109 subjects from HOME below LOD (0.015 mcg/mL)")+
+  theme_bw()+ theme(panel.border = element_blank(), 
+                    panel.grid.major = element_blank(),
+                    panel.grid.minor = element_blank(), 
+                    axis.line = element_line(colour = "black"))
+
+ggsave("/Users/jpuvvula/Documents/misc_figs/cotinine_comparision.tiff", 
+       width = 4,height = 4, dpi=200)
+```
+
 Merge all exposures to a csv
 ```{r}
 file_names<- list.files(path= "/Users/jpuvvula/Documents/data/home_16w_imp/mirec_transf/dat",

@@ -128,6 +128,13 @@ labres<- read_csv2("E://BBK17/2. BBK17_pending lab tests_July19 2022//LAB//MIREC
     rename(tests_results_test_name = micro_aliquot_tests_results_test_name,
            tests_results_raw_result =micro_aliquot_tests_results_raw_result)
 
+#Phthalate - MECPP
+labres<- read_csv2("E://BBK17//2. BBK17_pending lab tests_July19 2022//LAB//MIREC_MICROALIQOUT RESULTS table code 001-01.001-03//QueryData_code 001-01.csv") |>
+    clean_names()|>
+    rename(tests_results_test_name = micro_aliquot_tests_results_test_name,
+           tests_results_raw_result =micro_aliquot_tests_results_raw_result) |>
+  filter(tests_results_test_name =="MECPP-M2")
+
 ```
 
 Standardizing units
@@ -163,17 +170,17 @@ lipid adjustment = (analyte concentration / lipid level)*102.6
 urine_sg<- read_csv("E://BBK17/pj//imputed_unit_corr//DENS.csv")
 urine_sg$join_id<- str_extract(urine_sg$subject_id,  "^.{8}")
 
-dt<- read_csv("E://BBK17/pj//imputed_unit_corr//triclosan.csv") 
+dt<- read_csv("E://BBK17/pj//imputed_unit_corr//MECPP.csv")
 dt$join_id<- str_extract(dt$subject_id,  "^.{8}")
 dat<- inner_join(dt,urine_sg, by="join_id")
 
 med_sg<- median(dat$result.res.y)
-dat$tcs_sg <- ((dat$result.res.x*(med_sg-1))/(dat$result.res.y-1))
+dat$mecpp_sg <- ((dat$result.res.x*(med_sg-1))/(dat$result.res.y-1))
 
-dat<- dat[c(1,2,10)] |> rename(tcs = result.res.x, subject_id = subject_id.x) |>
+dat<- dat[c(1,2,10)] |> rename(mecpp = result.res.x, subject_id = subject_id.x) |>
   pivot_longer(!subject_id, names_to = "analyte", values_to = "conc")
 
-write_csv(dat, "E://BBK17/pj//imputed_unit_corr//sg_adj//tcs.csv")
+write_csv(dat, "E://BBK17/pj//imputed_unit_corr//sg_adj//mecpp.csv")
 
 
 ################ creatinine adjustment ########################

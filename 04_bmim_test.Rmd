@@ -15,122 +15,80 @@ library(gridExtra)
 library(tidyverse)
 library(splines)
 library(MASS)
-library(qgcomp)
+#library(qgcomp)
 ```
 
 
 ```{r}
-runLOCAL=TRUE 
+runLocal=TRUE
 
-R <- 1000            ## no. of iterations
-burn <- 0.5           ## percent burn-in
-thin <- 40            ## thinning number
-doLog <- FALSE        ## dont log transform the exposures
+## params
+R <- 120000            ## no. of iterations
+burn <- 0.40            ## percent burn-in
+thin <- 20             ## thinning number
+doLog <- FALSE         ## dont log transform the exposures
+# swapX <- TRUE          ## permute exposures (within groups) to avoid artifacts as a result of unique correlation structure
+# folds <- 4             ## no. of folds for CV
+jump <- 0.35           ## sd of random walk for theta* bsmim
 sel <- seq(burn*R+1,R,by=thin) 
-set.seed(1000)
+dat_names <- c("index3","all") ## different index settings
+mod_names <- c("unconstrained","constrained","ordered","dirichlet","dirichlet_varsel","TEQ") ## different models to fit
+prior_b0 <- 0.5 ## controls amount of variable selection: Beta(1,prior_b0)
 
+
+nhanes <- na.omit(read.csv("E:/BBK17/pj//bmim_test/studypop.csv"))
+
+```
+
+Call functions from GitHub
+```{r}
+source(paste0("https://raw.githubusercontent.com/glenmcgee/infpriormixtures/main/NHANES_analysis/NHANES_cleandat_infprior.R"))
 ```
 
 
 ```{r}
-nhanes <- read_csv("E:/BBK17/pj//bmim_test//studypop.csv") |>
-  na.omit()
-
-## center/scale continous covariates and create indicators for categorical covariates
-nhanes$age_z         <- scale(nhanes$age_cent)         ## center and scale age
-nhanes$agez_sq       <- nhanes$age_z^2                 ## square this age variable
-nhanes$bmicat2       <- as.numeric(nhanes$bmi_cat3==2) ## 25 <= BMI < 30
-nhanes$bmicat3       <- as.numeric(nhanes$bmi_cat3==3) ## BMI >= 30 (BMI < 25 is the reference)
-nhanes$educat1       <- as.numeric(nhanes$edu_cat==1)  ## no high school diploma
-nhanes$educat3       <- as.numeric(nhanes$edu_cat==3)  ## some college or AA degree
-nhanes$educat4       <- as.numeric(nhanes$edu_cat==4)  ## college grad or above (reference is high schol grad/GED or equivalent)
-nhanes$otherhispanic <- as.numeric(nhanes$race_cat==1) ## other Hispanic or other race - including multi-racial
-nhanes$mexamerican   <- as.numeric(nhanes$race_cat==2) ## Mexican American 
-nhanes$black         <- as.numeric(nhanes$race_cat==3) ## non-Hispanic Black (non-Hispanic White as reference group)
-nhanes$wbcc_z        <- scale(nhanes$LBXWBCSI)
-nhanes$lymphocytes_z <- scale(nhanes$LBXLYPCT)
-nhanes$monocytes_z   <- scale(nhanes$LBXMOPCT)
-nhanes$neutrophils_z <- scale(nhanes$LBXNEPCT)
-nhanes$eosinophils_z <- scale(nhanes$LBXEOPCT)
-nhanes$basophils_z   <- scale(nhanes$LBXBAPCT)
-nhanes$lncotinine_z  <- scale(nhanes$ln_lbxcot)         ## to access smoking status, scaled ln cotinine levels
+dat<- prep_data_full()
+y<-dat$y
+```
 
 
-## exposure matrix
-mixture <- with(nhanes, cbind(LBX074LA, LBX099LA, LBX118LA, LBX138LA, LBX153LA, 
-                              LBX170LA, LBX180LA, LBX187LA,LBX194LA, LBXHXCLA, 
-                              LBXPCBLA,LBXD03LA, LBXD05LA, LBXD07LA,LBXF03LA,
-                              LBXF04LA, LBXF05LA, LBXF08LA)) 
-if(doLog==TRUE){
-  lnmixture   <- apply(mixture, 2, log)
-}else{
-  lnmixture   <- mixture
-}
-
-#######
-## standardize exposures
-X <- scale(lnmixture)
-colnames(X) <- c(paste0("PCB",c("074", "099", 118, 138, 153, 170, 180, 187, 194, 169, 126)),paste0("Dioxin",1:3), paste0("Furan",1:4)) 
-
-## clean up exposure names and reorder
-colnames(X)[c(1,2,4,5,6,7,8,9)] <- paste0("A-",colnames(X)[c(1,2,4,5,6,7,8,9)])
-colnames(X)[c(10,11)] <- paste0("B-",colnames(X)[c(10,11)])
-colnames(X)[c(3)] <- paste0("C--",colnames(X)[c(3)])
-colnames(X)[c(12:18)] <- paste0("C-",colnames(X)[c(12:18)])
-X <- X[,sort(colnames(X))]
-colnames(X) <- substring(colnames(X),3); colnames(X)[substring(colnames(X),1,1)=="-"] <- substring(colnames(X)[substring(colnames(X),1,1)=="-"],2)
-
-## if swapX==TRUE, permute exposures within groups to avoid artifacts in simulations due to unique correlation structure
-if(exists("swapX")){
-  if(swapX==TRUE){
-    X[,1:8] <- X[,sample(1:8)]
-    X[,9:10] <- X[,sample(9:10)]
-    X[,11:18] <- X[,sample(11:18)]
-  }
-}
-
-## covariates
-covariates <- with(nhanes, cbind(age_z, agez_sq, male, bmicat2, bmicat3))
-
-## outcome
-lnLTL_z <- scale(log(nhanes$TELOMEAN))
+```{r}
+################################################
+###             Format Exposures             ###
+################################################
+X_list <- dat$bsmim$X  ## all 3 indices (18 exposures)
 
 ```
 
 
-Functions at: https://github.com/glenmcgee/infpriormixtures/blob/main/NHANES_analysis/NHANES_cleandat_infprior.R
-
-Data - Pre-processing
+Constrained 3 index model 
+(https://github.com/glenmcgee/infpriormixtures/blob/main/NHANES_analysis/NHANES_infprior_analysis.R
+line 279)
 ```{r}
-resample_ids <- sample(nrow(nhanes))
-
-dat <- prep_data_split(resample_ids)#
-y <- dat$y
-y_TEST <- dat$y_TEST
-```
-
-Unconstrained single index BSIM
-```{r}
-fit <- bsmim2(y= y, x=dat$SIM$X, z=dat$covariates,
-              niter=R,nburn=R*burn,nthin=thin,prior_sigma=c(0.001,0.001),
-              prior_lambda_shaperate=c(1,0.1),gaussian=FALSE,polydegree=1,
-              spike_slab=TRUE,gauss_prior=TRUE,prior_theta_slab_sd=0.25,
-              stepsize_theta=0.2,basis.opts=NULL,draw_h=FALSE)
-
-save(file, file = "E://BBK17//pj//bkmr//bmim_test.rda")
+fit <- bsmim2(y=y,x=X_list,z=dat$covariates,niter=R,nburn=R*burn,nthin=thin,prior_sigma=c(0.001,0.001),prior_lambda_shaperate=c(1,0.1),gaussian=TRUE,spike_slab=TRUE,gauss_prior=TRUE,prior_theta_slab_sd=0.25,stepsize_theta=jump,basis.opts=NULL,draw_h=FALSE,constraints=c(cnstrs,1),prior_slabpos=c(1.6,8),prior_pi=c(1,prior_b0)) ## shape and rate for gamma on thetastar
 ```
 
 
 
 ```{r}
-summarize_thetas(fit)
-plot_weights_bsmim2(fit)
+pred_assoc <- predict_hnew_assoc2(fit)
+pred_overall <- predict_hnew_assoc2(fit,overall = TRUE)
+
+pred_ind<- predict_hnew_indexwise2(fit)
+pred_inter<- pred_twoway(fit)
+
+cv <- bsmim_crossval2(fit,kfolds=4) 
+
+res_list <- list(fit=fit,y=y,pred_assoc=pred_assoc,pred_overall=pred_overall,pred_ind=pred_ind,pred_inter=pred_inter)
+save(res_list, file="E://BBK17//pj//bkmr//bmim_test.RData") #load this for results
+```
 
 
-pred_TEST <- predict_hnew_X2(fit,newX=dat$SIM$X_TEST,newY=y_TEST,newZ=dat$covariates_TEST)
-pred_TRAIN <- predict_hnew_X2(fit,newX=dat$SIM$X,newY=y,newZ=dat$covariates)
+```{r}
+plot_univar_hnew_indexwise2(res_list$pred_ind,ylims=c(-0.5,0.5))
 
-pred50<- predict_hnew_X2(fit,newX=dat$SIM$X50)
-CV<- bsmim_crossval2(fit,kfolds=folds)
+
+postdf_constrained <- data.frame(res_list$fit$thetaPOS[[3]]); colnames(postdf_constrained) <- as.character(1:8)
+postdf_constrained <- gather(postdf_constrained,component,weight)
 ```
 

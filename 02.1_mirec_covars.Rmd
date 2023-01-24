@@ -1,0 +1,112 @@
+---
+title: "02.2_MIREC_co_variates"
+author: "Jagadeesh Puvvula"
+date: "2023-01-24"
+output: pdf_document
+---
+
+libraries
+```{r}
+library(tidyverse)
+library(readxl)
+library(janitor)
+```
+
+
+Working on covariates
+```{r}
+baseq<- read_csv("E:/BBK17/1. BBK17_June10 2022/CRF/1. MIREC STUDY/Data/BASELINEQUEST.csv")
+
+attach(baseq)
+baseq$race.white2 <- rep(0, dim(baseq)[1])
+baseq$race.white2[B14_1==1] <- 1
+baseq$race.asian2 <- rep(0, dim(baseq)[1])
+baseq$race.asian2[B14_2==1 | B14_3==1 | B14_5==1 | B14_6==1 | B14_8==1 | B14_9==1 | B14_10==1 | B14_11==1] <- 1
+baseq$race.black2 <- rep(0, dim(baseq)[1])
+baseq$race.black2[B14_4==1] <- 1
+baseq$race.latin2 <- rep(0, dim(baseq)[1])
+baseq$race.latin2[B14_7==1] <- 1
+baseq$race.aboriginal2 <- rep(0, dim(baseq)[1])
+baseq$race.aboriginal2[B14_12==1] <- 1
+baseq$race.other2 <- rep(0, dim(baseq)[1])
+baseq$race.other2[B14_13==1] <- 1
+detach(baseq)
+
+#Remove unnecessary columns
+baseq <- baseq %>%
+select("CENTRE", "SUBJECT_ID", "VISIT_DATE", "B10", "B12", "B15", "B16", "B17", "B19", "race.white2", "race.asian2", "race.black2", "race.latin2", "race.aboriginal2", "race.other2")
+
+#Rename remaining columns
+colnames(baseq) <- c("site11", "subject.id", "visit.date", "year.born", "edu8", "married7", "living.status5", "income12", "mom.birthplace5", "white", "asian", "black", "latin", "aborignal", "other") 
+
+#Create race variable
+race<- baseq |> 
+  select(c(2,10:15)) |>
+  mutate(aborignal = replace_na(aborignal, 0))
+
+race$screen <- rowSums(race[c(2:7)])
+race$race_cat<- apply(race[-1], 1, function(i) names(race[-1])[which(i == 1)])
+dat<- race[c(1,8)]
+remove(race)
+
+##Find the mother's age at enrollment:
+baseq$visit.date <- as.numeric(substr(baseq$visit.date,1,4)) # Find the year of the visit date from first 4 characters of the second column of 'baseq'. 
+baseq[,dim(baseq)[2]+1] <- baseq$visit.date - baseq$year.born; colnames(baseq)[dim(baseq)[2]]<- "mom.age" # A new column for mother's age is made by subtracting the year of the 1st visit from the mother's year of birth. 
+
+##Education: Convert 7 levels to 4 levels
+baseq$edu4 <- rep(0, dim(baseq)[1])
+baseq$edu4[baseq$edu8==0 | baseq$edu8==1 | baseq$edu8==2] <-1 #high school or less
+baseq$edu4[baseq$edu8==3 | baseq$edu8==4 | baseq$edu8==5 ] <-2 #diploma
+baseq$edu4[baseq$edu8==6] <-3 #undergraduate
+baseq$edu4[baseq$edu8==7] <-4 #graduate university degree 
+baseq$edu4[baseq$edu4==0] <-NA #undefined rows are coded as NA so they can be subsequently removed
+
+##Income: from 9 levels to 4 levels
+baseq$income4 <- rep(0, dim(baseq)[1])
+baseq$income4[baseq$income12==0 | baseq$income12==1 | baseq$income12==2 | baseq$income12==3] <-1 #
+baseq$income4[baseq$income12==4 | baseq$income12==5 | baseq$income12==6 | baseq$income12==7] <-2
+baseq$income4[baseq$income12==8] <-3
+baseq$income4[baseq$income12==9] <-4
+baseq$income4[baseq$income4==0] <-NA #undefined rows (income12==98 or 99) are coded as NA, and will be subsequently removed.
+
+#join age to race
+dat<- left_join(dat, baseq[c(2,16,17,18)], by="subject.id")
+
+#race, mom_age, education and income
+write_csv(dat, "E:/BBK17/pj//covariates//cov_dat1.Rdat")
+```
+
+BABY VARIABLES
+sex: 0=male | 1=female | 2=unknown
+
+```{r}
+dat<- read_excel("E:/BBK17/1. BBK17_June10 2022/DV/1. MIREC STUDY/BBK17_MIREC_BABY_DVs.xlsx") |>
+  clean_names() |>
+  filter(b_outcome_dv == 0) #filter live births
+
+letter2number <- function(x) {utf8ToInt(x) - utf8ToInt("a") + 1L}
+dat$parity<- unname(sapply(dat$baby_code, letter2number))
+
+write_csv(dat[c(1,4:11)], "E:/BBK17/pj//covariates//cov_baby.csv")
+
+```
+
+MOTHER VARIABLES
+```{r}
+dat<- read_excel("E:/BBK17/1. BBK17_June10 2022/DV/1. MIREC STUDY/BBK17_MIREC_MOTHER_DVs.xlsx") |>
+  clean_names() |>
+  select(1,8,10,12,13,36,38)
+
+write_csv(dat, "E:/BBK17/pj//covariates//cov_mom.csv")
+
+```
+
+HOME SCORE at childs age 3-year
+```{r}
+dat<- read_csv("E:/BBK17/4. BBK17_CD+ CRF data corrections_Nov18 2022/CDPLUS.2_NEURO.1_20221117/HOME_SCORES_Yes to NEURO BBK.csv") |>
+  clean_names() |>
+  select(subject_id, hometotdv)
+
+write_csv(dat, "E:/BBK17/pj//covariates//cov_home_scr.csv")
+```
+

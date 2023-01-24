@@ -266,7 +266,6 @@ wppsi<-  read_csv("E:/BBK17/pj//wppsi_analy_dat/wppsi.csv") |>
 #combined exposure and outcome
 dat_exp_out<- inner_join(dat_exp2, wppsi, by="subject_id") |> drop_na()
 write_csv(dat_exp_out, "E:/BBK17/pj//wppsi_analy_dat/exp_out-mirec.csv")
-
 ```
 
 

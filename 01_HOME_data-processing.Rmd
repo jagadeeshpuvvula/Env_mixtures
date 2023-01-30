@@ -27,6 +27,24 @@ dt_outcome<- read_sas("/Users/jpuvvula/Documents/data/outcomes.sas7bdat")|>
   clean_names()
 
 write_csv(dt_outcome, "/Users/jpuvvula/Documents/data/home_16w_imp/mirec_transf/wppsi-5yr_wide.csv")
+
+#### ? REPLACING MISSING WPPSI WITH WISC
+dt_outcome<- read_sas("/Users/jpuvvula/Documents/data/outcomes.sas7bdat")|> 
+  filter(Visit == "M60" | Visit== "P3")|>
+  select(c(1,2,6,7)) |>
+  rename(subject_id = SubjectID) |>
+  clean_names()
+
+out_wide <- dt_outcome |>
+  pivot_wider(names_from = visit, values_from = c(wppsi_fsiq, wisc_fsiq)) |>
+  clean_names()
+
+out_wide$wppsi_fsiq <- ifelse(is.na(out_wide$wppsi_fsiq_m60), 
+                                out_wide$wisc_fsiq_p3, out_wide$wppsi_fsiq_m60)
+
+dat_out <- out_wide |>
+  select(c(1,6)) |> drop_na()
+write_csv(dat_out, "/Users/jpuvvula/Documents/data/wppsi_wisc_repla.csv")
 ```
 
 Exposure data
@@ -206,6 +224,8 @@ Final outcome observations
 ```{r}
 #outcome
 dat_out<- read_csv("/Users/jpuvvula/Documents/data/home_16w_imp/mirec_transf/wppsi-5yr_wide.csv")
+
+#dat_out<- read_csv("/Users/jpuvvula/Documents/data/wppsi_wisc_repla.csv")
 
 #analytic dataset
 dat_exp_out<- inner_join(dat_exp, dat_out, by="subject_id") |>

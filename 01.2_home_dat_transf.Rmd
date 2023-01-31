@@ -1,0 +1,45 @@
+---
+title: "01.2_home_dat_transf"
+author: "Puvvula"
+date: "2023-01-31"
+output: pdf_document
+---
+dphp, dphp, dphp, dphp
+```{r}
+library(tidyverse)
+library(haven)
+library(janitor)
+
+#original data
+opfr<- read_sas("/Users/jpuvvula/Documents/data/fr.sas7bdat") |>
+  clean_names()
+
+opfr_d<- opfr |> filter(visit == "P3" & analyte_code == "DPhP") |>
+  select(subject_id, flg_lod, specific_gravity)
+
+#imputed data
+dphp_p3<- read_csv("/Users/jpuvvula/Documents/data/imputed/dphp_p3.csv")|>
+  rename(raw_read = "result.res")
+
+dphp_p3<- left_join(dphp_p3, opfr_d) |>
+  drop_na()
+
+med_sg<- median(dphp_p3$specific_gravity)
+
+dphp_p3<- dphp_p3 |> 
+  mutate(sg_adj_read = ((dphp_p3$raw_read*(med_sg-1))/(dphp_p3$specific_gravity-1)))
+
+
+dphp<- bind_rows(dphp_16w, dphp_26w, dphp_birth, dphp_m12, dphp_m24, dphp_m36, dphp_m60, dphp_p3)
+write_csv(dphp, "/Users/jpuvvula/Documents/data/home_mri_transf/dphp.csv")
+
+
+file_names<- list.files(path= "/Users/jpuvvula/Documents/data/home_mri_transf",
+                        recursive = T,
+                        pattern = "\\.csv$",
+                        full.names = T)
+
+opfr<- read_csv(file_names)
+write_csv(opfr, "/Users/jpuvvula/Documents/data/home_mri_transf/opfr.csv")
+```
+

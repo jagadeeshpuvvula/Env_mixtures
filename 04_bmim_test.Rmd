@@ -45,6 +45,22 @@ Call functions from GitHub
 source(paste0("https://raw.githubusercontent.com/glenmcgee/infpriormixtures/main/NHANES_analysis/NHANES_cleandat_infprior.R"))
 ```
 
+Function to generate confidence intervals
+```{r}
+printCI <- function(df,col1,col2,dig=2){
+  
+  CI <- paste0("(",round(df[,col1],dig),", ",round(df[,col2],dig),")")
+  res <- CI
+  if(col1>1){
+    res <- cbind(df[1:(col1-1)],CI)
+  }
+  if(col2<ncol(df)){
+    res <- cbind(res,df[(col2+1):ncol(df)])
+  }
+  return(res)
+}
+```
+
 
 ```{r}
 dat<- prep_data_full()
@@ -57,7 +73,7 @@ y<-dat$y
 ###             Format Exposures             ###
 ################################################
 X_list <- dat$bsmim$X  ## all 3 indices (18 exposures)
-
+cnstrs <- c(0,0)
 ```
 
 
@@ -85,10 +101,36 @@ save(res_list, file="E://BBK17//pj//bkmr//bmim_test.RData") #load this for resul
 
 
 ```{r}
-plot_univar_hnew_indexwise2(res_list$pred_ind,ylims=c(-0.5,0.5))
-
-
 postdf_constrained <- data.frame(res_list$fit$thetaPOS[[3]]); colnames(postdf_constrained) <- as.character(1:8)
 postdf_constrained <- gather(postdf_constrained,component,weight)
+
+#Weight of each chemical corresponding to joint association
+weights_bsmim <- rbind(summarize_thetas(fit)[[1]],summarize_thetas(fit)[[2]],
+                       summarize_thetas(fit)[[3]])
+weights_bsmim <- printCI(round(weights_bsmim,2),4,5)
+
+#Overall effect estimate
+overall_bsmim <- pred_overall$contrasts[12,]
+```
+
+Plotting results
+```{r}
+#Index wise exposure-response association curves
+pp_bsmim_ind <- plot_univar_hnew_indexwise2(pred_ind)
+
+#indexwise interactions
+ylim <- c(-0.5,0.75)
+pp_bsmim <- plot_univar_hnew2(pred_assoc,assoc=F,ylims=ylim)
+
+pp_inter_bsmim <- ggplot(pred_inter, aes(grid, est)) + 
+  geom_smooth(aes(col = as.factor(quantile)), stat = "identity",fill="white") + 
+  scale_colour_ghibli_d("LaputaMedium",-1)+
+  # scale_color_manual(values=wes_palette(n=3, name="GrandBudapest"))+
+  facet_grid(var2 ~ var1, scales = "free_x") + ## free_x allows different x axis limits
+  ggtitle("Indexwise Interactions") + 
+  labs(x="",y="",col="Quantile")+
+  theme(strip.text = element_text(colour = 'black'))+
+  theme_light()
+
 ```
 

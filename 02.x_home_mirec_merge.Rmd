@@ -1,0 +1,50 @@
+---
+title: "merge_home_mirec"
+author: "Jagadeesh Puvvula"
+date: "2023-01-31"
+output: pdf_document
+---
+
+Center 1= HOME & 2=MIREC
+
+```{r}
+library(tidyverse)
+```
+
+```{r}
+mirec<- read_csv("E:/BBK17/pj/wppsi_analy_dat/exp_out-mirec.csv")
+  
+
+home<- read_csv("E:/BBK17/pj/wppsi_analy_dat/home_export/wppsi-exp_wide.csv")
+home$subject_id <- as.character(home$subject_id)
+
+dat<- union(mirec, home)
+
+```
+
+Create molar sum of exposure variables
+```{r}
+#dehp = MEHHP (294.34) + MEHP (278.34) + MEOHP (292.33) +MECPP (308.33) | mol. wt from pubchem
+avg_molw <- (294.34+278.34+292.33+308.33)/4
+
+dat$dehp<- (dat$mehhp_sg/294.34*avg_molw)+(dat$mehp_sg/278.34*avg_molw)+
+  (dat$meohp_sg/292.33*avg_molw)+(dat$mecpp_sg/308.33*avg_molw)
+
+#op_de = DEP (154.10) + DETP (169.16)
+avg_mol_de<- (154.10+169.16)/2
+dat$op_de<- (dat$dep_sg/154.10*avg_mol_de)+(dat$detp_sg/169.16*avg_mol_de)
+
+
+#op_dm = DMP (126.05) + DMTP (141.11)
+avg_mol_dm<- (126.05+141.11)/2
+dat$op_dm<- (dat$dmp_sg/126.05*avg_mol_dm)+(dat$dmtp_sg/141.11*avg_mol_dm)
+
+  
+
+#drop un-necessary variables
+dat<- dat |> select(-c(pbde153_lp, mehhp_sg, mehp_sg, meohp_sg, mecpp_sg,
+                       dep_sg, detp_sg, dmp_sg, dmtp_sg))
+
+write_csv(dat, "E:/BBK17/pj/wppsi_exp_out_comb/wppsi.csv")
+```
+

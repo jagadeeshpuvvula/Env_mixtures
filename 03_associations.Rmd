@@ -5,9 +5,131 @@ date: "2022-11-03"
 output: pdf_document
 ---
 
+```{r}
+library(tidyverse)
+library(janitor)
+
+library(glmnet)
+library(gglasso)
+
+library(mgcv)
+library(gWQS)
+library(qgcomp)
+library(bkmr)
+library(Matrix)
+library(fields)
+library(bindrcpp)
+```
+
+load exp and outcome data (n=594)
+```{r}
+dat<- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi.csv") |>
+  mutate_if(is.numeric, round, 4) |>
+  drop_na() |>
+  clean_names()
+
+cat<- c("center", "subject_id", "city", "age")
+dat[cat]<- lapply(dat[cat], factor)
+str(dat)
+```
+
+
+Generalized linear model
+```{r}
+# Define predictors to be used in the loop
+predictors <- c("bcetp_sg", "bdcpp_sg", "bpa_sg", "dbup_sg", 
+                "dde_lp", "dma_sg", "dphp_sg", "hgsg", "mbp_sg", "mbzp_sg", 
+                "mcpp_sg", "mep_sg", "mibp_sg", "pbsg", "pbde47_lp",
+                "pcb118_lp", "pcb138_lp", "pcb153_lp", "pcb180_lp", "pf_hx_spl", 
+                "pfoapl", "pfospl", "tcs_sg", "dehp", "op_de", "op_dm")
+
+# Create an empty data frame to store model results
+results <- data.frame(predictor = character(),
+                      term = character(),
+                      deviance = numeric(),
+                      aic = numeric(),
+                      beta = numeric())
+
+# Loop through the predictors
+for (predictor in predictors) {
+    
+    # Fit the GAM model with a cubic regression spline
+    gam_model <- gam(wppsi_fsiq ~ s(get(predictor)), 
+                     method="GCV.Cp", data = dat)
+    
+    # Extract the estimated regression coefficients
+    betas <- coef(gam_model)[2:3]
+    terms <- c("spline", "intercept")
+  
+    # Loop through the estimated regression coefficients
+    for (i in seq_along(betas)) {
+    
+        # Store the model results in the data frame
+        results <- rbind(results, data.frame(predictor = predictor,
+                                             term = terms[i],
+                                             deviance = gam_model$deviance,
+                                             aic = gam_model$aic,
+                                             beta = betas[i]))
+    }
+}
+
+
+# View the model results
+head(results)
+
+
+ggplot(results, aes(x = predictor, y = beta, color = term)) +
+  geom_point(size = 3) +
+  geom_line() +
+  scale_x_discrete(limits = predictors) +
+  scale_color_discrete(limits = terms) +
+  ylab("Estimated Regression Coefficient") +
+  ggtitle("Estimated Regression Coefficients for Cubic Regression Spline Predictors")
+```
+
+
+group LASSO
+```{r}
+#Exposure mixture
+names(dat[c(3:26, 32:34)])
+#Creating mixture variable matrix
+mixture<- with(dat, cbind(bcetp_sg, bdcpp_sg, bpa_sg, dbup_sg, 
+dde_lp, dma_sg, dphp_sg, hgsg, mbp_sg, mbzp_sg, mcpp_sg, mep_sg, mibp_sg, 
+pbsg, pbde47_lp, pcb118_lp, pcb138_lp, pcb153_lp, pcb180_lp, pf_hx_spl, 
+pfoapl, pfospl, tcs_sg, dehp, op_de, op_dm))
+
+# log conversion and scaling exposure variables
+ln_mixture <- apply(mixture, 2, log) 
+ln_mixture_z <- scale(ln_mixture) 
+
+# group index for X variables
+v.group <- c(1,1,1,1,1,2,2,2,2,2,3,3,3,3,3,4,4,4,4,4)
+
+#Outcome variable
+#log conversion and scaling outcome
+wppsi_fsiq_z <- scale(log(dat$wppsi_fsiq))
+
+
+
+gr <- gglasso(X, y, lambda = 0.2, group = v.group, loss="ls",intercept = F)
+
+#cross-validation
+gr_cv <- cv.gglasso(x=X, y=y, group=v.group, 
+            loss="ls", pred.loss="L2", 
+            intercept = F, nfolds=5)
+x11(); plot(gr_cv)
+paste(gr_cv$lambda.min, gr_cv$lambda.1se)
+
+#model selection
+gr <- gglasso(X, y, lambda = gr_cv$lambda.1se+0.1,
+             group = v.group, loss="ls",
+             intercept = F)
+```
+
+
 Generalized weighted quantile sum regression
 ```{r}
-library(gWQS)
+
 
 mixture<- names(dat_fin[(2:33)])
 
@@ -40,8 +162,6 @@ gwqs_weights_tab(wqs_rh)
 
 quantile g-computation
 ```{r}
-library(qgcomp)
-
 nb_gcomp_fit<- qgcomp.noboot(bayley_men_mdi ~ . ,
                         expnms = mixture,
                         data = dat_fin,
@@ -70,11 +190,6 @@ plot(gcomp_fit)
 
 BKMR
 ```{r}
-library(bkmr)
-library(Matrix)
-library(fields)
-library(bindrcpp)
-
 #log conversion and scaling outcome
 wppsi_fsiq_z <- scale(log(wppsi_fin$fsiq))
 

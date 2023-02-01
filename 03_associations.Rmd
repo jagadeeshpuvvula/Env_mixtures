@@ -34,7 +34,7 @@ str(dat)
 ```
 
 
-Generalized linear model
+Generalized additive model
 ```{r}
 # Define predictors to be used in the loop
 predictors <- c("bcetp_sg", "bdcpp_sg", "bpa_sg", "dbup_sg", 

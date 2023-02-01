@@ -43,48 +43,29 @@ predictors <- c("bcetp_sg", "bdcpp_sg", "bpa_sg", "dbup_sg",
                 "pcb118_lp", "pcb138_lp", "pcb153_lp", "pcb180_lp", "pf_hx_spl", 
                 "pfoapl", "pfospl", "tcs_sg", "dehp", "op_de", "op_dm")
 
-# Create an empty data frame to store model results
-results <- data.frame(predictor = character(),
-                      term = character(),
-                      deviance = numeric(),
-                      aic = numeric(),
-                      beta = numeric())
+predictors <- list("s(disp)", "s(hp)", "s(wt)")
+results <- list()
+plots<-list()
 
-# Loop through the predictors
 for (predictor in predictors) {
-    
-    # Fit the GAM model with a cubic regression spline
-    gam_model <- gam(wppsi_fsiq ~ s(get(predictor)), 
-                     method="GCV.Cp", data = dat)
-    
-    # Extract the estimated regression coefficients
-    betas <- coef(gam_model)[2:3]
-    terms <- c("spline", "intercept")
-  
-    # Loop through the estimated regression coefficients
-    for (i in seq_along(betas)) {
-    
-        # Store the model results in the data frame
-        results <- rbind(results, data.frame(predictor = predictor,
-                                             term = terms[i],
-                                             deviance = gam_model$deviance,
-                                             aic = gam_model$aic,
-                                             beta = betas[i]))
-    }
+  formula <- as.formula(paste("mpg ~", predictor))
+  model <- gam(formula,
+               method="GCV.Cp",
+               data = mtcars)
+  results[[predictor]] <- model
+  plot <- plot.gam(model)
+  plot$title <- paste("GAM Model with", predictor)
+  plots[[predictor]] <- plot
 }
 
+plots <- lapply(plots, ggplot, aes(x = fitted(.), y = mpg))
 
-# View the model results
-head(results)
+ggplot() +
+  faceting <- facet_wrap(~ title, scales = "free_y", ncol = 1) +
+  lapply(plots, function(x) x + geom_point(aes(x = fitted(.), y = mpg), data = mtcars) + geom_line(aes(x = fitted(.), y = mpg))) +
+  labs(x = "Fitted Values", y = "mpg")
 
-
-ggplot(results, aes(x = predictor, y = beta, color = term)) +
-  geom_point(size = 3) +
-  geom_line() +
-  scale_x_discrete(limits = predictors) +
-  scale_color_discrete(limits = terms) +
-  ylab("Estimated Regression Coefficient") +
-  ggtitle("Estimated Regression Coefficients for Cubic Regression Spline Predictors")
+modelsummary(results, gof_map = c("r.squared", "aic", "theta"))
 ```
 
 

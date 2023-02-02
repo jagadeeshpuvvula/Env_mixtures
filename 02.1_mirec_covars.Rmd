@@ -12,8 +12,7 @@ library(readxl)
 library(janitor)
 ```
 
-
-Working on covariates
+mother/parent covariates
 ```{r}
 baseq<- read_csv("E:/BBK17/1. BBK17_June10 2022/CRF/1. MIREC STUDY/Data/BASELINEQUEST.csv")
 
@@ -39,15 +38,58 @@ select("CENTRE", "SUBJECT_ID", "VISIT_DATE", "B10", "B12", "B15", "B16", "B17", 
 #Rename remaining columns
 colnames(baseq) <- c("site11", "subject.id", "visit.date", "year.born", "edu8", "married7", "living.status5", "income12", "mom.birthplace5", "white", "asian", "black", "latin", "aborignal", "other") 
 
+###############################################################################
+###############################################################################
 #Create race variable
-race<- baseq |> 
-  select(c(2,10:15)) |>
-  mutate(aborignal = replace_na(aborignal, 0))
+race<- read_csv("E:/BBK17/pj/covariates/race_man_edited.csv")|>
+  select(-c(screen))
 
-race$screen <- rowSums(race[c(2:7)])
-race$race_cat<- apply(race[-1], 1, function(i) names(race[-1])[which(i == 1)])
-dat<- race[c(1,8)]
-remove(race)
+create_race <- function(df) {
+  race_cat <- rep("other", nrow(df))
+  for (i in 1:nrow(df)) {
+    asian <- df[i, "asian"]
+    black <- df[i, "black"]
+    white <- df[i, "white"]
+    latin <- df[i, "latin"]
+    aborignal <- df[i, "aborignal"]
+    other <- df[i, "other"]
+  
+    if (asian == 1) {
+      race <- "asian"
+      if (black == 1) race <- "asian-black"
+      if (white == 1) race <- "asian-white"
+      if (latin == 1) race <- "asian-latin"
+      if (aborignal == 1) race <- "asian-aborignal"
+    } else if (black == 1) {
+      race <- "black"
+      if (white == 1) race <- "black-white"
+      if (latin == 1) race <- "black-latin"
+      if (aborignal == 1) race <- "black-aborignal"
+    } else if (white == 1) {
+      race <- "white"
+      if (latin == 1) race <- "white-latin"
+      if (aborignal == 1) race <- "white-aborignal"
+    } else if (latin == 1) {
+      race <- "latin"
+      if (aborignal == 1) race <- "latin-aborignal"
+    } else if (aborignal == 1) {
+      race <- "aborignal"
+    } else if (other == 1) {
+      race <- "other"
+    }
+    race_cat[i] <- race
+  }
+  df$race <- race_cat
+  return (df)
+}
+
+dataset<- create_race(race)
+x<- dataset |> select(subject.id, race)
+
+write_csv(x, "E:/BBK17/pj/covariates/race_fin.csv")
+
+###############################################################################
+###############################################################################
 
 ##Find the mother's age at enrollment:
 baseq$visit.date <- as.numeric(substr(baseq$visit.date,1,4)) # Find the year of the visit date from first 4 characters of the second column of 'baseq'. 
@@ -78,7 +120,6 @@ write_csv(dat, "E:/BBK17/pj//covariates//cov_dat1.Rdat")
 
 BABY VARIABLES
 sex: 0=male | 1=female | 2=unknown
-
 ```{r}
 dat<- read_excel("E:/BBK17/1. BBK17_June10 2022/DV/1. MIREC STUDY/BBK17_MIREC_BABY_DVs.xlsx") |>
   clean_names() |>
@@ -89,7 +130,19 @@ dat$parity<- unname(sapply(dat$baby_code, letter2number))
 
 write_csv(dat[c(1,4:11)], "E:/BBK17/pj//covariates//cov_baby.csv")
 
+baby_var<- dat |> select(c(1,4:6,8))
+
 ```
+
+HOME SCORE at childs age 3-year
+```{r}
+home_sc<- read_csv("E:/BBK17/4. BBK17_CD+ CRF data corrections_Nov18 2022/CDPLUS.2_NEURO.1_20221117/HOME_SCORES_Yes to NEURO BBK.csv") |>
+  clean_names() |>
+  select(subject_id, hometotdv)
+
+write_csv(dat, "E:/BBK17/pj//covariates//cov_home_scr.csv")
+```
+
 
 MOTHER VARIABLES
 ```{r}
@@ -97,16 +150,32 @@ dat<- read_excel("E:/BBK17/1. BBK17_June10 2022/DV/1. MIREC STUDY/BBK17_MIREC_MO
   clean_names() |>
   select(1,8,10,12,13,36,38)
 
+mom_cov<- dat |> select(c(1,3))
+
 write_csv(dat, "E:/BBK17/pj//covariates//cov_mom.csv")
 
+mom_dat2<- read_csv("E:/BBK17/pj//covariates/cov_dat1.csv") |>
+  select(c(1,3,4)) |>
+  clean_names()
+
+####################################################
+####################################################
+#adding age, education, parity
+cov_1<- full_join(mom_cov, mom_dat2)
+
+#age, education, parity, home score
+cov_2<- full_join(cov_1, home_sc)
+
+#adding newborn variables to above
+cov_3<- full_join(cov_2, baby_var)
+
+#add race
+race<- read_csv("E:/BBK17/pj/covariates/race_fin.csv") |> clean_names()
+
+cov_4<- full_join(cov_3, race)
+
+write_csv(cov_4, "E:/BBK17/pj//covariates/mirec_cov_fin.csv")
+
 ```
 
-HOME SCORE at childs age 3-year
-```{r}
-dat<- read_csv("E:/BBK17/4. BBK17_CD+ CRF data corrections_Nov18 2022/CDPLUS.2_NEURO.1_20221117/HOME_SCORES_Yes to NEURO BBK.csv") |>
-  clean_names() |>
-  select(subject_id, hometotdv)
-
-write_csv(dat, "E:/BBK17/pj//covariates//cov_home_scr.csv")
-```
 

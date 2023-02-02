@@ -12,11 +12,12 @@ library(tidyverse)
 ```
 
 ```{r}
-mirec<- read_csv("E:/BBK17/pj/wppsi_analy_dat/exp_out-mirec.csv")
+home<- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi-home.csv") |> clean_names()
+home$subject_id <- as.character(home$subject_id)
+home$race <- as.character(home$race)
   
 
-home<- read_csv("E:/BBK17/pj/wppsi_analy_dat/home_export/wppsi-exp_wide.csv")
-home$subject_id <- as.character(home$subject_id)
+mirec<- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi-mirec.csv") |> clean_names()
 
 dat<- union(mirec, home)
 
@@ -45,6 +46,6 @@ dat$op_dm<- (dat$dmp_sg/126.05*avg_mol_dm)+(dat$dmtp_sg/141.11*avg_mol_dm)
 dat<- dat |> select(-c(pbde153_lp, mehhp_sg, mehp_sg, meohp_sg, mecpp_sg,
                        dep_sg, detp_sg, dmp_sg, dmtp_sg))
 
-write_csv(dat, "E:/BBK17/pj/wppsi_exp_out_comb/wppsi.csv")
+write_csv(dat, "E:/BBK17/pj/wppsi_exp_out_comb/wppsi_home_mirec.csv")
 ```
 

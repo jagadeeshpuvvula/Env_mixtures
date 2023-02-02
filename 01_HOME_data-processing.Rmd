@@ -305,7 +305,28 @@ write_csv(dat_cov3, "/Users/jpuvvula/Documents/data/home_16w_imp/mirec_transf/co
 
 Join exposure, outcome and covariates
 ```{r}
-dat_exp_out <- read_csv("/Users/jpuvvula/Documents/data/home_16w_imp/mirec_transf/wppsi-exp_wide.csv")
+cov <- read_csv("E:/BBK17/pj/wppsi_analy_dat/home_export/home-covar_mire_transf.csv") |>
+  select(c(1:10)) |>
+  clean_names()
+
+dat_exp_out <- read_csv("E:/BBK17/pj/wppsi_analy_dat/home_export/wppsi-exp_wide.csv")
+
+home_wppsi<- left_join(dat_exp_out, cov, by="subject_id")
+
+################################################################################
+
+
+gg_miss_upset(mirec_wppsi, nsets=5, nintersects=NA)
+
+#replace missing values with median
+
+#birth length missing (n=2)
+home_wppsi <- home_wppsi |> mutate(b_length = ifelse(is.na(b_length),
+                                                       median(b_length, na.rm = T),
+                                                       b_length))
+
+
+write_csv(home_wppsi, "E:/BBK17/pj/wppsi_exp_out_comb/home-mirec.csv")
 
 
 ```

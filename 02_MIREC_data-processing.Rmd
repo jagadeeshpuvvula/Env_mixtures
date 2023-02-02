@@ -330,4 +330,39 @@ ggsave("E:/BBK17/pj//wppsi_analy_dat/corrplot.tiff",
 ```
 
 
+Join MIREC exposure outcome and covariates
+```{r}
+cov<- read_csv("E:/BBK17/pj//covariates/mirec_cov_fin.csv") |>
+  select(c(1:10)) |> clean_names()
+
+exp_out<- read_csv("E:/BBK17/pj//wppsi_analy_dat/exp_out-mirec.csv")
+
+
+mirec_wppsi <- left_join(exp_out, cov, by="subject_id")
+gg_miss_upset(mirec_wppsi, nsets=5, nintersects=NA)
+
+#replace missing values with median
+
+#HOME missing (n=15)
+mirec_wppsi <- mirec_wppsi |> mutate(home_score_total = ifelse(is.na(home_score_total),
+                                                               median(home_score_total, na.rm = T),
+                                                               home_score_total))
+
+#birth length missing (n=31)
+mirec_wppsi <- mirec_wppsi |> mutate(b_length = ifelse(is.na(b_length),
+                                                       median(b_length, na.rm = T),
+                                                       b_length))
+
+#birth weight missing (n=3)
+mirec_wppsi <- mirec_wppsi |> mutate(b_wght = ifelse(is.na(b_wght),
+                                                     median(b_wght, na.rm = T),
+                                                     b_wght))
+
+#mom education (n=2)
+mirec_wppsi <- mirec_wppsi |> mutate(mom_edu = ifelse(is.na(mom_edu), 
+                                                      4, mom_edu))
+
+write_csv(mirec_wppsi, "E:/BBK17/pj/wppsi_exp_out_comb/wppsi-mirec.csv")
+```
+
 

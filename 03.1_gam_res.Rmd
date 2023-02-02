@@ -1,0 +1,69 @@
+---
+title: "GAM-results"
+author: "Jagadeesh Puvvula"
+date: "2023-02-02"
+output: pdf_document
+---
+
+```{r}
+library(tidyverse)
+library(janitor)
+#library(skimr)
+library(modelsummary)
+library(mgcv)
+```
+
+load exp and outcome data (n=617)
+```{r, echo=FALSE, results='hide'}
+dat<- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_home_mirec.csv") |>
+  mutate_if(is.numeric, round, 4) |>
+  drop_na() |>
+  clean_names()
+
+cat<- c("cohort", "subject_id", "city", "age", "sex", "race", "parity_n", "mom_edu")
+dat[cat]<- lapply(dat[cat], factor)
+summary(dat)
+```
+
+
+Generalized additive model: assuming Gaussian family - Identity link
+CHANGE OUTCOME at each run
+
+```{r}
+# exposure and outcome variables
+numeric_vars <- sapply(dat, is.numeric)
+
+# Convert numeric variables to log2 scale
+dat[c(5:34)] <- log2(dat[c(5:34)])
+
+#scale outcome variable
+dat$wppsi_fsiq<- scale(dat$wppsi_piq, center=T)
+
+# Define predictors to be used in the loop
+predictors <- list("s(bcetp_sg)", "s(bdcpp_sg)", "s(bpa_sg)", "s(dbup_sg)", 
+                "s(dde_lp)", "s(dma_sg)", "s(dphp_sg)", "s(hgsg)", "s(mbp_sg)", "s(mbzp_sg)", 
+                "s(mcpp_sg)", "s(mep_sg)", "s(mibp_sg)", "s(pbsg)", "s(pbde47_lp)",
+                "s(pcb118_lp)", "s(pcb138_lp)", "s(pcb153_lp)", "s(pcb180_lp)", "s(pf_hx_spl)", 
+                "s(pfoapl)", "s(pfospl)", "s(tcs_sg)", "s(dehp)", "s(op_de)", "s(op_dm)")
+
+
+results <- list()
+plots<-list()
+
+for (predictor in predictors) {
+  formula <- as.formula(paste("wppsi_piq ~", predictor, "+cohort+city"))
+  model <- gam(formula,
+               method="GCV.Cp",
+               data = dat)
+  results[[predictor]] <- model
+  plot <- plot.gam(model)
+  plot$title <- paste("Exposure - ", predictor)
+  plots[[predictor]] <- plot
+}
+
+results
+
+modelsummary(results, output = "E:/BBK17/pj/wppsi_results/gam_results-piq.csv")
+
+save(results, file = "E:/BBK17/pj/wppsi_results/gam_res_piq.rda")
+```

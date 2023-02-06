@@ -21,57 +21,17 @@ library(fields)
 library(bindrcpp)
 ```
 
-load exp and outcome data (n=594)
-```{r}
+load exp and outcome data (n=617)
+```{r, echo=FALSE, results='hide'}
 dat<- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_home_mirec.csv") |>
   mutate_if(is.numeric, round, 4) |>
   drop_na() |>
   clean_names()
 
-cat<- c("center", "subject_id", "city", "age")
+cat<- c("cohort", "subject_id", "city", "age", "sex", "race", "parity_n", "mom_edu")
 dat[cat]<- lapply(dat[cat], factor)
-str(dat)
+#summary(dat)
 ```
-
-
-Generalized additive model
-```{r}
-# Identify numeric variables
-numeric_vars <- sapply(dat, is.numeric)
-
-# Convert numeric variables to log2 scale
-dat[, numeric_vars] <- log2(dat[, numeric_vars])
-
-#scale outcome variable
-dat$wppsi_fsiq<- scale(dat$wppsi_fsiq, center=T)
-
-# Define predictors to be used in the loop
-predictors <- list("s(bcetp_sg)", "s(bdcpp_sg)", "s(bpa_sg)", "s(dbup_sg)", 
-                "s(dde_lp)", "s(dma_sg)", "s(dphp_sg)", "s(hgsg)", "s(mbp_sg)", "s(mbzp_sg)", 
-                "s(mcpp_sg)", "s(mep_sg)", "s(mibp_sg)", "s(pbsg)", "s(pbde47_lp)",
-                "s(pcb118_lp)", "s(pcb138_lp)", "s(pcb153_lp)", "s(pcb180_lp)", "s(pf_hx_spl)", 
-                "s(pfoapl)", "s(pfospl)", "s(tcs_sg)", "s(dehp)", "s(op_de)", "s(op_dm)")
-
-
-results <- list()
-plots<-list()
-
-for (predictor in predictors) {
-  formula <- as.formula(paste("wppsi_fsiq ~", predictor, "+center+city"))
-  model <- gam(formula,
-               method="GCV.Cp",
-               data = dat)
-  results[[predictor]] <- model
-  plot <- plot.gam(model)
-  plot$title <- paste("GAM Model with", predictor)
-  plots[[predictor]] <- plot
-}
-
-modelsummary(results, output = "E:/BBK17/pj/wppsi_results/gam_results.csv")
-
-save(results, file = "E:/BBK17/pj/wppsi_results/gam_res_fisq.rda")
-```
-
 
 group LASSO
 ```{r}
@@ -94,8 +54,6 @@ v.group <- c(1,1,1,1,1,2,2,2,2,2,3,3,3,3,3,4,4,4,4,4)
 #log conversion and scaling outcome
 wppsi_fsiq_z <- scale(log(dat$wppsi_fsiq))
 
-
-
 gr <- gglasso(X, y, lambda = 0.2, group = v.group, loss="ls",intercept = F)
 
 #cross-validation
@@ -113,64 +71,51 @@ gr <- gglasso(X, y, lambda = gr_cv$lambda.1se+0.1,
 
 
 Generalized weighted quantile sum regression
-```{r}
+```{r, warning=FALSE, message=FALSE}
+mixture<- names(dat[c(5:7, 9:31)])
 
+set.seed(2022)
+future.seed =TRUE
 
-mixture<- names(dat_fin[(2:33)])
+dat$wppsi_fisq_lg<- log(dat$wppsi_fsiq)
 
-wqs_rh<- gwqsrh(bayley_men_mdi ~ wqs,
+#covariates:  + cohort + cotinine + home_score_total + sex + mom_edu 
+
+wqs_rh<- gwqsrh(wppsi_fsiq ~ wqs,
                 mix_name=mixture,
-                data=dat_fin,
+                data=dat,
                 q=10, validation=0.6,b=100,b1_pos = F,b1_constr = F,
-                family="gaussian",zilink = log, seed=2022,rh=10)
+                family="gaussian",seed=2022, rh=100,
+                plan_strategy = "multisession")
 
 gwqs_summary_tab(wqs_rh)
 gwqsrh_boxplot(wqs_rh, tau = 0.01)
 gwqs_weights_tab(wqs_rh)
 
-
-####### MIREC #########
-
-mixture<- names(wppsi_fin[(8:39)])
-
-wqs_rh<- gwqsrh(fsiq ~ wqs,
-                mix_name=mixture,
-                data=wppsi_fin,
-                q=10, validation=0.6,b=100,b1_pos = F,b1_constr = F,
-                family="gaussian",zilink = log, seed=2022,rh=10)
-
-gwqs_summary_tab(wqs_rh)
-gwqsrh_boxplot(wqs_rh, tau = 0.01)
-gwqs_weights_tab(wqs_rh)
-
+save(wqs_rh, file = "E:/BBK17//pj/wqs_rh-fsiq.rda")
 ```
 
 quantile g-computation
 ```{r}
-nb_gcomp_fit<- qgcomp.noboot(bayley_men_mdi ~ . ,
+mixture<- c('bcetp_sg', 'bdcpp_sg', 'bpa_sg', 'dbup_sg', 'dde_lp', 'dma_sg', 
+            'dphp_sg', 'hgsg', 'mbp_sg', 'mbzp_sg', 'mcpp_sg', 'mep_sg',
+            'mibp_sg', 'pbsg','pbde47_lp', 'pcb118_lp', 'pcb138_lp',
+            'pcb153_lp', 'pcb180_lp','pf_hx_spl', 'pfoapl', 'pfospl',
+            'tcs_sg', 'dehp', 'op_de', 'op_dm')
+
+nb_gcomp_fit<- qgcomp.noboot(wppsi_fsiq ~ . ,
                              expnms = mixture,
-                             data = dat_fin,
+                             data = dat,
                              family= gaussian(), q=10)
 
 
-gcomp_fit<- qgcomp.boot(bayley_men_mdi ~ . ,
+gcomp_fit<- qgcomp.boot(wppsi_fsiq ~ . ,
                         expnms = mixture,
-                        data = dat_fin,
+                        data = dat[cohort="2"],
                         family= gaussian(), q=10, B = 250,
                         seed = 2022)
 
 plot(gcomp_fit)
-
-###### MIREC ##########
-gcomp_fit<- qgcomp.boot(fsiq ~ . ,
-                        expnms = mixture,
-                        data = wppsi_fin,
-                        family= gaussian(), q=10, B = 250,
-                        seed = 2022)
-
-plot(gcomp_fit)
-
-
 ```
 
 BKMR

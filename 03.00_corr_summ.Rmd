@@ -1,0 +1,203 @@
+---
+title: "03.00_corr_summ"
+author: "Jagadeesh Puvvula"
+date: "2023-02-06"
+output: pdf_document
+---
+
+
+```{r}
+library(tidyverse)
+```
+
+
+HOME corerlation
+```{r}
+dat<- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_home_mirec.csv") |>
+  mutate_if(is.numeric, round, 4) |>
+  drop_na() |>
+  clean_names() |>
+  filter(cohort==1) |>
+  rename(Pb=pbsg, Hg=hgsg, DMA=dma_sg, DDE= dde_lp, PBDE_47 = pbde47_lp,
+         PCB_118=pcb118_lp, PCB_138=pcb138_lp, PCB_153=pcb153_lp,
+         PCB_180=pcb180_lp, PFHxS=pf_hx_spl, PFOA=pfoapl, PFOS=pfospl,
+         BCEtP=bcetp_sg, BDCPP=bdcpp_sg, DBuP=dbup_sg, DPhP=dphp_sg,
+         TCS=tcs_sg, BPA=bpa_sg, MBP=mbp_sg, MBZP=mbzp_sg, MCPP=mcpp_sg,
+         sigma_DEHP=dehp, MEP=mep_sg, MIBP=mibp_sg, di_Ethyl_OP=op_de,
+         di_Methyl_OP=op_dm)|>
+  select(c(Pb, Hg, DMA, DDE, PBDE_47, PCB_118, PCB_138, PCB_153, PCB_180,
+          PFHxS, PFOA, PFOS, BCEtP, BDCPP, DBuP, DPhP, TCS, BPA, MBP, MBZP,
+          MCPP, sigma_DEHP, MEP, MIBP, di_Ethyl_OP, di_Methyl_OP))
+
+group<- c("Metals", "Metals", "Metals", "POP", "POP", "POP", "POP", "POP",
+          "POP", "PFAS","PFAS","PFAS", "OPFR", "OPFR", "OPFR", "OPFR",
+          "TCS", "BPA", "Phthalate", "Phthalate", "Phthalate", 
+          "Phthalate", "Phthalate", "Phthalate", "OP_Pest.", "OP_Pest.")
+
+
+cormat<- round(x=cor(dat, method = "spearman", 
+                     use= "complete.obs"), digits=2) |>
+  melt() |> clean_names()
+
+ggplot(cormat, aes(x=var2, y=var1, fill=value)) +
+  geom_tile(color="white")+
+  scale_fill_gradient2(low="red", high="blue", mid="white",
+                       midpoint=0,
+                       limit=c(-1,1), space= "Lab",
+                      name="Spearman Correlation | MIREC/HOME [n=617]")+
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, size = 12, hjust = 1),
+        axis.text.y = element_text(angle = 0, vjust = 1, size = 12, hjust = 1),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank(),
+        axis.ticks = element_blank(),
+        legend.position = "bottom", legend.box = "horizontal")+
+  coord_fixed()
+
+ggsave("E:/BBK17/pj/wppsi_results/correlation_plots/home-corr.tiff",
+       width=14, height= 12, dpi=300)
+```
+
+
+MIREC corerlation
+```{r}
+dat<- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_home_mirec.csv") |>
+  mutate_if(is.numeric, round, 4) |>
+  drop_na() |>
+  clean_names() |>
+  filter(cohort==2) |>
+  rename(Pb=pbsg, Hg=hgsg, DMA=dma_sg, DDE= dde_lp, PBDE_47 = pbde47_lp,
+         PCB_118=pcb118_lp, PCB_138=pcb138_lp, PCB_153=pcb153_lp,
+         PCB_180=pcb180_lp, PFHxS=pf_hx_spl, PFOA=pfoapl, PFOS=pfospl,
+         BCEtP=bcetp_sg, BDCPP=bdcpp_sg, DBuP=dbup_sg, DPhP=dphp_sg,
+         TCS=tcs_sg, BPA=bpa_sg, MBP=mbp_sg, MBZP=mbzp_sg, MCPP=mcpp_sg,
+         sigma_DEHP=dehp, MEP=mep_sg, MIBP=mibp_sg, di_Ethyl_OP=op_de,
+         di_Methyl_OP=op_dm)|>
+  select(c(Pb, Hg, DMA, DDE, PBDE_47, PCB_118, PCB_138, PCB_153, PCB_180,
+          PFHxS, PFOA, PFOS, BCEtP, BDCPP, DBuP, DPhP, TCS, BPA, MBP, MBZP,
+          MCPP, sigma_DEHP, MEP, MIBP, di_Ethyl_OP, di_Methyl_OP))
+
+group<- c("Metals", "Metals", "Metals", "POP", "POP", "POP", "POP", "POP",
+          "POP", "PFAS","PFAS","PFAS", "OPFR", "OPFR", "OPFR", "OPFR",
+          "TCS", "BPA", "Phthalate", "Phthalate", "Phthalate", 
+          "Phthalate", "Phthalate", "Phthalate", "OP_Pest.", "OP_Pest.")
+
+
+cormat<- round(x=cor(dat, method = "spearman", 
+                     use= "complete.obs"), digits=2) |>
+  melt() |> clean_names()
+
+ggplot(cormat, aes(x=var2, y=var1, fill=value)) +
+  geom_tile(color="white")+
+  scale_fill_gradient2(low="red", high="blue", mid="white",
+                       midpoint=0,
+                       limit=c(-1,1), space= "Lab",
+                      name="Spearman Correlation | MIREC/HOME [n=617]")+
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, size = 12, hjust = 1),
+        axis.text.y = element_text(angle = 0, vjust = 1, size = 12, hjust = 1),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank(),
+        axis.ticks = element_blank(),
+        legend.position = "bottom", legend.box = "horizontal")+
+  coord_fixed()
+
+ggsave("E:/BBK17/pj/wppsi_results/correlation_plots/mirec-corr.tiff",
+       width=14, height= 12, dpi=300)
+```
+
+
+combined corerlation
+```{r}
+dat<- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_home_mirec.csv") |>
+  mutate_if(is.numeric, round, 4) |>
+  drop_na() |>
+  clean_names() |>
+  rename(Pb=pbsg, Hg=hgsg, DMA=dma_sg, DDE= dde_lp, PBDE_47 = pbde47_lp,
+         PCB_118=pcb118_lp, PCB_138=pcb138_lp, PCB_153=pcb153_lp,
+         PCB_180=pcb180_lp, PFHxS=pf_hx_spl, PFOA=pfoapl, PFOS=pfospl,
+         BCEtP=bcetp_sg, BDCPP=bdcpp_sg, DBuP=dbup_sg, DPhP=dphp_sg,
+         TCS=tcs_sg, BPA=bpa_sg, MBP=mbp_sg, MBZP=mbzp_sg, MCPP=mcpp_sg,
+         sigma_DEHP=dehp, MEP=mep_sg, MIBP=mibp_sg, di_Ethyl_OP=op_de,
+         di_Methyl_OP=op_dm)|>
+  select(c(Pb, Hg, DMA, DDE, PBDE_47, PCB_118, PCB_138, PCB_153, PCB_180,
+          PFHxS, PFOA, PFOS, BCEtP, BDCPP, DBuP, DPhP, TCS, BPA, MBP, MBZP,
+          MCPP, sigma_DEHP, MEP, MIBP, di_Ethyl_OP, di_Methyl_OP))
+
+group<- c("Metals", "Metals", "Metals", "POP", "POP", "POP", "POP", "POP",
+          "POP", "PFAS","PFAS","PFAS", "OPFR", "OPFR", "OPFR", "OPFR",
+          "TCS", "BPA", "Phthalate", "Phthalate", "Phthalate", 
+          "Phthalate", "Phthalate", "Phthalate", "OP_Pest.", "OP_Pest.")
+
+
+cormat<- round(x=cor(dat, method = "spearman", 
+                     use= "complete.obs"), digits=2) |>
+  melt() |> clean_names()
+
+ggplot(cormat, aes(x=var2, y=var1, fill=value)) +
+  geom_tile(color="white")+
+  scale_fill_gradient2(low="red", high="blue", mid="white",
+                       midpoint=0,
+                       limit=c(-1,1), space= "Lab",
+                      name="Spearman Correlation | MIREC/HOME [n=617]")+
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, size = 12, hjust = 1),
+        axis.text.y = element_text(angle = 0, vjust = 1, size = 12, hjust = 1),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank(),
+        axis.ticks = element_blank(),
+        legend.position = "bottom", legend.box = "horizontal")+
+  coord_fixed()
+
+ggsave("E:/BBK17/pj/wppsi_results/correlation_plots/combi-corr.tiff",
+       width=14, height= 12, dpi=300)
+```
+
+
+data summary
+```{r}
+####### CONVERT DATA TO LONG FORMAT
+dat<- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_home_mirec.csv") |>
+  mutate_if(is.numeric, round, 4) |>
+  drop_na() |>
+  clean_names() |>
+  rename(Pb=pbsg, Hg=hgsg, DMA=dma_sg, DDE= dde_lp, PBDE_47 = pbde47_lp,
+         PCB_118=pcb118_lp, PCB_138=pcb138_lp, PCB_153=pcb153_lp,
+         PCB_180=pcb180_lp, PFHxS=pf_hx_spl, PFOA=pfoapl, PFOS=pfospl,
+         BCEtP=bcetp_sg, BDCPP=bdcpp_sg, DBuP=dbup_sg, DPhP=dphp_sg,
+         TCS=tcs_sg, BPA=bpa_sg, MBP=mbp_sg, MBZP=mbzp_sg, MCPP=mcpp_sg,
+         sigma_DEHP=dehp, MEP=mep_sg, MIBP=mibp_sg, di_Ethyl_OP=op_de,
+         di_Methyl_OP=op_dm)
+
+
+
+######## Exposure data summary ####################
+geomean <- function(x, na.rm = T, trim = 0, ...) 
+  { exp(mean(log(x, ...), na.rm = na.rm, trim = trim, ...)) }
+
+geosd <- function(x, na.rm = T, ...)
+  { exp(sd(log(x, ...), na.rm = na.rm, ...)) }
+
+dat_wide <- dat_exp_out |> 
+  pivot_longer(!subject_id,
+               names_to = "measure", values_to = "value")
+
+dat_summ<- dat_wide |> 
+    group_by(measure) |>
+    summarise(geometric_mean = geomean(value), geometric_SD = geosd(value),
+              arithmatic_mean=mean((value), na.rm=T), arithmatic_std=sd((value), na.rm = T),
+              median = median((value), na.rm = T), q25 = quantile(value, .25, na.rm=T),
+              q75 = quantile(value, .75, na.rm=T)) |>
+    mutate_if(is.numeric, round, 3)
+
+write_csv(dat_summ, "/Users/jpuvvula/Documents/data/home_16w_imp/exp_wppsi_summary.csv")
+```

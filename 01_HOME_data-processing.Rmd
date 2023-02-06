@@ -240,57 +240,6 @@ dat_exp_out<- inner_join(dat_exp, dat_out, by="subject_id") |>
 write_csv(dat_exp_out, "/Users/jpuvvula/Documents/data/home_16w_imp/mirec_transf/wppsi-exp_wide.csv")
 ```
 
-Analytic data summary
-```{r}
-######## Exposure data summary ####################
-geomean <- function(x, na.rm = T, trim = 0, ...) 
-  { exp(mean(log(x, ...), na.rm = na.rm, trim = trim, ...)) }
-
-geosd <- function(x, na.rm = T, ...)
-  { exp(sd(log(x, ...), na.rm = na.rm, ...)) }
-
-dat_wide <- dat_exp_out |> 
-  pivot_longer(!subject_id,
-               names_to = "measure", values_to = "value")
-
-dat_summ<- dat_wide |> 
-    group_by(measure) |>
-    summarise(geometric_mean = geomean(value), geometric_SD = geosd(value),
-              arithmatic_mean=mean((value), na.rm=T), arithmatic_std=sd((value), na.rm = T),
-              median = median((value), na.rm = T), q25 = quantile(value, .25, na.rm=T),
-              q75 = quantile(value, .75, na.rm=T)) |>
-    mutate_if(is.numeric, round, 3)
-
-write_csv(dat_summ, "/Users/jpuvvula/Documents/data/home_16w_imp/exp_wppsi_summary.csv")
-```
-
-Spearman correlation matrix
-```{r}
-cormat<- round(x=cor(dat_exp_out[2:34], method = "spearman", 
-                     use= "complete.obs"), digits=2) |>
-  melt() |> clean_names()
-
-ggplot(cormat, aes(x=var2, y=var1, fill=value), group=groups) +
-  geom_tile(color="white")+
-  scale_fill_gradient2(low="red", high="blue", mid="white",
-                       midpoint=0,
-                       limit=c(-1,1), space= "Lab",
-                      name="Spearman\nCorrelation")+
-  theme_minimal()+
-  theme(axis.text.x = element_text(angle = 45, vjust = 1, size = 14, hjust = 1),
-        axis.text.y = element_text(angle = 0, vjust = 1, size = 14, hjust = 1),
-        axis.title.x = element_blank(),
-        axis.title.y = element_blank(),
-        panel.grid.major = element_blank(),
-        panel.border = element_blank(),
-        panel.background = element_blank(),
-        axis.ticks = element_blank())+
-  coord_fixed()
-
-ggsave("/Users/jpuvvula/Documents/data/corplot.tiff",
-       width=14, height= 12, dpi=300)
-```
-
 
 ```{r}
 ################# COVARIATES #############################

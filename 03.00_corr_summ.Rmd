@@ -1,18 +1,24 @@
 ---
-title: "03.00_corr_summ"
+title: "Correlation plots and summary tables"
 author: "Jagadeesh Puvvula"
 date: "2023-02-06"
-output: pdf_document
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
 ---
 
 
-```{r}
+```{r, echo=FALSE}
 library(tidyverse)
+library(janitor)
+library(reshape2)
+library(kableExtra)
 ```
 
 
-HOME corerlation
-```{r}
+HOME correlation
+```{r, echo=FALSE, fig.height=12, fig.width=12, dpi=300}
 dat<- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_home_mirec.csv") |>
   mutate_if(is.numeric, round, 4) |>
   drop_na() |>
@@ -44,7 +50,7 @@ ggplot(cormat, aes(x=var2, y=var1, fill=value)) +
   scale_fill_gradient2(low="red", high="blue", mid="white",
                        midpoint=0,
                        limit=c(-1,1), space= "Lab",
-                      name="Spearman Correlation | MIREC/HOME [n=617]")+
+                      name="Spearman Correlation | HOME [n=139]")+
   theme_minimal()+
   theme(axis.text.x = element_text(angle = 45, vjust = 1, size = 12, hjust = 1),
         axis.text.y = element_text(angle = 0, vjust = 1, size = 12, hjust = 1),
@@ -62,8 +68,8 @@ ggsave("E:/BBK17/pj/wppsi_results/correlation_plots/home-corr.tiff",
 ```
 
 
-MIREC corerlation
-```{r}
+MIREC correlation
+```{r, echo=FALSE, fig.height=12, fig.width=12, dpi=300}
 dat<- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_home_mirec.csv") |>
   mutate_if(is.numeric, round, 4) |>
   drop_na() |>
@@ -95,7 +101,7 @@ ggplot(cormat, aes(x=var2, y=var1, fill=value)) +
   scale_fill_gradient2(low="red", high="blue", mid="white",
                        midpoint=0,
                        limit=c(-1,1), space= "Lab",
-                      name="Spearman Correlation | MIREC/HOME [n=617]")+
+                      name="Spearman Correlation | MIREC [n=478]")+
   theme_minimal()+
   theme(axis.text.x = element_text(angle = 45, vjust = 1, size = 12, hjust = 1),
         axis.text.y = element_text(angle = 0, vjust = 1, size = 12, hjust = 1),
@@ -113,8 +119,8 @@ ggsave("E:/BBK17/pj/wppsi_results/correlation_plots/mirec-corr.tiff",
 ```
 
 
-combined corerlation
-```{r}
+combined correlation
+```{r, echo=FALSE, fig.height=12, fig.width=12, dpi=300}
 dat<- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_home_mirec.csv") |>
   mutate_if(is.numeric, round, 4) |>
   drop_na() |>
@@ -145,7 +151,7 @@ ggplot(cormat, aes(x=var2, y=var1, fill=value)) +
   scale_fill_gradient2(low="red", high="blue", mid="white",
                        midpoint=0,
                        limit=c(-1,1), space= "Lab",
-                      name="Spearman Correlation | MIREC/HOME [n=617]")+
+                      name="Spearman Correlation | MIREC & HOME [n=617]")+
   theme_minimal()+
   theme(axis.text.x = element_text(angle = 45, vjust = 1, size = 12, hjust = 1),
         axis.text.y = element_text(angle = 0, vjust = 1, size = 12, hjust = 1),
@@ -163,11 +169,12 @@ ggsave("E:/BBK17/pj/wppsi_results/correlation_plots/combi-corr.tiff",
 ```
 
 
-data summary
-```{r}
+HOME summary
+```{r, echo=FALSE}
 ####### CONVERT DATA TO LONG FORMAT
-dat<- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_home_mirec.csv") |>
+dat_wide <- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_home_mirec.csv") |>
   mutate_if(is.numeric, round, 4) |>
+  filter(cohort==1) |>
   drop_na() |>
   clean_names() |>
   rename(Pb=pbsg, Hg=hgsg, DMA=dma_sg, DDE= dde_lp, PBDE_47 = pbde47_lp,
@@ -176,8 +183,9 @@ dat<- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_home_mirec.csv") |>
          BCEtP=bcetp_sg, BDCPP=bdcpp_sg, DBuP=dbup_sg, DPhP=dphp_sg,
          TCS=tcs_sg, BPA=bpa_sg, MBP=mbp_sg, MBZP=mbzp_sg, MCPP=mcpp_sg,
          sigma_DEHP=dehp, MEP=mep_sg, MIBP=mibp_sg, di_Ethyl_OP=op_de,
-         di_Methyl_OP=op_dm)
-
+         di_Methyl_OP=op_dm)|>
+  select(c(4:34))|>
+  pivot_longer(!subject_id, names_to = "measure", values_to = "value")
 
 
 ######## Exposure data summary ####################
@@ -187,9 +195,86 @@ geomean <- function(x, na.rm = T, trim = 0, ...)
 geosd <- function(x, na.rm = T, ...)
   { exp(sd(log(x, ...), na.rm = na.rm, ...)) }
 
-dat_wide <- dat_exp_out |> 
-  pivot_longer(!subject_id,
-               names_to = "measure", values_to = "value")
+dat_summ_home<- dat_wide |> 
+    group_by(measure) |>
+    summarise(geometric_mean = geomean(value), geometric_SD = geosd(value),
+              arithmatic_mean=mean((value), na.rm=T), arithmatic_std=sd((value), na.rm = T),
+              median = median((value), na.rm = T), q25 = quantile(value, .25, na.rm=T),
+              q75 = quantile(value, .75, na.rm=T)) |>
+    mutate_if(is.numeric, round, 3)
+
+kable(dat_summ_home, longtable=T, booktabs=T, caption = "HOME - Data summary") |>
+  kable_styling(latex_options = c("repeat_header"))
+
+write_csv(dat_summ_home, "E:/BBK17/pj/wppsi_results/summary_tables/home-summary.csv")
+```
+
+
+MIREC summary
+```{r, echo=FALSE}
+####### CONVERT DATA TO LONG FORMAT
+dat_wide <- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_home_mirec.csv") |>
+  mutate_if(is.numeric, round, 4) |>
+  filter(cohort==2) |>
+  drop_na() |>
+  clean_names() |>
+  rename(Pb=pbsg, Hg=hgsg, DMA=dma_sg, DDE= dde_lp, PBDE_47 = pbde47_lp,
+         PCB_118=pcb118_lp, PCB_138=pcb138_lp, PCB_153=pcb153_lp,
+         PCB_180=pcb180_lp, PFHxS=pf_hx_spl, PFOA=pfoapl, PFOS=pfospl,
+         BCEtP=bcetp_sg, BDCPP=bdcpp_sg, DBuP=dbup_sg, DPhP=dphp_sg,
+         TCS=tcs_sg, BPA=bpa_sg, MBP=mbp_sg, MBZP=mbzp_sg, MCPP=mcpp_sg,
+         sigma_DEHP=dehp, MEP=mep_sg, MIBP=mibp_sg, di_Ethyl_OP=op_de,
+         di_Methyl_OP=op_dm)|>
+  select(c(4:34))|>
+  pivot_longer(!subject_id, names_to = "measure", values_to = "value")
+
+
+######## Exposure data summary ####################
+geomean <- function(x, na.rm = T, trim = 0, ...) 
+  { exp(mean(log(x, ...), na.rm = na.rm, trim = trim, ...)) }
+
+geosd <- function(x, na.rm = T, ...)
+  { exp(sd(log(x, ...), na.rm = na.rm, ...)) }
+
+dat_summ_mirec<- dat_wide |> 
+    group_by(measure) |>
+    summarise(geometric_mean = geomean(value), geometric_SD = geosd(value),
+              arithmatic_mean=mean((value), na.rm=T), arithmatic_std=sd((value), na.rm = T),
+              median = median((value), na.rm = T), q25 = quantile(value, .25, na.rm=T),
+              q75 = quantile(value, .75, na.rm=T)) |>
+    mutate_if(is.numeric, round, 3)
+
+kable(dat_summ_mirec, longtable=T, booktabs=T, caption = "MIREC - Data summary") |>
+  kable_styling(latex_options = c("repeat_header"))
+
+write_csv(dat_summ_mirec, "E:/BBK17/pj/wppsi_results/summary_tables/mirec-summary.csv")
+```
+
+
+combined summary
+```{r, echo=FALSE}
+####### CONVERT DATA TO LONG FORMAT
+dat_wide <- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_home_mirec.csv") |>
+  mutate_if(is.numeric, round, 4) |>
+  drop_na() |>
+  clean_names() |>
+  rename(Pb=pbsg, Hg=hgsg, DMA=dma_sg, DDE= dde_lp, PBDE_47 = pbde47_lp,
+         PCB_118=pcb118_lp, PCB_138=pcb138_lp, PCB_153=pcb153_lp,
+         PCB_180=pcb180_lp, PFHxS=pf_hx_spl, PFOA=pfoapl, PFOS=pfospl,
+         BCEtP=bcetp_sg, BDCPP=bdcpp_sg, DBuP=dbup_sg, DPhP=dphp_sg,
+         TCS=tcs_sg, BPA=bpa_sg, MBP=mbp_sg, MBZP=mbzp_sg, MCPP=mcpp_sg,
+         sigma_DEHP=dehp, MEP=mep_sg, MIBP=mibp_sg, di_Ethyl_OP=op_de,
+         di_Methyl_OP=op_dm)|>
+  select(c(4:34))|>
+  pivot_longer(!subject_id, names_to = "measure", values_to = "value")
+
+
+######## Exposure data summary ####################
+geomean <- function(x, na.rm = T, trim = 0, ...) 
+  { exp(mean(log(x, ...), na.rm = na.rm, trim = trim, ...)) }
+
+geosd <- function(x, na.rm = T, ...)
+  { exp(sd(log(x, ...), na.rm = na.rm, ...)) }
 
 dat_summ<- dat_wide |> 
     group_by(measure) |>
@@ -199,5 +284,9 @@ dat_summ<- dat_wide |>
               q75 = quantile(value, .75, na.rm=T)) |>
     mutate_if(is.numeric, round, 3)
 
-write_csv(dat_summ, "/Users/jpuvvula/Documents/data/home_16w_imp/exp_wppsi_summary.csv")
+kable(dat_summ, longtable=T, booktabs=T, caption = "Combines - Data summary") |>
+  kable_styling(latex_options = c("repeat_header"))
+
+write_csv(dat_summ, "E:/BBK17/pj/wppsi_results/summary_tables/combined-summary.csv")
 ```
+

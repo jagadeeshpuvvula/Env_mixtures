@@ -1,0 +1,99 @@
+---
+title: "99_MI_covars_mirec"
+author: "Jagadeesh Puvvula"
+date: "2023-02-08"
+output: pdf_document
+---
+
+```{r}
+library(tidyverse)
+library(caret)
+#library(SuperLearner)
+library(keras)
+library(tensorflow)
+```
+
+
+```{r}
+#original data
+dat <- read_csv("E:/BBK17/pj/machine_lear_predic/mirec_predict.csv") |> select(-c(1))
+
+#for prediction model
+dat_n <- dat |> drop_na() |>
+  select(c(1:33, 36:38,42:47))
+```
+
+
+Data prep
+```{r}
+set.seed(123, "L'Ecuyer-CMRG")
+indx<- sample(nrow(dat_n), round(0.7*nrow(dat_n)))
+train<- dat_n[indx,]
+test<- dat_n[-indx,]
+
+y<- train$home_score_total
+
+x<- train[,-39]
+```
+
+
+superlearner for Multiple imputation
+```{r}
+reg.models<- c("SL.mean", "SL.xgboost", "SL.gbm", "SL.nnet")
+
+
+SL.reg<- CV.SuperLearner(Y=y, X=x, family = gaussian(),
+                         SL.library = reg.models,
+                         method = "method.NNLS", verbose = TRUE,
+                         cvControl = list(V = 10, shuffle = FALSE), 
+                         innerCvControl = list(list(V = 5)))
+```
+
+
+CNN - using keras
+```{r}
+# Convert the data to a format suitable for use in a ConvNet
+x_train <- as.matrix(x)
+y_train <- as.matrix(y)
+x_test <- as.matrix(test[, -39])
+y_test <- as.matrix(test$home_score_total)
+
+# Define the ConvNet architecture
+model <- keras_model_sequential() 
+model %>% 
+  layer_dense(units = 64, activation = "relu", input_shape = ncol(x_train)) %>% 
+  layer_dense(units = 32, activation = "relu") %>% 
+  layer_dense(units = 16, activation = "relu") %>%
+  layer_dense(units = 8, activation = "relu") %>%
+  layer_dense(units = 1)
+
+# Compile the model
+model %>% compile(
+  loss = "mean_squared_error",
+  optimizer = optimizer_adam(),
+  metrics = c("mean_squared_error")
+)
+
+# Train the model on the training data
+history <- model %>% fit(x_train, y_train, epochs = 100, batch_size = 32, validation_split = 0.2)
+
+# Use the trained model to make predictions on the test data
+predictions <- model %>% predict(x_test)
+
+# Evaluate the model on the test data
+results <- model %>% evaluate(x_tes, y_test)
+
+# Print the model's mean absolute error on the test data
+cat("Test mean absolute error:", results[[2]], "\n")
+
+# Print the mean squared error
+print(mse)
+
+# Plot the model's predictions versus the actual target values
+plot(y_test, predictions)+
+abline(0, 1)
+
+# Plot the ConvNet architecture
+plot_model(model, show_shapes = TRUE, show_layer_names = TRUE)
+```
+

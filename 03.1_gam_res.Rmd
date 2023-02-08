@@ -12,16 +12,30 @@ library(janitor)
 library(modelsummary)
 library(mgcv)
 ```
+--------------------------------------
+Mom education categories
+1: High school or less
+2: more than high school - including bachelors degree
+3: more than bachelors degree
+
+Race categories
+white and non_white
+--------------------------------------
 
 load exp and outcome data (n=617)
 ```{r, echo=FALSE, results='hide'}
 dat<- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_home_mirec.csv") |>
   mutate_if(is.numeric, round, 4) |>
   drop_na() |>
-  clean_names()
+  clean_names()|>
+  select(-c(race, mom_edu))
 
-cat<- c("cohort", "subject_id", "city", "age", "sex", "race", "parity_n", "mom_edu")
+cat<- c("cohort", "subject_id", "city", "age", "sex", "race_bin", "parity_n", "mom_edu_cat")
 dat[cat]<- lapply(dat[cat], factor)
+
+#Create race binary variable
+#dat$race_bin<- as.factor(with(dat, ifelse(race=="white", "white", "non_white")))
+
 summary(dat)
 ```
 

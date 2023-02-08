@@ -58,11 +58,13 @@ y_train <- as.matrix(y)
 x_test <- as.matrix(test[, -39])
 y_test <- as.matrix(test$home_score_total)
 
-# Define the ConvNet architecture
+# neural network using rectified linear unit (relu) - non-linear activation function
 model <- keras_model_sequential() 
 model %>% 
-  layer_dense(units = 64, activation = "relu", input_shape = ncol(x_train)) %>% 
-  layer_dense(units = 32, activation = "relu") %>% 
+  layer_dense(units = 256, activation = "relu", input_shape = ncol(x_train)) %>% 
+  layer_dense(units = 128, activation = "relu") %>% 
+  layer_dense(units = 64, activation = "relu") %>% 
+  layer_dense(units = 32, activation = "relu") %>%
   layer_dense(units = 16, activation = "relu") %>%
   layer_dense(units = 8, activation = "relu") %>%
   layer_dense(units = 1)
@@ -75,25 +77,55 @@ model %>% compile(
 )
 
 # Train the model on the training data
-history <- model %>% fit(x_train, y_train, epochs = 100, batch_size = 32, validation_split = 0.2)
+history <- model %>% fit(x_train, y_train, epochs = 200, batch_size = 32, validation_split = 0.2)
 
 # Use the trained model to make predictions on the test data
-predictions <- model %>% predict(x_test)
+predictions_cnn <- model %>% predict(x_test)
 
 # Evaluate the model on the test data
-results <- model %>% evaluate(x_tes, y_test)
+results <- model %>% evaluate(x_test, y_test)
 
 # Print the model's mean absolute error on the test data
 cat("Test mean absolute error:", results[[2]], "\n")
 
-# Print the mean squared error
+# Print the mean squared error: 21.17
+mse <- mean((predictions_cnn - y_test)^2)
 print(mse)
 
 # Plot the model's predictions versus the actual target values
-plot(y_test, predictions)+
+plot(predictions_cnn, y_test)+
 abline(0, 1)
 
 # Plot the ConvNet architecture
-plot_model(model, show_shapes = TRUE, show_layer_names = TRUE)
+#plot_model(model, show_shapes = TRUE, show_layer_names = TRUE)
 ```
+
+xgboost
+```{r}
+library(xgboost)
+# Define the XGBoost parameters
+params <- list(
+  objective = "reg:linear",
+  eta = 0.3,
+  max_depth = 5
+)
+
+# Define the XGBoost model
+model_xg <- xgboost(data = x_train, label = y_train, params = params, 
+                 nrounds = 100, nfold = 5, early_stopping_rounds = 10)
+
+# Use the trained model to make predictions on the test data
+predictions_xg <- predict(model_xg, x_test)
+
+# Calculate the mean squared error on the test data
+mse_xg <- mean((predictions_xg - y_test)^2)
+
+# Print the mean squared error :20.84
+print(mse_xg)
+
+# Plot the predictions versus the actual values
+plot(predictions_xg, test$home_score_total)
+abline(a = 0, b = 1)
+```
+
 

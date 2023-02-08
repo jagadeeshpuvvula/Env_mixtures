@@ -313,3 +313,46 @@ write_csv(mirec_wppsi, "E:/BBK17/pj/wppsi_exp_out_comb/wppsi-mirec.csv")
 ```
 
 
+ADD paraben data
+```{r}
+dat<- read_csv("E:/BBK17/pj/add_parabens/mirec_parab_work/paraben_raw.csv") |>
+  select(c(2, 8, 10, 12))|>
+  clean_names()
+
+#convert to long format for imputation
+labres <- dat |>
+  rename(specimen_bar_code="client_reference_number") |>
+  pivot_longer(!specimen_bar_code, names_to = "tests_results_test_name",
+               values_to = "tests_results_raw_result")
+
+#########################################################
+#########################################################
+#read data for urine specific gravity correction
+dt<- read_csv("E://BBK17/pj//imputed_unit_corr//p_pb.csv")
+
+urine_sg<- read_csv("E://BBK17/pj//imputed_unit_corr//DENS.csv")
+urine_sg$join_id<- str_extract(urine_sg$subject_id,  "^.{8}")
+
+dt$join_id<- str_extract(dt$subject_id,  "^.{8}")
+dat<- full_join(dt,urine_sg, by="join_id") |>
+  drop_na()
+
+med_sg<- median(dat$result.res.y)
+dat$p_pb_sg <- ((dat$result.res.x*(med_sg-1))/(dat$result.res.y-1))
+
+p_pb<- dat[c(1,10)] |> 
+  rename(subject_id = subject_id.x) |>
+  drop_na()
+
+write_csv(p_pb, "E://BBK17/pj//imputed_unit_corr//sg_adj//p_pb.csv")
+
+parab<- bind_cols(b_pb, m_pb, p_pb) |>
+  select(c(1, 2, 4, 6)) |>
+  rename(subject_id="subject_id...1")|>
+  mutate(subject_id= str_extract(subject_id,  "^.{8}"),
+         visit=="12w")
+
+write_csv(parab, "E:/BBK17/pj/add_parabens/mirec_paraben_sg.csv")
+```
+
+

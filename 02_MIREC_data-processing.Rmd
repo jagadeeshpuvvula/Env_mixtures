@@ -353,6 +353,15 @@ parab<- bind_cols(b_pb, m_pb, p_pb) |>
          visit=="12w")
 
 write_csv(parab, "E:/BBK17/pj/add_parabens/mirec_paraben_sg.csv")
+
+
+
+################# COMBINE MIREC and HOME parabens
+parab_home<- read_csv("E:/BBK17/pj/add_parabens/HOME_paraben_sg.csv")
+parab_home$subject_id<- as.character(parab_home$subject_id)
+
+parab_full<- bind_rows(parab, parab_home)
+write_csv(parab_full, "E:/BBK17/pj/add_parabens/parab_sg_all.csv")
 ```
 
 

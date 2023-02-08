@@ -49,3 +49,22 @@ dat<- dat |> select(-c(pbde153_lp, mehhp_sg, mehp_sg, meohp_sg, mecpp_sg,
 write_csv(dat, "E:/BBK17/pj/wppsi_exp_out_comb/wppsi_home_mirec.csv")
 ```
 
+
+ADD parabens data
+```{r}
+final<- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_home_mirec.csv")
+
+
+parabens<- read_csv("E:/BBK17/pj/add_parabens/parab_sg_all.csv") |>
+  select(-c(2)) |>
+  distinct(subject_id, .keep_all = T) # removed 50 duplicates with identical values
+
+
+dat<- left_join(final, parabens, by="subject_id") |>
+  drop_na()
+
+# replacing the final analytical dataset with additional variables from paraben
+write_csv(dat, "E:/BBK17/pj/wppsi_exp_out_comb/wppsi_home_mirec.csv")
+```
+
+

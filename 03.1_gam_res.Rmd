@@ -34,24 +34,27 @@ CHANGE OUTCOME at each run
 numeric_vars <- sapply(dat, is.numeric)
 
 # Convert numeric variables to log2 scale
-dat[c(5:34)] <- log2(dat[c(5:34)])
+dat[c(5:37)] <- log2(dat[c(5:37)])
 
 #scale outcome variable
-dat$wppsi_fsiq<- scale(dat$wppsi_piq, center=T)
+dat$wppsi_fsiq<- scale(dat$wppsi_fsiq, center=T)
+dat$wppsi_piq <- scale(dat$wppsi_piq, center=T)
+dat$wppsi_viq <- scale(dat$wppsi_viq, center=T)
 
 # Define predictors to be used in the loop
 predictors <- list("s(bcetp_sg)", "s(bdcpp_sg)", "s(bpa_sg)", "s(dbup_sg)", 
                 "s(dde_lp)", "s(dma_sg)", "s(dphp_sg)", "s(hgsg)", "s(mbp_sg)", "s(mbzp_sg)", 
                 "s(mcpp_sg)", "s(mep_sg)", "s(mibp_sg)", "s(pbsg)", "s(pbde47_lp)",
                 "s(pcb118_lp)", "s(pcb138_lp)", "s(pcb153_lp)", "s(pcb180_lp)", "s(pf_hx_spl)", 
-                "s(pfoapl)", "s(pfospl)", "s(tcs_sg)", "s(dehp)", "s(op_de)", "s(op_dm)")
+                "s(pfoapl)", "s(pfospl)", "s(tcs_sg)", "s(dehp)", "s(op_de)", "s(op_dm)",
+                "s(b_pb)","s(m_pb)", "s(p_pb)")
 
 
 results <- list()
 plots<-list()
 
 for (predictor in predictors) {
-  formula <- as.formula(paste("wppsi_piq ~", predictor, "+cohort+city"))
+  formula <- as.formula(paste("wppsi_viq ~", predictor, "+cohort+city"))
   model <- gam(formula,
                method="GCV.Cp",
                data = dat)

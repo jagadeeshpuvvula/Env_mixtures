@@ -33,43 +33,6 @@ dat[cat]<- lapply(dat[cat], factor)
 #summary(dat)
 ```
 
-group LASSO
-```{r}
-#Exposure mixture
-names(dat[c(3:26, 32:34)])
-#Creating mixture variable matrix
-mixture<- with(dat, cbind(bcetp_sg, bdcpp_sg, bpa_sg, dbup_sg, 
-                          dde_lp, dma_sg, dphp_sg, hgsg, mbp_sg, mbzp_sg, mcpp_sg, mep_sg, mibp_sg, 
-                          pbsg, pbde47_lp, pcb118_lp, pcb138_lp, pcb153_lp, pcb180_lp, pf_hx_spl, 
-                          pfoapl, pfospl, tcs_sg, dehp, op_de, op_dm))
-
-# log conversion and scaling exposure variables
-ln_mixture <- apply(mixture, 2, log) 
-ln_mixture_z <- scale(ln_mixture) 
-
-# group index for X variables
-v.group <- c(1,1,1,1,1,2,2,2,2,2,3,3,3,3,3,4,4,4,4,4)
-
-#Outcome variable
-#log conversion and scaling outcome
-wppsi_fsiq_z <- scale(log(dat$wppsi_fsiq))
-
-gr <- gglasso(X, y, lambda = 0.2, group = v.group, loss="ls",intercept = F)
-
-#cross-validation
-gr_cv <- cv.gglasso(x=X, y=y, group=v.group, 
-                    loss="ls", pred.loss="L2", 
-                    intercept = F, nfolds=5)
-x11(); plot(gr_cv)
-paste(gr_cv$lambda.min, gr_cv$lambda.1se)
-
-#model selection
-gr <- gglasso(X, y, lambda = gr_cv$lambda.1se+0.1,
-              group = v.group, loss="ls",
-              intercept = F)
-```
-
-
 Generalized weighted quantile sum regression
 ```{r, warning=FALSE, message=FALSE}
 mixture<- names(dat[c(5:7, 9:31)])

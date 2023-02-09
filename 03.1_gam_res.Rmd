@@ -64,7 +64,7 @@ results <- list()
 plots<-list()
 
 for (predictor in predictors) {
-  formula <- as.formula(paste("wppsi_piq ~", predictor, covars))
+  formula <- as.formula(paste("wppsi_fsiq ~", predictor, covars))
   model <- gam(formula,
                method="GCV.Cp",
                data = dat)
@@ -76,7 +76,7 @@ for (predictor in predictors) {
 
 results
 
-modelsummary(results, output = "E:/BBK17/pj/wppsi_results/gam_results-piq.csv")
+modelsummary(results, output = "E:/BBK17/pj/wppsi_results/gam_results-fsiq.csv")
 
-save(results, file = "E:/BBK17/pj/wppsi_results/gam_res_piq.rda")
+save(results, file = "E:/BBK17/pj/wppsi_results/gam_res_fsiq.rda")
 ```

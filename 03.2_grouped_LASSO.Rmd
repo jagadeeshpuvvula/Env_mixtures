@@ -4,7 +4,7 @@ author: "Jagadeesh Puvvula"
 date: "2023-02-09"
 output: pdf_document
 ---
-
+Below models adjusted for cotinine, education, parity, home_score, race
 ```{r, echo=FALSE}
 library(tidyverse)
 library(janitor)
@@ -24,18 +24,39 @@ dat<- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_home_mirec.csv") |>
          TCS=tcs_sg, BPA=bpa_sg, MBP=mbp_sg, MBZP=mbzp_sg, MCPP=mcpp_sg,
          sigma_DEHP=dehp, MEP=mep_sg, MIBP=mibp_sg, di_Ethyl_OP=op_de,
          di_Methyl_OP=op_dm, B_PB=b_pb, M_PB=m_pb, P_PB=p_pb)
+
+dat<- dat|>
+  mutate(race_bin = if_else(race_bin=="white", 1, 0))
 ```
+
+Pre-process data
+```{r}
+# exposure and outcome variables
+numeric_vars <- sapply(dat, is.numeric)
+
+# Convert numeric variables to log2 scale
+dat[c(5:37)] <- log2(dat[c(5:37)])
+
+#scale outcome variable
+dat<- dat |>
+  mutate(wppsi_fsiq=scale(dat$wppsi_fsiq, center=T))|>
+  mutate(wppsi_viq=scale(dat$wppsi_piq, center=T))|>
+  mutate(wppsi_piq=scale(dat$wppsi_viq, center=T))
+```
+
+
 
 data prep - WPPSI FSIQ
 ```{r, echo=FALSE}
 set.seed(123, "L'Ecuyer-CMRG")
 
 # Define the predictor variables
-x <- as.matrix(dat[c(5:7, 9:34)])
+x <- as.matrix(dat[c(5:34,41:44, 48)])
 y <- as.matrix(dat[, 35])
 
 # group index for X variables
-v.group <- as.factor(c(1,1,2,1,6,3,1,3,5,5,5,5,5,3,6,6,6,6,6,7,7,7,2,5,8,8,4,4,4))
+v.group <- as.factor(c(1,1,2,0,1,6,3,1,3,5,5,5,5,5,3,6,6,
+                       6,6,6,7,7,7,2,5,8,8,4,4,4,0,0,0,0,0))
 ```
 
 MODEL -FSIQ

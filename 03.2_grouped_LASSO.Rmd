@@ -5,14 +5,14 @@ date: "2023-02-09"
 output: pdf_document
 ---
 Below models adjusted for cotinine, education, parity, home_score, race
-```{r, echo=FALSE}
+```{r, echo=FALSE, message=FALSE}
 library(tidyverse)
 library(janitor)
 library(reshape2)
 library(grpreg)
 ```
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, message=FALSE}
 dat<- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_home_mirec.csv") |>
   mutate_if(is.numeric, round, 4) |>
   drop_na() |>
@@ -30,7 +30,7 @@ dat<- dat|>
 ```
 
 Pre-process data
-```{r}
+```{r, echo=FALSE}
 # exposure and outcome variables
 numeric_vars <- sapply(dat, is.numeric)
 
@@ -39,54 +39,57 @@ dat[c(5:37)] <- log2(dat[c(5:37)])
 
 #scale outcome variable
 dat<- dat |>
-  mutate(wppsi_fsiq=scale(dat$wppsi_fsiq, center=T))|>
-  mutate(wppsi_viq=scale(dat$wppsi_piq, center=T))|>
-  mutate(wppsi_piq=scale(dat$wppsi_viq, center=T))
+  mutate(wppsi_fsiq=as.numeric(scale(dat$wppsi_fsiq), center=T))|>
+  mutate(wppsi_viq=as.numeric(scale(dat$wppsi_piq, center=T)))|>
+  mutate(wppsi_piq=as.numeric(scale(dat$wppsi_viq, center=T)))
 ```
 
 
 
 data prep - WPPSI FSIQ
 ```{r, echo=FALSE}
-set.seed(123, "L'Ecuyer-CMRG")
+set.seed(2023, "L'Ecuyer-CMRG")
 
 # Define the predictor variables
-x <- as.matrix(dat[c(5:34,41:44, 48)])
+x <- as.matrix(dat[c(5:34,41:44,48)])
 y <- as.matrix(dat[, 35])
 
 # group index for X variables
 v.group <- as.factor(c(1,1,2,0,1,6,3,1,3,5,5,5,5,5,3,6,6,
                        6,6,6,7,7,7,2,5,8,8,4,4,4,0,0,0,0,0))
+
+gr_lasso_piq<- grpreg(x, y, v.group, penalty="grLasso")
+plot(gr_lasso_piq)
 ```
 
 MODEL -FSIQ
 ```{r, echo=FALSE, fig.height=10, fig.width=10, dpi=300}
-cv_lasso_3 <- cv.grpreg(x, y, v.group, 
-                        penalty = "grLasso", seed = 123,
+cv_lasso_fsiq <- cv.grpreg(x, y, v.group, 
+                        penalty = "grLasso", seed = 2023,
                         n.lambda = 200, max.iter = 20000)
 
 
 #Find the lambda that results in the smallest CV error
-best_lasso_3 <- cv_lasso_3$lambda.min
+best_lasso_fsiq <- cv_lasso_fsiq$lambda.min
 
 #Fit model with cross-validated lambda
-fit_lasso_3 <- grpreg(x, y, v.group, penalty = "grLasso", lambda = best_lasso_3)
+fit_lasso_fsiq <- grpreg(x, y, v.group, penalty = "grLasso", lambda = best_lasso_fsiq)
 
 #Look at coefficients from model with best lambda
-fit_lasso_3$beta
+fit_lasso_fsiq$beta
 
 ##prediction and MSE using train dataset
-grlasso.pred <-  predict(fit_lasso_3, x)
-grlasso_MSE <-  mean((grlasso.pred - y)^2)
-grlasso_MSE
+grlasso.pred.fsiq <-  predict(fit_lasso_fsiq, x)
+grlasso_MSE_fsiq <-  mean((grlasso.pred.fsiq - y)^2)
+grlasso_MSE_fsiq
 
-lasso_beta_3 <- as_tibble(fit_lasso_3$beta, rownames = "variable") %>% 
+lasso_beta_fsiq <- as_tibble(fit_lasso_fsiq$beta, rownames = "variable") %>% 
   rename(beta = 2) %>% 
   filter(variable != "(Intercept)") %>% 
   mutate(group3 = v.group,method = "Grouped Lasso")
 
 #Filter out covariates
-lasso_beta_3 |> 
+lasso_beta_fsiq |> 
   filter(v.group %in% c("1", "2", "3", "4", "5",
                         "6", "7", "8")) |>  
   ggplot(aes(x = variable, y = round(beta, 5))) + 
@@ -102,19 +105,20 @@ data prep - WPPSI VIQ
 set.seed(123, "L'Ecuyer-CMRG")
 
 # Define the predictor variables
-x <- as.matrix(dat[c(5:7, 9:34)])
-y <- as.matrix(dat[, 36])
+x_viq <- as.matrix(dat[c(5:34,41:44,48)])
+y_viq <- as.matrix(dat[, 36])
 
 # group index for X variables
-v.group <- as.factor(c(1,1,2,1,6,3,1,3,5,5,5,5,5,3,6,6,6,6,6,7,7,7,2,5,8,8,4,4,4))
+v.group <- as.factor(c(1,1,2,0,1,6,3,1,3,5,5,5,5,5,3,6,6,
+                       6,6,6,7,7,7,2,5,8,8,4,4,4,0,0,0,0,0))
 
-gr_lasso<- grpreg(x, y, v.group, penalty="grLasso")
+gr_lasso<- grpreg(x_viq, y_viq, v.group, penalty="grLasso")
 plot(gr_lasso)
 ```
 
 MODEL -VIQ
 ```{r, echo=FALSE, fig.height=10, fig.width=10, dpi=300}
-cv_lasso_viq <- cv.grpreg(x, y, v.group, 
+cv_lasso_viq <- cv.grpreg(x_viq, y_viq, v.group, 
                         penalty = "grLasso", seed = 123,
                         n.lambda = 200, max.iter = 20000)
 
@@ -156,11 +160,12 @@ data prep - WPPSI PIQ
 set.seed(123, "L'Ecuyer-CMRG")
 
 # Define the predictor variables
-x_piq <- as.matrix(dat[c(5:7, 9:34)])
+x_piq <- as.matrix(dat[c(5:34,41:44,48)])
 y_piq <- as.matrix(dat[, 37])
 
 # group index for X variables
-v.group <- as.factor(c(1,1,2,1,6,3,1,3,5,5,5,5,5,3,6,6,6,6,6,7,7,7,2,5,8,8,4,4,4))
+v.group <- as.factor(c(1,1,2,0,1,6,3,1,3,5,5,5,5,5,3,6,6,
+                       6,6,6,7,7,7,2,5,8,8,4,4,4,0,0,0,0,0))
 
 gr_lasso_piq<- grpreg(x_piq, y_piq, v.group, penalty="grLasso")
 plot(gr_lasso_piq)

@@ -290,12 +290,12 @@ gg_miss_upset(mirec_wppsi, nsets=5, nintersects=NA)
 
 #replace missing values with median
 
-#HOME missing (n=15)
+#HOME missing (n=16)
 mirec_wppsi <- mirec_wppsi |> mutate(home_score_total = ifelse(is.na(home_score_total),
                                                                median(home_score_total, na.rm = T),
                                                                home_score_total))
 
-#birth length missing (n=31)
+#birth length missing (n=34)
 mirec_wppsi <- mirec_wppsi |> mutate(b_length = ifelse(is.na(b_length),
                                                        median(b_length, na.rm = T),
                                                        b_length))

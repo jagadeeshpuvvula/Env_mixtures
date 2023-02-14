@@ -16,7 +16,7 @@ library(mgcv)
 
 load exp and outcome data (n=617)
 ```{r, echo=FALSE, results='hide'}
-dat<- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_home_mirec.csv") |>
+dat<- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_fin.csv") |>
   mutate_if(is.numeric, round, 4) |>
   drop_na() |>
   clean_names()|>

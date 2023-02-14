@@ -8,7 +8,7 @@ output: pdf_document
 ```{r}
 library(tidyverse)
 library(caret)
-#library(SuperLearner)
+library(SuperLearner)
 library(keras)
 library(tensorflow)
 ```
@@ -16,81 +16,105 @@ library(tensorflow)
 
 ```{r}
 #original data
-dat <- read_csv("E:/BBK17/pj/machine_lear_predic/mirec_predict.csv") |> select(-c(1))
+dat <- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_home_mirec.csv")
+
+pred_set<- dat |>
+  filter(is.na(home_score_total)) |>
+  select(c(4:37,40:47))
 
 #for prediction model
 dat_n <- dat |> drop_na() |>
-  select(c(1:33, 36:38,42:47))
+  select(c(5:37,40:47))
 ```
 
 
 Data prep
 ```{r}
 set.seed(123, "L'Ecuyer-CMRG")
-indx<- sample(nrow(dat_n), round(0.7*nrow(dat_n)))
+indx<- sample(nrow(dat_n), round(0.75*nrow(dat_n)))
 train<- dat_n[indx,]
 test<- dat_n[-indx,]
 
-y<- train$home_score_total
+y_train<- train$home_score_total
+x_train<- train[,-38]
 
-x<- train[,-39]
+x_test <- as.matrix(test[, -38])
+y_test <- as.matrix(test$home_score_total)
 ```
 
 
 superlearner for Multiple imputation
-```{r}
-reg.models<- c("SL.mean", "SL.xgboost", "SL.gbm", "SL.nnet")
+```{r, message=FALSE}
+reg.models<- c("SL.mean", "SL.xgboost", "SL.gbm")
+
+sl.obj<- SuperLearner(y_train, x_train, family = gaussian(), SL.library = reg.models)
+sl.obj
+
+#Predictions for test set
+pred_SL<- predict(sl.obj, test[-c(38)])
+
+# Print the mean squared error: 17.63
+mse<- mean((pred_SL$pred - test$home_score_total)^2)
+print(paste("Mean Squared Error:", mse))
+
+# Plot the model's predictions versus the actual target values
+plot(pred_SL$pred, test$home_score_total)+
+abline(0, 1)
+
+# PREDICTING UNKNOWN 
+home_imputed<- predict.SuperLearner(sl.obj, pred_set[-c(1,39)])
 
 
-SL.reg<- CV.SuperLearner(Y=y, X=x, family = gaussian(),
-                         SL.library = reg.models,
-                         method = "method.NNLS", verbose = TRUE,
-                         cvControl = list(V = 10, shuffle = FALSE), 
-                         innerCvControl = list(list(V = 5)))
+save(sl.obj, file = "E:/BBK17/pj/wppsi_results/pred_model/sl_pred.rda")
 ```
 
 
 CNN - using keras
-```{r}
+```{r, message=FALSE}
+y<- train$home_score_total
+x<- train[,-38]
+
 # Convert the data to a format suitable for use in a ConvNet
 x_train <- as.matrix(x)
 y_train <- as.matrix(y)
-x_test <- as.matrix(test[, -39])
+x_test <- as.matrix(test[, -38])
 y_test <- as.matrix(test$home_score_total)
 
 # neural network using rectified linear unit (relu) - non-linear activation function
 model <- keras_model_sequential() 
-model %>% 
-  layer_dense(units = 256, activation = "relu", input_shape = ncol(x_train)) %>% 
-  layer_dense(units = 128, activation = "relu") %>% 
-  layer_dense(units = 64, activation = "relu") %>% 
-  layer_dense(units = 32, activation = "relu") %>%
-  layer_dense(units = 16, activation = "relu") %>%
-  layer_dense(units = 8, activation = "relu") %>%
+model |>
+  layer_dense(units = 256, activation = "relu", input_shape = ncol(x_train)) |> 
+  layer_dense(units = 128, activation = "relu") |> 
+  layer_dense(units = 64, activation = "relu") |> 
+  layer_dense(units = 32, activation = "relu") |>
+  layer_dense(units = 16, activation = "relu") |>
+  layer_dense(units = 8, activation = "relu") |>
   layer_dense(units = 1)
 
 # Compile the model
-model %>% compile(
+model |> compile(
   loss = "mean_squared_error",
   optimizer = optimizer_adam(),
   metrics = c("mean_squared_error")
 )
 
 # Train the model on the training data
-history <- model %>% fit(x_train, y_train, epochs = 200, batch_size = 32, validation_split = 0.2)
+history <- model |> fit(x_train, y_train, epochs = 200, batch_size = 32, validation_split = 0.2)
 
 # Use the trained model to make predictions on the test data
-predictions_cnn <- model %>% predict(x_test)
+predictions_cnn <- model |> predict(x_test)
+
+save(model, file = "E:/BBK17/pj/wppsi_results/pred_model/cnn_pred.rda")
 
 # Evaluate the model on the test data
-results <- model %>% evaluate(x_test, y_test)
+results <- model |> evaluate(x_test, y_test)
 
 # Print the model's mean absolute error on the test data
 cat("Test mean absolute error:", results[[2]], "\n")
 
 # Print the mean squared error: 21.17
 mse <- mean((predictions_cnn - y_test)^2)
-print(mse)
+print(paste("Mean Squared Error:", mse))
 
 # Plot the model's predictions versus the actual target values
 plot(predictions_cnn, y_test)+
@@ -114,18 +138,79 @@ params <- list(
 model_xg <- xgboost(data = x_train, label = y_train, params = params, 
                  nrounds = 100, nfold = 5, early_stopping_rounds = 10)
 
+save(model_xg, file = "E:/BBK17/pj/wppsi_results/pred_model/xg_boost_pred.rda")
+
 # Use the trained model to make predictions on the test data
 predictions_xg <- predict(model_xg, x_test)
 
 # Calculate the mean squared error on the test data
 mse_xg <- mean((predictions_xg - y_test)^2)
-
-# Print the mean squared error :20.84
-print(mse_xg)
+print(paste("Mean Squared Error:", mse))
 
 # Plot the predictions versus the actual values
 plot(predictions_xg, test$home_score_total)
 abline(a = 0, b = 1)
 ```
+
+==============================================================================
+==============================================================================
+Birth length - predictions
+```{r, message=FALSE}
+dat <- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_home_mirec.csv")
+set<- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/b_len_missing_set.csv") |>
+  select(c(1))
+
+#revert missing median birth length with NA
+dat$b_length <- ifelse(dat$subject_id %in% set$subject_id, NA, dat$b_length)
+remove(set)
+
+#filter unknown data for predictions
+pred_set<- dat |>
+  filter(is.na(b_length)) |>
+  select(c(4:37, 40:47))
+
+#for prediction model
+dat_n <- dat |> drop_na() |>
+  select(c(5:37, 40:47))
+
+set.seed(123, "L'Ecuyer-CMRG")
+indx<- sample(nrow(dat_n), round(0.75*nrow(dat_n)))
+train<- dat_n[indx,]
+test<- dat_n[-indx,]
+
+y_train<- train$b_length
+x_train<- train[,-41]
+
+x_test <- as.matrix(test[, -41])
+y_test <- as.matrix(test$b_length)
+
+
+reg.models<- c("SL.mean", "SL.xgboost", "SL.gbm")
+
+sl.obj2<- SuperLearner(y_train, x_train, family = gaussian(), SL.library = reg.models)
+sl.obj2
+
+#Predictions for test set
+pred_SL_b_len<- predict(sl.obj2, test[-c(41)])
+
+# Print the mean squared error: 2.57
+mse<- mean((pred_SL_b_len$pred - test$b_length)^2)
+print(paste("Mean Squared Error:", mse))
+
+# Plot the model's predictions versus the actual target values
+plot(pred_SL_b_len$pred, test$b_length)+
+abline(0, 1)
+
+# PREDICTING UNKNOWN 
+b_len_imputed<- predict.SuperLearner(sl.obj2, pred_set[-c(1,42)])
+b_len_imputed$pred<- round(b_len_imputed$pred, digits = 2)
+
+
+save(sl.obj, file = "E:/BBK17/pj/wppsi_results/pred_model/b_len_pred.rda")
+```
+
+
+
+
 
 

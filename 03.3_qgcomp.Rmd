@@ -40,11 +40,9 @@ WPPSI-FSIQ-ALL
 set.seed(123, "L'Ecuyer-CMRG")
 mixture<- names(dat[c(1:29)])
 
-nb_gcomp_fit<- qgcomp.noboot(wppsi_fsiq ~ .+cohort+city+sex+race_bin+
-                               cotinine+mom_edu_cat+home_score_total+
-                               parity_n+mom_age,
+nb_gcomp_fit<- qgcomp.noboot(wppsi_fsiq ~ .,
                              expnms = mixture,
-                             data = dat,
+                             data = dat[-c(31,32,34)],
                              family= gaussian(), q=10)
 
 nb_gcomp_fit
@@ -52,11 +50,9 @@ plot(nb_gcomp_fit)
 
 save(nb_gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/nb_fsiq_all.rda")
 
-gcomp_fit<- qgcomp.boot(wppsi_fsiq ~ .+cohort+city+sex+race_bin+
-                               cotinine+mom_edu_cat+home_score_total+
-                               parity_n+mom_age,
+gcomp_fit<- qgcomp.boot(wppsi_fsiq ~ .,
                         expnms = mixture,
-                        data = dat,
+                        data = dat[-c(31,32)],
                         family= gaussian(), q=10, B = 250,
                         seed = 2022)
 gcomp_fit
@@ -69,22 +65,18 @@ WPPSI-VIQ-ALL
 ```{r, echo=FALSE, message=FALSE, fig.height=12, fig.width=12, dpi=300}
 set.seed(123, "L'Ecuyer-CMRG")
 
-nb_gcomp_fit<- qgcomp.noboot(wppsi_viq ~ .+cohort+city+sex+race_bin+
-                               cotinine+mom_edu_cat+home_score_total+
-                               parity_n+mom_age,
+nb_gcomp_fit<- qgcomp.noboot(wppsi_viq ~ .,
                              expnms = mixture,
-                             data = dat,
+                             data = dat[-c(30,32)],
                              family= gaussian(), q=10)
 
 nb_gcomp_fit
 plot(nb_gcomp_fit)
 save(nb_gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/nb_viq_all.rda")
 
-gcomp_fit<- qgcomp.boot(wppsi_viq ~ .+cohort+city+sex+race_bin+
-                               cotinine+mom_edu_cat+home_score_total+
-                               parity_n+mom_age,
+gcomp_fit<- qgcomp.boot(wppsi_viq ~ .,
                         expnms = mixture,
-                        data = dat,
+                        data = dat[-c(30,32)],
                         family= gaussian(), q=10, B = 250,
                         seed = 2022)
 gcomp_fit
@@ -97,22 +89,18 @@ WPPSI-PIQ-ALL
 ```{r, echo=FALSE, message=FALSE, fig.height=12, fig.width=12, dpi=300}
 set.seed(123, "L'Ecuyer-CMRG")
 
-nb_gcomp_fit<- qgcomp.noboot(wppsi_piq ~ .+cohort+city+sex+race_bin+
-                               cotinine+mom_edu_cat+home_score_total+
-                               parity_n+mom_age,
+nb_gcomp_fit<- qgcomp.noboot(wppsi_piq ~ .,
                              expnms = mixture,
-                             data = dat,
+                             data = dat[-c(30,31)],
                              family= gaussian(), q=10)
 
 nb_gcomp_fit
 plot(nb_gcomp_fit)
 save(nb_gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/nb_piq_all.rda")
 
-gcomp_fit<- qgcomp.boot(wppsi_piq ~ .+cohort+city+sex+race_bin+
-                               cotinine+mom_edu_cat+home_score_total+
-                               parity_n+mom_age,
+gcomp_fit<- qgcomp.boot(wppsi_piq ~ .,
                         expnms = mixture,
-                        data = dat,
+                        data = dat[-c(30,31)],
                         family= gaussian(), q=10, B = 250,
                         seed = 2022)
 gcomp_fit
@@ -126,22 +114,18 @@ dat_home<- dat |>
   filter(cohort=="1")|>
   select(-c(cohort, city))
 
-nb_gcomp_fit<- qgcomp.noboot(wppsi_fsiq ~ .+sex+race_bin+
-                               cotinine+mom_edu_cat+home_score_total+
-                               parity_n+mom_age,
+nb_gcomp_fit<- qgcomp.noboot(wppsi_fsiq ~ .,
                              expnms = mixture,
-                             data = dat_home,
+                             data = dat_home[-c(31,32)],
                              family= gaussian(), q=10)
 
 nb_gcomp_fit
 plot(nb_gcomp_fit)
 save(nb_gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/nb_fsiq_home.rda")
 
-gcomp_fit<- qgcomp.boot(wppsi_fsiq ~ .+sex+race_bin+
-                               cotinine+mom_edu_cat+home_score_total+
-                               parity_n+mom_age,
+gcomp_fit<- qgcomp.boot(wppsi_fsiq ~ .,
                         expnms = mixture,
-                        data = dat_home,
+                        data = dat_home[-c(31,32)],
                         family= gaussian(), q=10, B = 250,
                         seed = 2022)
 gcomp_fit
@@ -153,22 +137,18 @@ save(gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/b_fsiq_home.rda")
 WPPSI-VIQ-HOME
 ```{r, echo=FALSE, message=FALSE, fig.height=12, fig.width=12, dpi=300}
 set.seed(123, "L'Ecuyer-CMRG")
-nb_gcomp_fit<- qgcomp.noboot(wppsi_viq ~ .+sex+race_bin+
-                               cotinine+mom_edu_cat+home_score_total+
-                               parity_n+mom_age,
+nb_gcomp_fit<- qgcomp.noboot(wppsi_viq ~ .,
                              expnms = mixture,
-                             data = dat_home,
+                             data = dat_home[-c(30,32)],
                              family= gaussian(), q=10)
 
 nb_gcomp_fit
 plot(nb_gcomp_fit)
 save(nb_gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/nb_viq_home.rda")
 
-gcomp_fit<- qgcomp.boot(wppsi_viq ~ .+sex+race_bin+
-                               cotinine+mom_edu_cat+home_score_total+
-                               parity_n+mom_age,
+gcomp_fit<- qgcomp.boot(wppsi_viq ~ .,
                         expnms = mixture,
-                        data = dat_home,
+                        data = dat_home[-c(30,32)],
                         family= gaussian(), q=10, B = 250,
                         seed = 2022)
 gcomp_fit
@@ -181,22 +161,18 @@ WPPSI-PIQ-HOME
 ```{r, echo=FALSE, message=FALSE, fig.height=12, fig.width=12, dpi=300}
 set.seed(123, "L'Ecuyer-CMRG")
 
-nb_gcomp_fit<- qgcomp.noboot(wppsi_piq ~ .+sex+race_bin+
-                               cotinine+mom_edu_cat+home_score_total+
-                               parity_n+mom_age,
+nb_gcomp_fit<- qgcomp.noboot(wppsi_piq ~ .,
                              expnms = mixture,
-                             data = dat_home,
+                             data = dat_home[-c(30,31)],
                              family= gaussian(), q=10)
 
 nb_gcomp_fit
 plot(nb_gcomp_fit)
 save(nb_gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/nb_piq_home.rda")
 
-gcomp_fit<- qgcomp.boot(wppsi_piq ~ .+sex+race_bin+
-                               cotinine+mom_edu_cat+home_score_total+
-                               parity_n+mom_age,
+gcomp_fit<- qgcomp.boot(wppsi_piq ~ .,
                         expnms = mixture,
-                        data = dat_home,
+                        data = dat_home[-c(30,31)],
                         family= gaussian(), q=10, B = 250,
                         seed = 2022)
 gcomp_fit
@@ -210,22 +186,18 @@ dat_mirec<- dat |>
   filter(cohort=="2")|>
   select(-c(cohort))
 
-nb_gcomp_fit<- qgcomp.noboot(wppsi_fsiq ~ .+city+sex+race_bin+
-                               cotinine+mom_edu_cat+home_score_total+
-                               parity_n+mom_age,
+nb_gcomp_fit<- qgcomp.noboot(wppsi_fsiq ~ .,
                              expnms = mixture,
-                             data = dat_mirec,
+                             data = dat_mirec[-c(31,32)],
                              family= gaussian(), q=10)
 
 nb_gcomp_fit
 plot(nb_gcomp_fit)
 save(nb_gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/nb_fsiq_mirec.rda")
 
-gcomp_fit<- qgcomp.boot(wppsi_fsiq ~ .+city+sex+race_bin+
-                               cotinine+mom_edu_cat+home_score_total+
-                               parity_n+mom_age,
+gcomp_fit<- qgcomp.boot(wppsi_fsiq ~ .,
                         expnms = mixture,
-                        data = dat_mirec,
+                        data = dat_mirec[-c(31,32)],
                         family= gaussian(), q=10, B = 250,
                         seed = 2022)
 gcomp_fit
@@ -237,22 +209,18 @@ save(gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/b_fsiq_mirec.rda")
 WPPSI-VIQ-MIREC
 ```{r, echo=FALSE, message=FALSE, fig.height=12, fig.width=12, dpi=300}
 set.seed(123, "L'Ecuyer-CMRG")
-nb_gcomp_fit<- qgcomp.noboot(wppsi_viq ~ .+city+sex+race_bin+
-                               cotinine+mom_edu_cat+home_score_total+
-                               parity_n+mom_age,
+nb_gcomp_fit<- qgcomp.noboot(wppsi_viq ~ .,
                              expnms = mixture,
-                             data = dat_mirec,
+                             data = dat_mirec[-c(30,32)],
                              family= gaussian(), q=10)
 
 nb_gcomp_fit
 plot(nb_gcomp_fit)
 save(nb_gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/nb_viq_mirec.rda")
 
-gcomp_fit<- qgcomp.boot(wppsi_viq ~ .+city+sex+race_bin+
-                               cotinine+mom_edu_cat+home_score_total+
-                               parity_n+mom_age,
+gcomp_fit<- qgcomp.boot(wppsi_viq ~ .,
                         expnms = mixture,
-                        data = dat_mirec,
+                        data = dat_mirec[-c(30,32)],
                         family= gaussian(), q=10, B = 250,
                         seed = 2022)
 gcomp_fit
@@ -264,22 +232,18 @@ save(gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/b_viq_mirec.rda")
 WPPSI-PIQ-MIREC
 ```{r, echo=FALSE, message=FALSE, fig.height=12, fig.width=12, dpi=300}
 set.seed(123, "L'Ecuyer-CMRG")
-nb_gcomp_fit<- qgcomp.noboot(wppsi_piq ~ .+city+sex+race_bin+
-                               cotinine+mom_edu_cat+home_score_total+
-                               parity_n+mom_age,
+nb_gcomp_fit<- qgcomp.noboot(wppsi_piq ~ .,
                              expnms = mixture,
-                             data = dat_mirec,
+                             data = dat_mirec[-c(30,31)],
                              family= gaussian(), q=10)
 
 nb_gcomp_fit
 plot(nb_gcomp_fit)
 save(nb_gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/nb_piq_mirec.rda")
 
-gcomp_fit<- qgcomp.boot(wppsi_piq ~ .+city+sex+race_bin+
-                               cotinine+mom_edu_cat+home_score_total+
-                               parity_n+mom_age,
+gcomp_fit<- qgcomp.boot(wppsi_piq ~ .,
                         expnms = mixture,
-                        data = dat_mirec,
+                        data = dat_mirec[-c(30,31)],
                         family= gaussian(), q=10, B = 250,
                         seed = 2022)
 gcomp_fit
@@ -301,7 +265,7 @@ ggplot(res, aes(x = as.factor(model), y = beta, ymin = ll, ymax = ul)) +
                   position=position_dodge(width=0.5),size = 0.6) +
   geom_hline(aes(yintercept = 0), linetype="dashed") + 
   scale_colour_manual(values=cbbPalette) +
-  scale_y_continuous(breaks = seq(-5,4,1))+
+  scale_y_continuous(breaks = seq(-2.5,5.5,1.5))+
   labs(x=NULL,
        y=expression(paste(beta[q-gcomp]," [95% CI]")),
        title = "Joint association between prenatal chemical mixture during first trimester \nand child IQ",

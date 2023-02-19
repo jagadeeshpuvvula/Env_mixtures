@@ -40,7 +40,7 @@ WPPSI-FSIQ-ALL
 set.seed(123, "L'Ecuyer-CMRG")
 mixture<- names(dat[c(1:29)])
 
-nb_gcomp_fit<- qgcomp.noboot(wppsi_fsiq ~ .,
+nb_gcomp_fit<- qgcomp.noboot(log(wppsi_fsiq) ~ .,
                              expnms = mixture,
                              data = dat[-c(31,32,34)],
                              family= gaussian(), q=10)

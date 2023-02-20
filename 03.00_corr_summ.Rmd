@@ -1,7 +1,7 @@
 ---
 title: "Correlation plots and summary tables"
 author: "Jagadeesh Puvvula"
-date: "2023-02-06"
+date: "2023-02-20"
 output:
   pdf_document: default
   html_document:
@@ -9,7 +9,7 @@ output:
 ---
 
 
-```{r, echo=FALSE}
+```{r, echo=FALSE, message=FALSE}
 library(tidyverse)
 library(janitor)
 library(reshape2)
@@ -17,7 +17,7 @@ library(kableExtra)
 ```
 
 HOME correlation
-```{r, echo=FALSE, fig.height=12, fig.width=12, dpi=300}
+```{r, echo=FALSE, message=FALSE, fig.height=10, fig.width=6.5, dpi=300}
 dat<- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_fin.csv") |>
   mutate_if(is.numeric, round, 4) |>
   drop_na() |>
@@ -29,7 +29,7 @@ dat<- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_fin.csv") |>
          BCEtP=bcetp_sg, BDCPP=bdcpp_sg, DBuP=dbup_sg, DPhP=dphp_sg,
          TCS=tcs_sg, BPA=bpa_sg, MBP=mbp_sg, MBZP=mbzp_sg, MCPP=mcpp_sg,
          sigma_DEHP=dehp, MEP=mep_sg, MIBP=mibp_sg, di_Ethyl_OP=op_de,
-         di_Methyl_OP=op_dm, B_PB=b_pb_sg, M_PB=m_pb_sg, P_PB=p_pb_sg)|>
+         di_Methyl_OP=op_dm, B_PB=b_pb, M_PB=m_pb, P_PB=p_pb)|>
   select(c(Pb, Hg, DMA, DDE, PBDE_47, PCB_118, PCB_138, PCB_153, PCB_180,
           PFHxS, PFOA, PFOS, BCEtP, BDCPP, DBuP, DPhP, TCS, BPA, MBP, MBZP,
           MCPP, sigma_DEHP, MEP, MIBP, di_Ethyl_OP, di_Methyl_OP, 
@@ -69,7 +69,7 @@ ggsave("E:/BBK17/pj/wppsi_results/correlation_plots/home-corr.tiff",
 
 
 MIREC correlation
-```{r, echo=FALSE, fig.height=12, fig.width=12, dpi=300}
+```{r, echo=FALSE, message=FALSE, fig.height=10, fig.width=6.5, dpi=300}
 dat<- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_fin.csv") |>
   mutate_if(is.numeric, round, 4) |>
   drop_na() |>
@@ -81,7 +81,7 @@ dat<- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_fin.csv") |>
          BCEtP=bcetp_sg, BDCPP=bdcpp_sg, DBuP=dbup_sg, DPhP=dphp_sg,
          TCS=tcs_sg, BPA=bpa_sg, MBP=mbp_sg, MBZP=mbzp_sg, MCPP=mcpp_sg,
          sigma_DEHP=dehp, MEP=mep_sg, MIBP=mibp_sg, di_Ethyl_OP=op_de,
-         di_Methyl_OP=op_dm, B_PB=b_pb_sg, M_PB=m_pb_sg, P_PB=p_pb_sg)|>
+         di_Methyl_OP=op_dm, B_PB=b_pb, M_PB=m_pb, P_PB=p_pb)|>
   select(c(Pb, Hg, DMA, DDE, PBDE_47, PCB_118, PCB_138, PCB_153, PCB_180,
           PFHxS, PFOA, PFOS, BCEtP, BDCPP, DBuP, DPhP, TCS, BPA, MBP, MBZP,
           MCPP, sigma_DEHP, MEP, MIBP, di_Ethyl_OP, di_Methyl_OP, 
@@ -121,7 +121,7 @@ ggsave("E:/BBK17/pj/wppsi_results/correlation_plots/mirec-corr.tiff",
 
 
 combined correlation
-```{r, echo=FALSE, fig.height=12, fig.width=12, dpi=300}
+```{r, echo=FALSE, message=FALSE, fig.height=10, fig.width=6.5, dpi=300}
 dat<- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_fin.csv") |>
   mutate_if(is.numeric, round, 4) |>
   drop_na() |>
@@ -132,7 +132,7 @@ dat<- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_fin.csv") |>
          BCEtP=bcetp_sg, BDCPP=bdcpp_sg, DBuP=dbup_sg, DPhP=dphp_sg,
          TCS=tcs_sg, BPA=bpa_sg, MBP=mbp_sg, MBZP=mbzp_sg, MCPP=mcpp_sg,
          sigma_DEHP=dehp, MEP=mep_sg, MIBP=mibp_sg, di_Ethyl_OP=op_de,
-         di_Methyl_OP=op_dm, B_PB=b_pb_sg, M_PB=m_pb_sg, P_PB=p_pb_sg)|>
+         di_Methyl_OP=op_dm, B_PB=b_pb, M_PB=m_pb, P_PB=p_pb)|>
   select(c(Pb, Hg, DMA, DDE, PBDE_47, PCB_118, PCB_138, PCB_153, PCB_180,
           PFHxS, PFOA, PFOS, BCEtP, BDCPP, DBuP, DPhP, TCS, BPA, MBP, MBZP,
           MCPP, sigma_DEHP, MEP, MIBP, di_Ethyl_OP, di_Methyl_OP, 
@@ -172,7 +172,7 @@ ggsave("E:/BBK17/pj/wppsi_results/correlation_plots/combi-corr.tiff",
 
 
 HOME summary
-```{r, echo=FALSE}
+```{r, echo=FALSE, message=FALSE, fig.height=10, fig.width=6.5, dpi=300}
 ####### CONVERT DATA TO LONG FORMAT
 dat_wide <- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_fin.csv") |>
   mutate_if(is.numeric, round, 4) |>
@@ -185,7 +185,7 @@ dat_wide <- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_fin.csv") |>
          BCEtP=bcetp_sg, BDCPP=bdcpp_sg, DBuP=dbup_sg, DPhP=dphp_sg,
          TCS=tcs_sg, BPA=bpa_sg, MBP=mbp_sg, MBZP=mbzp_sg, MCPP=mcpp_sg,
          sigma_DEHP=dehp, MEP=mep_sg, MIBP=mibp_sg, di_Ethyl_OP=op_de,
-         di_Methyl_OP=op_dm, B_PB=b_pb_sg, M_PB=m_pb_sg, P_PB=p_pb_sg) |>
+         di_Methyl_OP=op_dm, B_PB=b_pb, M_PB=m_pb, P_PB=p_pb) |>
   select(c(4:37))|>
   pivot_longer(!subject_id, names_to = "measure", values_to = "value")
 
@@ -213,7 +213,7 @@ write_csv(dat_summ_home, "E:/BBK17/pj/wppsi_results/summary_tables/home-summary.
 
 
 MIREC summary
-```{r, echo=FALSE}
+```{r, echo=FALSE, message=FALSE, fig.height=10, fig.width=6.5, dpi=300}
 ####### CONVERT DATA TO LONG FORMAT
 dat_wide <- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_fin.csv") |>
   mutate_if(is.numeric, round, 4) |>
@@ -226,7 +226,7 @@ dat_wide <- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_fin.csv") |>
          BCEtP=bcetp_sg, BDCPP=bdcpp_sg, DBuP=dbup_sg, DPhP=dphp_sg,
          TCS=tcs_sg, BPA=bpa_sg, MBP=mbp_sg, MBZP=mbzp_sg, MCPP=mcpp_sg,
          sigma_DEHP=dehp, MEP=mep_sg, MIBP=mibp_sg, di_Ethyl_OP=op_de,
-         di_Methyl_OP=op_dm, B_PB=b_pb_sg, M_PB=m_pb_sg, P_PB=p_pb_sg) |>
+         di_Methyl_OP=op_dm, B_PB=b_pb, M_PB=m_pb, P_PB=p_pb) |>
   select(c(4:37))|>
   pivot_longer(!subject_id, names_to = "measure", values_to = "value")
 
@@ -254,7 +254,7 @@ write_csv(dat_summ_mirec, "E:/BBK17/pj/wppsi_results/summary_tables/mirec-summar
 
 
 combined summary
-```{r, echo=FALSE}
+```{r, echo=FALSE, message=FALSE, fig.height=10, fig.width=6.5, dpi=300}
 ####### CONVERT DATA TO LONG FORMAT
 dat_wide <- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_fin.csv") |>
   mutate_if(is.numeric, round, 4) |>
@@ -266,7 +266,7 @@ dat_wide <- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_fin.csv") |>
          BCEtP=bcetp_sg, BDCPP=bdcpp_sg, DBuP=dbup_sg, DPhP=dphp_sg,
          TCS=tcs_sg, BPA=bpa_sg, MBP=mbp_sg, MBZP=mbzp_sg, MCPP=mcpp_sg,
          sigma_DEHP=dehp, MEP=mep_sg, MIBP=mibp_sg, di_Ethyl_OP=op_de,
-         di_Methyl_OP=op_dm, B_PB=b_pb_sg, M_PB=m_pb_sg, P_PB=p_pb_sg) |>
+         di_Methyl_OP=op_dm, B_PB=b_pb, M_PB=m_pb, P_PB=p_pb) |>
   select(c(4:37))|>
   pivot_longer(!subject_id, names_to = "measure", values_to = "value")
 

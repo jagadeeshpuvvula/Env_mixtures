@@ -16,7 +16,7 @@ options(scipen = 999)
 ```{r, echo=FALSE, message=FALSE}
 dat<- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_fin.csv") |>
   mutate_if(is.numeric, round, 4) |>
-  filter(cohort=="1")|>
+  filter(cohort=="2")|>
   drop_na() |>
   clean_names() |>
   rename(Pb=pbsg, Hg=hgsg, DMA=dma_sg, DDE= dde_lp, PBDE_47 = pbde47_lp,
@@ -57,7 +57,7 @@ nb_fsiq_neg <- gwqs(wppsi_fsiq_lg ~wqs+sex+race_bin+cotinine+mom_edu_cat+
                data = dat, validation = 0.6, b=100, b1_pos = F,b1_constr = F,
                family = "gaussian", seed = 2023)
 
-save(nb_fsiq_neg, file = "E:/BBK17/pj/wppsi_results/gwqs/home/nb_fsiq_neg.rda")
+save(nb_fsiq_neg, file = "E:/BBK17/pj/wppsi_results/gwqs/mirec/nb_fsiq_neg.rda")
 summary(nb_fsiq_neg)  
 gwqs_barplot(nb_fsiq_neg) 
 gwqs_scatterplot(nb_fsiq_neg)
@@ -73,7 +73,7 @@ rh_fsiq_neg <- gwqsrh(wppsi_fsiq_lg ~wqs+sex+race_bin+cotinine+mom_edu_cat+
                 q=10, validation=0.5,b=100,b1_pos = F,b1_constr = F,
                 family="gaussian",seed=2023, rh=100)
 
-save(rh_fsiq_neg, file = "E:/BBK17/pj/wppsi_results/gwqs/home/rh_fsiq_neg.rda")
+save(rh_fsiq_neg, file = "E:/BBK17/pj/wppsi_results/gwqs/mirec/rh_fsiq_neg.rda")
 summary(rh_fsiq_neg)  
 gwqsrh_boxplot(rh_fsiq_neg)
 
@@ -87,7 +87,7 @@ nb_fsiq_pos <- gwqs(wppsi_fsiq_lg ~wqs+sex+race_bin+cotinine+mom_edu_cat+
                data = dat, validation = 0.6, b=100, b1_pos = T,b1_constr = F,
                family = "gaussian", seed = 2023)
 
-save(nb_fsiq_pos, file = "E:/BBK17/pj/wppsi_results/gwqs/home/nb_fsiq_pos.rda")
+save(nb_fsiq_pos, file = "E:/BBK17/pj/wppsi_results/gwqs/mirec/nb_fsiq_pos.rda")
 summary(nb_fsiq_pos)  
 gwqs_barplot(nb_fsiq_pos) 
 gwqs_scatterplot(nb_fsiq_pos)
@@ -103,7 +103,7 @@ rh_fsiq_pos <- gwqsrh(wppsi_fsiq_lg ~wqs+sex+race_bin+cotinine+mom_edu_cat+
                 q=10, validation=0.6,b=100,b1_pos = T,b1_constr = F,
                 family="gaussian",seed=2023, rh=100)
 
-save(rh_fsiq_pos, file = "E:/BBK17/pj/wppsi_results/gwqs/home/rh_fsiq_pos.rda")
+save(rh_fsiq_pos, file = "E:/BBK17/pj/wppsi_results/gwqs/mirec/rh_fsiq_pos.rda")
 summary(rh_fsiq_pos)  
 gwqsrh_boxplot(rh_fsiq_pos)
 
@@ -119,7 +119,7 @@ nb_viq_neg <- gwqs(wppsi_viq_lg ~wqs+sex+race_bin+cotinine+mom_edu_cat+
                     data = dat, validation = 0.6, b=100, b1_pos = F,b1_constr = F,
                     family = "gaussian", seed = 2023)
 
-save(nb_viq_neg, file = "E:/BBK17/pj/wppsi_results/gwqs/home/nb_viq_neg.rda")
+save(nb_viq_neg, file = "E:/BBK17/pj/wppsi_results/gwqs/mirec/nb_viq_neg.rda")
 summary(nb_viq_neg)  
 gwqs_barplot(nb_viq_neg) 
 gwqs_scatterplot(nb_viq_neg)
@@ -135,7 +135,7 @@ rh_viq_neg <- gwqsrh(wppsi_viq_lg ~wqs+sex+race_bin+cotinine+mom_edu_cat+
                       q=10, validation=0.6,b=100,b1_pos = F,b1_constr = F,
                       family="gaussian",seed=2023, rh=100)
 
-save(rh_viq_neg, file = "E:/BBK17/pj/wppsi_results/gwqs/home/rh_viq_neg.rda")
+save(rh_viq_neg, file = "E:/BBK17/pj/wppsi_results/gwqs/mirec/rh_viq_neg.rda")
 summary(rh_viq_neg)  
 gwqsrh_boxplot(rh_viq_neg)
 
@@ -149,7 +149,7 @@ nb_viq_pos <- gwqs(wppsi_viq_lg ~wqs+sex+race_bin+cotinine+mom_edu_cat+
                    data = dat, validation = 0.6, b=100, b1_pos = T,b1_constr = F,
                    family = "gaussian", seed = 2023)
 
-save(nb_viq_pos, file = "E:/BBK17/pj/wppsi_results/gwqs/home/nb_viq_pos.rda")
+save(nb_viq_pos, file = "E:/BBK17/pj/wppsi_results/gwqs/mirec/nb_viq_pos.rda")
 summary(nb_viq_pos)  
 gwqs_barplot(nb_viq_pos) 
 gwqs_scatterplot(nb_viq_pos)
@@ -162,10 +162,10 @@ viq - ALL - Positive direction - unconstrained model - with repeated holdout
 rh_viq_pos <- gwqsrh(wppsi_viq_lg ~wqs+sex+race_bin+cotinine+mom_edu_cat+
                        home_score_total+parity_n+mom_age, mix_name = mixture,
                      data = dat,
-                     q=10, validation=0.6,b=100,b1_pos = T,b1_constr = F,
+                     q=10, validation=0.4,b=100,b1_pos = T,b1_constr = F,
                      family="gaussian",seed=2023, rh=100)
 
-save(rh_viq_pos, file = "E:/BBK17/pj/wppsi_results/gwqs/home/rh_viq_pos.rda")
+save(rh_viq_pos, file = "E:/BBK17/pj/wppsi_results/gwqs/mirec/rh_viq_pos.rda")
 summary(rh_viq_pos)  
 gwqsrh_boxplot(rh_viq_pos)
 
@@ -181,7 +181,7 @@ nb_piq_neg <- gwqs(wppsi_piq_lg ~wqs+sex+race_bin+cotinine+mom_edu_cat+
                    data = dat, validation = 0.6, b=100, b1_pos = F,b1_constr = F,
                    family = "gaussian", seed = 2023)
 
-save(nb_piq_neg, file = "E:/BBK17/pj/wppsi_results/gwqs/home/nb_piq_neg.rda")
+save(nb_piq_neg, file = "E:/BBK17/pj/wppsi_results/gwqs/mirec/nb_piq_neg.rda")
 summary(nb_piq_neg)  
 gwqs_barplot(nb_piq_neg) 
 gwqs_scatterplot(nb_piq_neg)
@@ -197,7 +197,7 @@ rh_piq_neg <- gwqsrh(wppsi_piq_lg ~wqs+sex+race_bin+cotinine+mom_edu_cat+
                      q=10, validation=0.6,b=100,b1_pos = F,b1_constr = F,
                      family="gaussian",seed=2023, rh=100)
 
-save(rh_piq_neg, file = "E:/BBK17/pj/wppsi_results/gwqs/home/rh_piq_neg.rda")
+save(rh_piq_neg, file = "E:/BBK17/pj/wppsi_results/gwqs/mirec/rh_piq_neg.rda")
 summary(rh_piq_neg)  
 gwqsrh_boxplot(rh_piq_neg)
 
@@ -211,23 +211,23 @@ nb_piq_pos <- gwqs(wppsi_piq_lg ~wqs+sex+race_bin+cotinine+mom_edu_cat+
                    data = dat, validation = 0.6, b=100, b1_pos = T,b1_constr = F,
                    family = "gaussian", seed = 2023)
 
-save(nb_piq_pos, file = "E:/BBK17/pj/wppsi_results/gwqs/home/nb_piq_pos.rda")
+save(nb_piq_pos, file = "E:/BBK17/pj/wppsi_results/gwqs/mirec/nb_piq_pos.rda")
 summary(nb_piq_pos)  
 gwqs_barplot(nb_piq_pos) 
 gwqs_scatterplot(nb_piq_pos)
 
 ```
 
-piq - ALL - Negative direction - unconstrained model - with repeated holdout
+piq - ALL - positive direction - unconstrained model - with repeated holdout
 ```{r, echo=FALSE, message=FALSE, fig.height=12, fig.width=12, dpi=300}
 #100 bootstraps and 100 repeated holdouts 
 rh_piq_pos <- gwqsrh(wppsi_piq_lg ~wqs+sex+race_bin+cotinine+mom_edu_cat+
                        home_score_total+parity_n+mom_age, mix_name = mixture,
                      data = dat,
-                     q=10, validation=0.6,b=100,b1_pos = T,b1_constr = F,
+                     q=10, validation=0.5,b=100,b1_pos = T,b1_constr = F,
                      family="gaussian",seed=2023, rh=100)
 
-save(rh_piq_pos, file = "E:/BBK17/pj/wppsi_results/gwqs/home/rh_piq_pos.rda")
+save(rh_piq_pos, file = "E:/BBK17/pj/wppsi_results/gwqs/mirec/rh_piq_pos.rda")
 summary(rh_piq_pos)  
 gwqsrh_boxplot(rh_piq_pos)
 

@@ -15,7 +15,7 @@ library(mgcv)
 
 
 load exp and outcome data (n=617)
-```{r, echo=FALSE, results='hide'}
+```{r, echo=FALSE, message=FALSE, results='hide'}
 dat<- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_fin.csv") |>
   mutate_if(is.numeric, round, 4) |>
   drop_na() |>
@@ -32,22 +32,17 @@ summary(dat)
 ```
 
 Pre-process data
-```{r}
+```{r, echo=FALSE, message=FALSE}
 # exposure and outcome variables
 numeric_vars <- sapply(dat, is.numeric)
 
 # Convert numeric variables to log2 scale
-dat[c(5:7, 9:37)] <- log2(dat[c(5:7, 9:37)])
-
-#scale outcome variable
-dat$wppsi_fsiq<- scale(dat$wppsi_fsiq, center=T)
-dat$wppsi_piq <- scale(dat$wppsi_piq, center=T)
-dat$wppsi_viq <- scale(dat$wppsi_viq, center=T)
+dat[c(5:7, 9:37)] <- log10(dat[c(5:7, 9:37)])
 ```
 
 Generalized additive model: assuming Gaussian family - Identity link
 CHANGE OUTCOME at each run
-```{r}
+```{r, echo=FALSE, message=FALSE}
 # Define predictors to be used in the loop
 predictors <- list("s(bcetp_sg, by=cohort)", "s(bdcpp_sg, by=cohort)", "s(bpa_sg, by=cohort)", "s(dbup_sg, by=cohort)", 
                 "s(dde_lp, by=cohort)", "s(dma_sg, by=cohort)", "s(dphp_sg, by=cohort)", "s(hgsg, by=cohort)", 
@@ -58,13 +53,13 @@ predictors <- list("s(bcetp_sg, by=cohort)", "s(bdcpp_sg, by=cohort)", "s(bpa_sg
                 "s(op_de, by=cohort)", "s(op_dm, by=cohort)","s(b_pb, by=cohort)","s(m_pb, by=cohort)", 
                 "s(p_pb, by=cohort)")
 
-covars<- ("+city+sex+mom_edu_cat+parity_n+mom_age+home_score_total+race_bin+cotinine")
+covars<- ("+sex+mom_edu_cat+parity_n+mom_age+home_score_total+race_bin+cotinine")
 
 results <- list()
 plots<-list()
 
 for (predictor in predictors) {
-  formula <- as.formula(paste("wppsi_fsiq ~", predictor, covars))
+  formula <- as.formula(paste("wppsi_piq ~", predictor, covars))
   model <- gam(formula,
                method="GCV.Cp",
                data = dat)
@@ -76,7 +71,7 @@ for (predictor in predictors) {
 
 results
 
-modelsummary(results, output = "E:/BBK17/pj/wppsi_results/gam_results-fsiq.csv")
+modelsummary(results, output = "E:/BBK17/pj/wppsi_results/gam_results-piq.csv")
 
-save(results, file = "E:/BBK17/pj/wppsi_results/gam_res_fsiq.rda")
+save(results, file = "E:/BBK17/pj/wppsi_results/gam_res_piq.rda")
 ```

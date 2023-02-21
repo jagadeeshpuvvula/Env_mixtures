@@ -23,10 +23,16 @@ dat<- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_fin.csv") |>
          BCEtP=bcetp_sg, BDCPP=bdcpp_sg, DBuP=dbup_sg, DPhP=dphp_sg,
          TCS=tcs_sg, BPA=bpa_sg, MBP=mbp_sg, MBZP=mbzp_sg, MCPP=mcpp_sg,
          sigma_DEHP=dehp, MEP=mep_sg, MIBP=mibp_sg, di_Ethyl_OP=op_de,
-         di_Methyl_OP=op_dm, B_PB=b_pb, M_PB=m_pb, P_PB=p_pb)
+         di_Methyl_OP=op_dm, B_PB=b_pb, M_PB=m_pb, P_PB=p_pb) |>
+  select(Pb, Hg, DMA, DDE, PBDE_47, PCB_118, PCB_138, PCB_153, PCB_180,
+          PFHxS, PFOA, PFOS, BCEtP, BDCPP, DBuP, DPhP, TCS, BPA, MBP, MBZP,
+          MCPP, sigma_DEHP, MEP, MIBP, di_Ethyl_OP, di_Methyl_OP, 
+          B_PB, M_PB, P_PB, wppsi_fsiq, wppsi_viq, wppsi_piq, cohort, city, sex,
+          race_bin, cotinine, mom_edu_cat, home_score_total, parity_n, mom_age)
 
-dat<- dat|>
-  mutate(race_bin = if_else(race_bin=="white", 1, 0))
+dat<- dat |> 
+  mutate(across(all_of(c("cohort", "city", "sex", "race_bin", 
+                         "parity_n", "mom_edu_cat")), as.factor))
 ```
 
 Pre-process data
@@ -35,13 +41,7 @@ Pre-process data
 numeric_vars <- sapply(dat, is.numeric)
 
 # Convert numeric variables to log2 scale
-dat[c(5:37)] <- log2(dat[c(5:37)])
-
-#scale outcome variable
-dat<- dat |>
-  mutate(wppsi_fsiq=as.numeric(scale(dat$wppsi_fsiq), center=T))|>
-  mutate(wppsi_viq=as.numeric(scale(dat$wppsi_piq, center=T)))|>
-  mutate(wppsi_piq=as.numeric(scale(dat$wppsi_viq, center=T)))
+dat[c(5:37)] <- log10(dat[c(5:37)])
 ```
 
 
@@ -55,8 +55,9 @@ x <- as.matrix(dat[c(5:34,41:44,48)])
 y <- as.matrix(dat[, 35])
 
 # group index for X variables
-v.group <- as.factor(c(1,1,2,0,1,6,3,1,3,5,5,5,5,5,3,6,6,
-                       6,6,6,7,7,7,2,5,8,8,4,4,4,0,0,0,0,0))
+v.group <- as.factor(c(1,1,1,2,2,2,2,2,2,3,3,3,
+                         4,4,4,4,5,5,6,6,6,6,6,6,
+                         7,7,8,8,8))
 
 gr_lasso_piq<- grpreg(x, y, v.group, penalty="grLasso")
 plot(gr_lasso_piq)

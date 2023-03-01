@@ -40,7 +40,7 @@ WPPSI-FSIQ-ALL
 set.seed(123, "L'Ecuyer-CMRG")
 mixture<- names(dat[c(1:29)])
 
-nb_gcomp_fit<- qgcomp.noboot(log(wppsi_fsiq) ~ .,
+nb_gcomp_fit<- qgcomp.noboot(wppsi_fsiq ~ .,
                              expnms = mixture,
                              data = dat[-c(31,32,34)],
                              family= gaussian(), q=10)
@@ -303,4 +303,23 @@ ggsave("E:/BBK17/pj/wppsi_results/qgcomp/qgcomp_res.tiff",
        dpi=300)
 ```
 
+
+sensitivity testing
+```{r}
+dat_test <- dat |>
+  select(4,5,7,8,17,18,19,21,20,22,23,24,25,26,28:29, 30:41) |>
+  mutate_at(vars(1:16), log10) |>
+  rename_with(~ paste0("log_", .x), 1:16)
+
+
+mixture<- names(dat_test[c(1:16)])
+
+nb_gcomp_fit<- qgcomp.noboot(wppsi_piq ~ .,
+                             expnms = mixture,
+                             data = dat_test[-c(17,18)],
+                             family= gaussian(), q=10)
+
+nb_gcomp_fit
+plot(nb_gcomp_fit)
+```
 

@@ -63,7 +63,10 @@ labs<- c("metals","POPs", "PFAS", "OPFR", "TCS & BPA", "Phthalates",
 ```
 
 =================================================================================
-#Group LASSO using grpreg library : Block coordinate descent
+#Group LASSO using grpreg library 
+#combination of coordinate descent optimization and local approximation of penalty functions
+#variables can enter either by having strong signal or member of a group with a strong collective signal
+#uses convex penalty
 #Group LASSO - grpreg - FSIQ
 
 
@@ -79,9 +82,28 @@ plot(cv_lasso_fsiq)
 #Find the lambda that results in the smallest CV error
 best_lasso_fsiq <- cv_lasso_fsiq$lambda.min
 
+####################################################################
+####################################################################
+# extract lambda within 1 std error with the lowest validation error
+#Match below value with cve and pick corresponding lambda as lambda_1se
+cv_ext<- cbind(cv_fit$cve, cv_fit$lambda) |> as.data.frame()
+cve_lambda<- min(cv_fit$cve) + sd(cv_fit$cve)/sqrt(100)
+
+lambda_1se_func <- function(df, cve_lambda) {
+  # Find the row in the dataframe where the V1 value is closest to cve_lambda
+  closest_row <- df[which.min(abs(df$V1 - cve_lambda)),]
+  
+  # Return the corresponding V2 value
+  return(closest_row$V2)
+}
+
+lambda_1se<- lambda_1se_func(cv_ext, cve_lambda)
+####################################################################
+####################################################################
+
 #Fit model with cross-validated lambda
 fit_lasso_fsiq <- grpreg(x, y_fsiq, v.group, penalty = "grLasso", 
-                         lambda = best_lasso_fsiq)
+                         lambda = lambda_1se)
 
 #Look at coefficients from model with best lambda
 fit_lasso_fsiq$beta

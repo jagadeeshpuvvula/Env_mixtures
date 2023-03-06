@@ -36,7 +36,11 @@ dat<- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_fin.csv") |>
 ```{r, echo=FALSE, message=FALSE}
 #Pre-process data
 # convert exposures to log scale
-dat[c(1:29)] <- log10(dat[c(1:29)])
+dat <- dat |>
+  select(1:40) |>
+  mutate_at(vars(1:29), log10) |>
+  rename_with(~ paste0("log_", .x), 1:29)
+
 ```
 
 ```{r, echo=FALSE}

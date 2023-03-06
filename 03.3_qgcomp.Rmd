@@ -35,14 +35,33 @@ dat<- dat |>
 str(dat)
 ```
 
+For gender stratified analysis
+```{r}
+dat<- dat |>
+  filter(sex=="Female")|>
+  select(-c(sex))
+```
+
+
+For 14 chemicals
+```{r}
+dat <- dat |>
+  select(4,5,17,18,19,21,20,22,23,24,25,26,28:29,30:40) |>
+  mutate_at(vars(1:14), log10) |>
+  rename_with(~ paste0("log_", .x), 1:14)
+
+
+mixture<- names(dat[c(1:14)])
+```
+
+
 WPPSI-FSIQ-ALL
 ```{r, echo=FALSE, message=FALSE, fig.height=12, fig.width=12, dpi=300}
-set.seed(123, "L'Ecuyer-CMRG")
-mixture<- names(dat[c(1:29)])
+#mixture<- names(dat[c(1:29)])
 
 nb_gcomp_fit<- qgcomp.noboot(wppsi_fsiq ~ .,
                              expnms = mixture,
-                             data = dat[-c(31,32,34)],
+                             data = dat[-c(16,17)],
                              family= gaussian(), q=10)
 
 nb_gcomp_fit
@@ -52,7 +71,7 @@ save(nb_gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/nb_fsiq_all.rda")
 
 gcomp_fit<- qgcomp.boot(wppsi_fsiq ~ .,
                         expnms = mixture,
-                        data = dat[-c(31,32)],
+                        data = dat[-c(16,17)],
                         family= gaussian(), q=10, B = 250,
                         seed = 2022)
 gcomp_fit
@@ -63,11 +82,9 @@ save(gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/b_fsiq_all.rda")
 
 WPPSI-VIQ-ALL
 ```{r, echo=FALSE, message=FALSE, fig.height=12, fig.width=12, dpi=300}
-set.seed(123, "L'Ecuyer-CMRG")
-
 nb_gcomp_fit<- qgcomp.noboot(wppsi_viq ~ .,
                              expnms = mixture,
-                             data = dat[-c(30,32)],
+                             data = dat[-c(15,17)],
                              family= gaussian(), q=10)
 
 nb_gcomp_fit
@@ -76,7 +93,7 @@ save(nb_gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/nb_viq_all.rda")
 
 gcomp_fit<- qgcomp.boot(wppsi_viq ~ .,
                         expnms = mixture,
-                        data = dat[-c(30,32)],
+                        data = dat[-c(15,17)],
                         family= gaussian(), q=10, B = 250,
                         seed = 2022)
 gcomp_fit
@@ -87,11 +104,10 @@ save(gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/b_viq_all.rda")
 
 WPPSI-PIQ-ALL
 ```{r, echo=FALSE, message=FALSE, fig.height=12, fig.width=12, dpi=300}
-set.seed(123, "L'Ecuyer-CMRG")
 
 nb_gcomp_fit<- qgcomp.noboot(wppsi_piq ~ .,
                              expnms = mixture,
-                             data = dat[-c(30,31)],
+                             data = dat[-c(15,16)],
                              family= gaussian(), q=10)
 
 nb_gcomp_fit
@@ -100,7 +116,7 @@ save(nb_gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/nb_piq_all.rda")
 
 gcomp_fit<- qgcomp.boot(wppsi_piq ~ .,
                         expnms = mixture,
-                        data = dat[-c(30,31)],
+                        data = dat[-c(15,16)],
                         family= gaussian(), q=10, B = 250,
                         seed = 2022)
 gcomp_fit
@@ -116,7 +132,7 @@ dat_home<- dat |>
 
 nb_gcomp_fit<- qgcomp.noboot(wppsi_fsiq ~ .,
                              expnms = mixture,
-                             data = dat_home[-c(31,32)],
+                             data = dat_home[-c(16,17)],
                              family= gaussian(), q=10)
 
 nb_gcomp_fit
@@ -125,7 +141,7 @@ save(nb_gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/nb_fsiq_home.rda")
 
 gcomp_fit<- qgcomp.boot(wppsi_fsiq ~ .,
                         expnms = mixture,
-                        data = dat_home[-c(31,32)],
+                        data = dat_home[-c(16,17)],
                         family= gaussian(), q=10, B = 250,
                         seed = 2022)
 gcomp_fit
@@ -136,10 +152,10 @@ save(gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/b_fsiq_home.rda")
 
 WPPSI-VIQ-HOME
 ```{r, echo=FALSE, message=FALSE, fig.height=12, fig.width=12, dpi=300}
-set.seed(123, "L'Ecuyer-CMRG")
+
 nb_gcomp_fit<- qgcomp.noboot(wppsi_viq ~ .,
                              expnms = mixture,
-                             data = dat_home[-c(30,32)],
+                             data = dat_home[-c(15,17)],
                              family= gaussian(), q=10)
 
 nb_gcomp_fit
@@ -148,7 +164,7 @@ save(nb_gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/nb_viq_home.rda")
 
 gcomp_fit<- qgcomp.boot(wppsi_viq ~ .,
                         expnms = mixture,
-                        data = dat_home[-c(30,32)],
+                        data = dat_home[-c(15,17)],
                         family= gaussian(), q=10, B = 250,
                         seed = 2022)
 gcomp_fit
@@ -159,11 +175,10 @@ save(gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/b_viq_home.rda")
 
 WPPSI-PIQ-HOME
 ```{r, echo=FALSE, message=FALSE, fig.height=12, fig.width=12, dpi=300}
-set.seed(123, "L'Ecuyer-CMRG")
 
 nb_gcomp_fit<- qgcomp.noboot(wppsi_piq ~ .,
                              expnms = mixture,
-                             data = dat_home[-c(30,31)],
+                             data = dat_home[-c(15,16)],
                              family= gaussian(), q=10)
 
 nb_gcomp_fit
@@ -172,7 +187,7 @@ save(nb_gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/nb_piq_home.rda")
 
 gcomp_fit<- qgcomp.boot(wppsi_piq ~ .,
                         expnms = mixture,
-                        data = dat_home[-c(30,31)],
+                        data = dat_home[-c(15,16)],
                         family= gaussian(), q=10, B = 250,
                         seed = 2022)
 gcomp_fit
@@ -188,7 +203,7 @@ dat_mirec<- dat |>
 
 nb_gcomp_fit<- qgcomp.noboot(wppsi_fsiq ~ .,
                              expnms = mixture,
-                             data = dat_mirec[-c(31,32)],
+                             data = dat_mirec[-c(16,17)],
                              family= gaussian(), q=10)
 
 nb_gcomp_fit
@@ -197,7 +212,7 @@ save(nb_gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/nb_fsiq_mirec.rda")
 
 gcomp_fit<- qgcomp.boot(wppsi_fsiq ~ .,
                         expnms = mixture,
-                        data = dat_mirec[-c(31,32)],
+                        data = dat_mirec[-c(16,17)],
                         family= gaussian(), q=10, B = 250,
                         seed = 2022)
 gcomp_fit
@@ -208,10 +223,10 @@ save(gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/b_fsiq_mirec.rda")
 
 WPPSI-VIQ-MIREC
 ```{r, echo=FALSE, message=FALSE, fig.height=12, fig.width=12, dpi=300}
-set.seed(123, "L'Ecuyer-CMRG")
+
 nb_gcomp_fit<- qgcomp.noboot(wppsi_viq ~ .,
                              expnms = mixture,
-                             data = dat_mirec[-c(30,32)],
+                             data = dat_mirec[-c(15,17)],
                              family= gaussian(), q=10)
 
 nb_gcomp_fit
@@ -220,7 +235,7 @@ save(nb_gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/nb_viq_mirec.rda")
 
 gcomp_fit<- qgcomp.boot(wppsi_viq ~ .,
                         expnms = mixture,
-                        data = dat_mirec[-c(30,32)],
+                        data = dat_mirec[-c(15,17)],
                         family= gaussian(), q=10, B = 250,
                         seed = 2022)
 gcomp_fit
@@ -231,10 +246,10 @@ save(gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/b_viq_mirec.rda")
 
 WPPSI-PIQ-MIREC
 ```{r, echo=FALSE, message=FALSE, fig.height=12, fig.width=12, dpi=300}
-set.seed(123, "L'Ecuyer-CMRG")
+
 nb_gcomp_fit<- qgcomp.noboot(wppsi_piq ~ .,
                              expnms = mixture,
-                             data = dat_mirec[-c(30,31)],
+                             data = dat_mirec[-c(15,16)],
                              family= gaussian(), q=10)
 
 nb_gcomp_fit
@@ -243,7 +258,7 @@ save(nb_gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/nb_piq_mirec.rda")
 
 gcomp_fit<- qgcomp.boot(wppsi_piq ~ .,
                         expnms = mixture,
-                        data = dat_mirec[-c(30,31)],
+                        data = dat_mirec[-c(15,16)],
                         family= gaussian(), q=10, B = 250,
                         seed = 2022)
 gcomp_fit
@@ -307,25 +322,24 @@ ggsave("E:/BBK17/pj/wppsi_results/qgcomp/qgcomp_res.tiff",
 sensitivity testing
 ```{r}
 dat_test <- dat |>
-  filter(cohort=="2")|>
-  select(4,5,6,7,17,18,19,21,20,22,23,24,25,26,28:29,30:32, 35:41) |>
-  mutate_at(vars(1:16), log10) |>
-  rename_with(~ paste0("log_", .x), 1:16)
+  select(4,5,17,18,19,21,20,22,23,24,25,26,28:29,30:41) |>
+  mutate_at(vars(1:14), log10) |>
+  rename_with(~ paste0("log_", .x), 1:14)
 
 
-mixture<- names(dat_test[c(1:16)])
+mixture<- names(dat_test[c(1:14)])
 
 nb_gcomp_fit<- qgcomp.noboot(wppsi_fsiq ~ .,
                              expnms = mixture,
-                             data = dat_test[-c(18,19)],
+                             data = dat[-c(16,17)],
                              family= gaussian(), q=10)
 
 nb_gcomp_fit
 
 
-gcomp_fit<- qgcomp.boot(wppsi_fsiq ~ .,
+gcomp_fit<- qgcomp.boot(wppsi_piq ~ .,
                         expnms = mixture,
-                        data = dat_test[-c(18,19)],
+                        data = dat_test[-c(15,16)],
                         family= gaussian(), q=10, B = 250,
                         seed = 2022)
 gcomp_fit
@@ -333,7 +347,7 @@ gcomp_fit
 
 sensitivity plot
 ```{r}
-res<- read_csv("E:/BBK17/pj/wppsi_results/qgcomp_prog_rep.csv")
+res<- read_csv("E:/BBK17/pj/wppsi_results/qgcomp_14chem/qgcomp_prog_rep.csv")
 
 res$cohort<- factor(res$cohort, levels = c("Pooled", "HOME", "MIREC"))
 
@@ -347,8 +361,9 @@ ggplot(res, aes(x = as.factor(model), y = beta, ymin = ll, ymax = ul)) +
   labs(x=NULL,
        y=expression(paste(beta[q-gcomp]," [95% CI]")),
        title = "Joint association between prenatal chemical mixture during first trimester and child IQ",
-       caption = "Mixture includes 16 environmental chemicals: Triclosan, BPA, POPs (DDE,PBDE-47, PCB-118, PCB-138), Parabens (Methyl-paraben, Propyl-paraben), Phthalates (MBP, MBZP, MCPP, MEP, MIBP, Sigma-DEHP), OP-pesticides (Sigma-di-ethyl-op, Sigma-di-methyl-op)
-       Effect estimates adjusted for cohort, city (for pooled), Maternal: serum cotinine, education, race, age, parity; Child: gender, HOME-score")+
+       caption = "Mixture includes 14 environmental chemicals: Triclosan, BPA, POPs (DDE,PBDE-47), Parabens (Methyl-paraben, Propyl-paraben), Phthalates (MBP, MBZP, MCPP, MEP, MIBP, Sigma-DEHP), OP-pesticides (Sigma-di-ethyl-op, Sigma-di-methyl-op)
+       Effect estimates adjusted for cohort, city (for pooled), Maternal: serum cotinine, education, race, age, parity; Child: gender, HOME-score
+       Effect estimates associated with every 10% increase in the mixture; For bootstrap, estimates generated using 250 random samples")+
   theme_bw()+
   theme(axis.line = element_line(colour = "black"))+
   theme(plot.caption = element_text(size = 6),
@@ -376,7 +391,7 @@ ggplot(res, aes(x = as.factor(model), y = beta, ymin = ll, ymax = ul)) +
   facet_grid(gender~cohort, scales = "free", switch = "x", space = "free_x")
 
 
-ggsave("E:/BBK17/pj/wppsi_results/qgcomp_prog_rep.tiff", 
+ggsave("E:/BBK17/pj/wppsi_results/qgcomp_14chem/qgcomp_prog_rep.tiff", 
        width = 12,height = 8,
        dpi=300)
 

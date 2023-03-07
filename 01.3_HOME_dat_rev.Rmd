@@ -1,0 +1,64 @@
+---
+title: "01.3_HOME_dat_rev"
+author: "Puvvula"
+date: "2023-03-07"
+output: pdf_document
+---
+
+```{r}
+library(tidyverse)
+library(haven)
+library(janitor)
+library(naniar)
+```
+
+```{r}
+dat<- read_csv("/Users/jpuvvula/Documents/data/home_16w_imp/mirec_transf/home_exp_wide.csv")
+```
+
+```{r}
+#only WPPSI supplemented with WISC
+wppsi<- read_csv("/Users/jpuvvula/Documents/data/home_16w_imp/mirec_transf/wppsi-wisc-suppl.csv") 
+
+#all outcomes collected at age 3
+dt_outcome<- read_sas("/Users/jpuvvula/Documents/data/outcomes.sas7bdat")|>
+  filter(Visit == "M36") |>
+  select(SubjectID, Bayley_MenMDI, Bayley_MotPDI, BRIEF_WM, BRIEF_PO, BASC_BSI, BASC_EXT, BASC_INZ)|>
+  clean_names()
+```
+
+all outcomes combined
+```{r}
+home_out<- full_join(dt_outcome, wppsi, by="subject_id")
+```
+
+HOME covariates data
+```{r}
+dt_cov<- read_csv("/Users/jpuvvula/Documents/data/home_16w_imp/mirec_transf/covar_wppsi.csv") |>
+  mutate(race_cd = if_else(race_cd=="1","white","non-white"))|>
+  mutate(mom_edu_cd = ifelse(is.na(mom_edu_cd), 8, mom_edu_cd)) |>
+  mutate(mom_edu_cat= if_else(mom_edu_cd < 6, "1", 
+                              if_else(mom_edu_cd >= 6 & mom_edu_cd < 9, "2", "3"))) |>
+  mutate_at(vars(10:23), ~if_else(is.na(.), median(., na.rm=T), .)) |>
+  select(c(1:3,10:23))
+```
+
+join covariates and outcomes
+```{r}
+out_cov<- full_join(home_out, dt_cov, by="subject_id")
+```
+
+join exposure, outcome and covariates for all variables at age 3
+```{r}
+fin_dat<- full_join(dat, out_cov, by="subject_id")
+
+write_csv(fin_dat, "/Users/jpuvvula/Documents/data/home_16w_imp/mirec_transf/home_all_first_trimes/home_1trim.csv")
+```
+
+```{r}
+vis_miss(fin_dat[2:57], cluster = T, show_perc_col = T)
+
+
+gg_miss_upset(fin_dat[2:41], nsets = n_var_miss(fin_dat[2:41]), nintersects=NA)
+```
+

@@ -217,8 +217,15 @@ Unmeasured exposure summary
 dat<- read_csv("/Users/jpuvvula/Documents/data/home_16w_imp/mirec_transf/home_exp_fin.csv") |>
   pivot_wider(names_from = analyte, values_from = conc)
 
-# variable 18 for DMA
-dat_exp<- dat[c(1,3,5,7,8,10,11,13,15,17,19,21,23,24,26,28,30,32,34,36,38,40,42:52,54)] 
+# select sg adjusted variables
+dat_exp<- dat |>
+  select(subject_id, dde, pbde47, m_pb_sg, p_pb_sg, tcs_sg, bpa_sg,mbp_sg, mbzp_sg, mcpp_sg, mehhp_sg,
+         mehp_sg, meohp_sg, mecpp_sg, mep_sg, mibp_sg, dep_sg, detp_sg, dmp_sg, dmtp_sg,
+         cotinine, 
+         pb, hg, dma_sg, pcb118, pcb138, pcb153, pcb180, pfhxs, pfoa, pfos, bcetp_sg,
+         bdcpp_sg, dbup_sg, dphp_sg, b_pb_sg)
+
+write_csv(dat_exp, "/Users/jpuvvula/Documents/data/home_16w_imp/mirec_transf/home_exp_wide.csv")
 
 dat<- dat |> drop_na()
 
@@ -234,10 +241,19 @@ dat_out<- read_csv("/Users/jpuvvula/Documents/data/home_16w_imp/mirec_transf/wpp
 #dat_out<- read_csv("/Users/jpuvvula/Documents/data/wppsi_wisc_repla.csv")
 
 #analytic dataset
-dat_exp_out<- inner_join(dat_exp, dat_out, by="subject_id") |>
-  drop_na()
+dat_exp_out<- full_join(dat_exp, dat_out, by="subject_id")
+
+#missing data vis for WPPSI
+gg_miss_upset(dat_exp_out, nsets=5, nintersects=NA)
 
 write_csv(dat_exp_out, "/Users/jpuvvula/Documents/data/home_16w_imp/mirec_transf/wppsi-exp_wide.csv")
+
+# For 14-chemical analysis
+dat_wppsi<- dat_exp_out |>
+  select(-c(22:36)) |>
+  drop_na()
+
+write_csv(dat_wppsi, "/Users/jpuvvula/Documents/data/home_16w_imp/mirec_transf/14_chem/wppsi-exp_wide.csv")  
 ```
 
 
@@ -255,7 +271,7 @@ write_csv(dt_cov, "/Users/jpuvvula/Documents/data/home_16w_imp/mirec_transf/cova
 
 Join exposure, outcome and covariates
 ```{r}
-cov <- read_csv("E:/BBK17/pj/wppsi_analy_dat/home_export/home-covar_mire_transf.csv") |>
+cov <- read_csv("/Users/jpuvvula/Documents/data/home_16w_imp/mirec_transf/home-covar_mire_transf.csv") |>
   select(c(1:10)) |>
   clean_names()
 

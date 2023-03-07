@@ -234,17 +234,25 @@ file_names<- list.files(path= "E://BBK17//pj//imputed_unit_corr//mirec_fin_merge
 dat<- read_csv(file_names)
 dat$subject_id<- str_extract(dat$subject_id,  "^.{6}")
 
-write_csv(dat, "E://BBK17//pj//mirec_exposure_fin.csv")
+write_csv(dat, "E://BBK17//pj//MIREC_exposure//mirec_exposure_long.csv")
 
 
 ############################################################
 #Long to wide - exposures
 
+dat<- read_csv("E://BBK17//pj//MIREC_exposure//mirec_exposure_long.csv")
+
 dat_exp<- dat |>
-  pivot_wider(names_from = analyte, values_from = conc)
+  pivot_wider(id_cols=subject_id, names_from = analyte, values_from = conc,
+              values_fn = list(conc= mean))
+
 
 # variable 18 for DMA
-dat_exp2<- dat_exp[c(1,3,5,7,8,11,13,15,17,19,21,23,25,26,28,30,32,34,36,38,40,42,44,46,48,49,51,53,55,57:60,62)]
+dat_exp2<- dat_exp |>
+  select(1,3,5,7,8,11,13,15,17,19,21,23,25,26,28,30,32,34,36,38,40,42,44,45,46,
+         47,49,51,52,54,56,58,60,61,62,63,65)
+
+write_csv(dat_exp2, "E://BBK17//pj//MIREC_exposure//mirec_exposure_wide.csv")
 
 #unmeasured exposure summary
 gg_miss_upset(dat, nsets=5, nintersects=NA)
@@ -253,20 +261,38 @@ gg_miss_upset(dat, nsets=5, nintersects=NA)
 dat_exp2<- dat_exp2 |> drop_na()
 
 write_csv(dat_exp2, "E://BBK17//pj//wppsi_analy_dat/dat_exp_mirec.csv")
-
-#######################################
-#Final outcome data
-#BASC-BRIEF here: basc_brief<-  read_csv("E://BBK17//pj//outcome//basc_brief.csv")
-
-wppsi<-  read_csv("E:/BBK17/pj//wppsi_analy_dat/wppsi.csv") |>
-  clean_names() |>
-  drop_na()
-
-########################################
-#combined exposure and outcome
-dat_exp_out<- full_join(dat_exp2, wppsi, by="subject_id") |> drop_na()
-write_csv(dat_exp_out, "E:/BBK17/pj//wppsi_analy_dat/exp_out-mirec.csv")
 ```
+
+all outcomes
+```{r}
+out<- read_csv("E://BBK17//pj//mirec_out.csv") |>
+  group_by(subject_id) |>
+  summarize(across(everything(), mean, na.rm = TRUE))
+
+#find if there are duplicates
+duplicated_ids <- out[duplicated(out$subject_id), "subject_id"]
+```
+
+Join all exposure and outcomes
+```{r}
+dat<- full_join(dat_exp2, out, by="subject_id")
+
+write_csv(dat, "E://BBK17//pj//MIREC_exposure//mirec_exp-out_wide.csv")
+```
+
+
+join exp_out with covariates
+```{r}
+dt_cov<- read_csv("E://BBK17//pj//covariates//mirec_cov_fin.csv") 
+
+
+dat_fin<- left_join(dat, dt_cov, by="subject_id")
+
+write_csv(dat_fin, "E://BBK17//pj//MIREC_exposure//mirec_full.csv")
+
+
+```
+
 
 
 #################################################################################

@@ -5,6 +5,7 @@ date: "2023-02-14"
 output: pdf_document
 ---
 
+# ! USE R version 4.2.2
 ```{r, echo=FALSE, message=FALSE}
 library(tidyverse)
 library(janitor)
@@ -32,21 +33,13 @@ dat<- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_fin.csv") |>
 dat<- dat |> 
   mutate(across(all_of(c("cohort", "city", "sex", "race_bin", 
                          "parity_n", "mom_edu_cat")), as.factor))
-str(dat)
+
 ```
 
-For gender stratified analysis
-```{r}
-dat<- dat |>
-  filter(sex=="Female")|>
-  select(-c(sex))
-```
-
-
-For 14 chemicals
+For 14 chemicals 
 ```{r}
 dat <- dat |>
-  select(4,5,17,18,19,21,20,22,23,24,25,26,28:29,30:40) |>
+  select(4,5,17,18,19,21,20,22,23,24,25,26,28:29,30:41) |>
   mutate_at(vars(1:14), log10) |>
   rename_with(~ paste0("log_", .x), 1:14)
 
@@ -54,220 +47,115 @@ dat <- dat |>
 mixture<- names(dat[c(1:14)])
 ```
 
+#function to loop qgcomp
+```{r}
+qgcomp_func <- function(outcomes, dat, folder_path){
+  for (sex_level in c("all", "Female", "Male")) {
+    if (sex_level == "all") {
+      sex_data <- dat
+      sex_formula <- "sex + "
+    } else {
+      sex_data <- subset(dat, sex == sex_level)
+      sex_formula <- ""
+    }
+    for (cohort_level in c("all", "home", "mirec")) {
+      if (cohort_level == "all") {
+        cohort_data <- sex_data
+        cohort_formula <- "cohort + city+"
+        filename_prefix <- paste0(sex_level, "_all")
+      } else if (cohort_level == "home") {
+        cohort_data <- subset(sex_data, cohort == "1")
+        cohort_formula <- ""
+        filename_prefix <- paste0(sex_level, "_home")
+      } else if (cohort_level == "mirec") {
+        cohort_data <- subset(sex_data, cohort == "2")
+        cohort_formula <- "city +"
+        filename_prefix <- paste0(sex_level, "_mirec")
+      } else {
+        stop("Invalid cohort level")
+      }
+      
+      for(outcome in outcomes){
+        formula <- as.formula(paste(outcome, "~ log_DDE + log_PBDE_47 + log_TCS + log_BPA +log_MBP + log_MCPP + log_MBZP + log_sigma_DEHP + log_MEP +log_MIBP + log_di_Ethyl_OP + log_di_Methyl_OP + log_M_PB +log_P_PB + ", sex_formula, cohort_formula,"race_bin + cotinine +mom_edu_cat + home_score_total + parity_n + mom_age"))
+        
+        nb <- qgcomp.noboot(formula, expnms = mixture, data = cohort_data, family= gaussian(), q=10)
+        boot <- qgcomp.boot(formula, expnms = mixture, data = cohort_data, family= gaussian(), q=10, B = 250, seed = 2022)
+        save(nb, file = paste0(folder_path, "/", "nb_", filename_prefix, "_", outcome, ".rda"))
+        save(boot, file = paste0(folder_path, "/", "boot_", filename_prefix, "_", outcome, ".rda"))
+      }
+    }
+  }
+}
 
-WPPSI-FSIQ-ALL
-```{r, echo=FALSE, message=FALSE, fig.height=12, fig.width=12, dpi=300}
-#mixture<- names(dat[c(1:29)])
+```
 
-nb_gcomp_fit<- qgcomp.noboot(wppsi_fsiq ~ .,
-                             expnms = mixture,
-                             data = dat[-c(16,17)],
-                             family= gaussian(), q=10)
-
-nb_gcomp_fit
-plot(nb_gcomp_fit)
-
-save(nb_gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/nb_fsiq_all.rda")
-
-gcomp_fit<- qgcomp.boot(wppsi_fsiq ~ .,
-                        expnms = mixture,
-                        data = dat[-c(16,17)],
-                        family= gaussian(), q=10, B = 250,
-                        seed = 2022)
-gcomp_fit
-plot(gcomp_fit)
-save(gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/b_fsiq_all.rda")
+#run this function to get all results at a folder
+```{r}
+qgcomp_func(outcomes = c("wppsi_fsiq", "wppsi_viq", "wppsi_piq"), folder_path = "E:/BBK17/pj/test/", dat = dat)
 ```
 
 
-WPPSI-VIQ-ALL
-```{r, echo=FALSE, message=FALSE, fig.height=12, fig.width=12, dpi=300}
-nb_gcomp_fit<- qgcomp.noboot(wppsi_viq ~ .,
-                             expnms = mixture,
-                             data = dat[-c(15,17)],
-                             family= gaussian(), q=10)
+#Compile all results from the above loop to a single csv file
+```{r}
+# set the folder location
+folder_location <- "E:/BBK17/pj/test/"
 
-nb_gcomp_fit
-plot(nb_gcomp_fit)
-save(nb_gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/nb_viq_all.rda")
+# get the file names in the folder
+file_names <- list.files(folder_location)
 
-gcomp_fit<- qgcomp.boot(wppsi_viq ~ .,
-                        expnms = mixture,
-                        data = dat[-c(15,17)],
-                        family= gaussian(), q=10, B = 250,
-                        seed = 2022)
-gcomp_fit
-plot(gcomp_fit)
-save(gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/b_viq_all.rda")
+# create empty data frame to store the results
+results <- data.frame(file = character(),
+                      estimate = numeric(),
+                      lower_ci = numeric(),
+                      upper_ci = numeric(),
+                      stringsAsFactors = FALSE)
+
+#loops through all .rda files and extract estimates, CI & p-values
+for (file_name in file_names) {
+  # load the object from the file
+  load(file.path(folder_location, file_name))
+  # extract the object name using grep or grepl
+  object_name <- ls()[grep("^boot|^nb", ls())]
+  # extract the required information using the summary function and the object name
+  estimate <- get(object_name)$coef["psi1"]
+  CI <- get(object_name)$ci
+  lower_ci <- CI[1]
+  upper_ci <- CI[2]
+  p_value <- get(object_name)$pval[2]
+  # split file name by "_" and remove ".rda"
+  file_parts <- strsplit(gsub("\\.rda", "", file_name), "_")[[1]]
+  # assign parts to variables
+  part1 <- file_parts[1]
+  part2 <- file_parts[2]
+  part3 <- file_parts[3]
+  part4 <- file_parts[5]
+  # print out the values
+  cat("File:", file_name, "\n")
+  cat("  Estimate:", estimate, "\n")
+  cat("  Lower CI:", lower_ci, "\n")
+  cat("  Upper CI:", upper_ci, "\n")
+  cat("  p-value:", p_value, "\n")
+  cat("  Part 1:", part1, "\n")
+  cat("  Part 2:", part2, "\n")
+  cat("  Part 3:", part3, "\n")
+  cat("  Part 4:", part4, "\n")
+  # add the results to the data frame
+  results <- rbind(results, data.frame(boot_strp = part1,
+                                       gender = part2,
+                                       cohort = part3,
+                                       outcome = part4,
+                                       estimate = estimate,
+                                       lower_ci = lower_ci,
+                                       upper_ci = upper_ci,
+                                       p_value = p_value,
+                                       stringsAsFactors = FALSE))
+  # remove the object from the R environment to avoid conflicts with other objects (all objects saved as nb or boot)
+  rm(list = object_name)
+}
 ```
 
 
-WPPSI-PIQ-ALL
-```{r, echo=FALSE, message=FALSE, fig.height=12, fig.width=12, dpi=300}
-
-nb_gcomp_fit<- qgcomp.noboot(wppsi_piq ~ .,
-                             expnms = mixture,
-                             data = dat[-c(15,16)],
-                             family= gaussian(), q=10)
-
-nb_gcomp_fit
-plot(nb_gcomp_fit)
-save(nb_gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/nb_piq_all.rda")
-
-gcomp_fit<- qgcomp.boot(wppsi_piq ~ .,
-                        expnms = mixture,
-                        data = dat[-c(15,16)],
-                        family= gaussian(), q=10, B = 250,
-                        seed = 2022)
-gcomp_fit
-plot(gcomp_fit)
-save(gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/b_piq_all.rda")
-```
-
-WPPSI-FSIQ-HOME
-```{r, echo=FALSE, message=FALSE, fig.height=12, fig.width=12, dpi=300}
-dat_home<- dat |>
-  filter(cohort=="1")|>
-  select(-c(cohort, city))
-
-nb_gcomp_fit<- qgcomp.noboot(wppsi_fsiq ~ .,
-                             expnms = mixture,
-                             data = dat_home[-c(16,17)],
-                             family= gaussian(), q=10)
-
-nb_gcomp_fit
-plot(nb_gcomp_fit)
-save(nb_gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/nb_fsiq_home.rda")
-
-gcomp_fit<- qgcomp.boot(wppsi_fsiq ~ .,
-                        expnms = mixture,
-                        data = dat_home[-c(16,17)],
-                        family= gaussian(), q=10, B = 250,
-                        seed = 2022)
-gcomp_fit
-plot(gcomp_fit)
-save(gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/b_fsiq_home.rda")
-```
-
-
-WPPSI-VIQ-HOME
-```{r, echo=FALSE, message=FALSE, fig.height=12, fig.width=12, dpi=300}
-
-nb_gcomp_fit<- qgcomp.noboot(wppsi_viq ~ .,
-                             expnms = mixture,
-                             data = dat_home[-c(15,17)],
-                             family= gaussian(), q=10)
-
-nb_gcomp_fit
-plot(nb_gcomp_fit)
-save(nb_gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/nb_viq_home.rda")
-
-gcomp_fit<- qgcomp.boot(wppsi_viq ~ .,
-                        expnms = mixture,
-                        data = dat_home[-c(15,17)],
-                        family= gaussian(), q=10, B = 250,
-                        seed = 2022)
-gcomp_fit
-plot(gcomp_fit)
-save(gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/b_viq_home.rda")
-```
-
-
-WPPSI-PIQ-HOME
-```{r, echo=FALSE, message=FALSE, fig.height=12, fig.width=12, dpi=300}
-
-nb_gcomp_fit<- qgcomp.noboot(wppsi_piq ~ .,
-                             expnms = mixture,
-                             data = dat_home[-c(15,16)],
-                             family= gaussian(), q=10)
-
-nb_gcomp_fit
-plot(nb_gcomp_fit)
-save(nb_gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/nb_piq_home.rda")
-
-gcomp_fit<- qgcomp.boot(wppsi_piq ~ .,
-                        expnms = mixture,
-                        data = dat_home[-c(15,16)],
-                        family= gaussian(), q=10, B = 250,
-                        seed = 2022)
-gcomp_fit
-plot(gcomp_fit)
-save(gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/b_piq_home.rda")
-```
-
-WPPSI-FSIQ-MIREC
-```{r, echo=FALSE, message=FALSE, fig.height=12, fig.width=12, dpi=300}
-dat_mirec<- dat |>
-  filter(cohort=="2")|>
-  select(-c(cohort))
-
-nb_gcomp_fit<- qgcomp.noboot(wppsi_fsiq ~ .,
-                             expnms = mixture,
-                             data = dat_mirec[-c(16,17)],
-                             family= gaussian(), q=10)
-
-nb_gcomp_fit
-plot(nb_gcomp_fit)
-save(nb_gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/nb_fsiq_mirec.rda")
-
-gcomp_fit<- qgcomp.boot(wppsi_fsiq ~ .,
-                        expnms = mixture,
-                        data = dat_mirec[-c(16,17)],
-                        family= gaussian(), q=10, B = 250,
-                        seed = 2022)
-gcomp_fit
-plot(gcomp_fit)
-save(gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/b_fsiq_mirec.rda")
-```
-
-
-WPPSI-VIQ-MIREC
-```{r, echo=FALSE, message=FALSE, fig.height=12, fig.width=12, dpi=300}
-
-nb_gcomp_fit<- qgcomp.noboot(wppsi_viq ~ .,
-                             expnms = mixture,
-                             data = dat_mirec[-c(15,17)],
-                             family= gaussian(), q=10)
-
-nb_gcomp_fit
-plot(nb_gcomp_fit)
-save(nb_gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/nb_viq_mirec.rda")
-
-gcomp_fit<- qgcomp.boot(wppsi_viq ~ .,
-                        expnms = mixture,
-                        data = dat_mirec[-c(15,17)],
-                        family= gaussian(), q=10, B = 250,
-                        seed = 2022)
-gcomp_fit
-plot(gcomp_fit)
-save(gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/b_viq_mirec.rda")
-```
-
-
-WPPSI-PIQ-MIREC
-```{r, echo=FALSE, message=FALSE, fig.height=12, fig.width=12, dpi=300}
-
-nb_gcomp_fit<- qgcomp.noboot(wppsi_piq ~ .,
-                             expnms = mixture,
-                             data = dat_mirec[-c(15,16)],
-                             family= gaussian(), q=10)
-
-nb_gcomp_fit
-plot(nb_gcomp_fit)
-save(nb_gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/nb_piq_mirec.rda")
-
-gcomp_fit<- qgcomp.boot(wppsi_piq ~ .,
-                        expnms = mixture,
-                        data = dat_mirec[-c(15,16)],
-                        family= gaussian(), q=10, B = 250,
-                        seed = 2022)
-gcomp_fit
-plot(gcomp_fit)
-save(gcomp_fit, file = "E:/BBK17/pj/wppsi_results/qgcomp/b_piq_mirec.rda")
-```
-
-
-consolidated results
+#consolidated results
 ```{r, echo=FALSE, message=FALSE, fig.height=4, fig.width=6, dpi=300}
 res<- read_csv("E:/BBK17/pj/wppsi_results/qgcomp/qgcomp_res.csv")
 

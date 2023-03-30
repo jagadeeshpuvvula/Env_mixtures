@@ -117,7 +117,10 @@ qgcomp_func <- function(outcomes, dat, folder_path, sex_level = NULL, cohort_lev
 
 #run this function to get all results at a folder
 ```{r}
-qgcomp_func(outcomes = c("wppsi_fsiq", "wppsi_viq", "wppsi_piq"), folder_path = "E:/BBK17/pj/test/", dat = dat)
+qgcomp_func(outcomes = c("wppsi_fsiq", "wppsi_viq", "wppsi_piq"), 
+            folder_path = "E:/BBK17/pj/test/", 
+            sex_level = TRUE, cohort_level = TRUE, 
+            dat = dat)
 ```
 
 

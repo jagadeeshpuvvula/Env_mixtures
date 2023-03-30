@@ -49,8 +49,35 @@ mixture<- names(dat[c(1:14)])
 
 #function to loop qgcomp
 ```{r}
-qgcomp_func <- function(outcomes, dat, folder_path){
-  for (sex_level in c("all", "Female", "Male")) {
+qgcomp_func <- function(outcomes, dat, folder_path, sex_level = NULL, cohort_level = NULL) {
+  
+  # check if sex and cohort variables exist in data
+  has_sex <- "sex" %in% colnames(dat)
+  has_cohort <- "cohort" %in% colnames(dat)
+  
+  # set default values for sex_level and cohort_level if not provided
+  if (is.null(sex_level)) {
+    if (has_sex) {
+      sex_levels <- c("all", "Female", "Male")
+    } else {
+      sex_levels <- "all"
+    }
+  } else {
+    sex_levels <- sex_level
+  }
+  
+  if (is.null(cohort_level)) {
+    if (has_cohort) {
+      cohort_levels <- c("all", "home", "mirec")
+    } else {
+      cohort_levels <- "all"
+    }
+  } else {
+    cohort_levels <- cohort_level
+  }
+  
+  # iterate over sex and cohort levels
+  for (sex_level in sex_levels) {
     if (sex_level == "all") {
       sex_data <- dat
       sex_formula <- "sex + "
@@ -58,7 +85,7 @@ qgcomp_func <- function(outcomes, dat, folder_path){
       sex_data <- subset(dat, sex == sex_level)
       sex_formula <- ""
     }
-    for (cohort_level in c("all", "home", "mirec")) {
+    for (cohort_level in cohort_levels) {
       if (cohort_level == "all") {
         cohort_data <- sex_data
         cohort_formula <- "cohort + city+"

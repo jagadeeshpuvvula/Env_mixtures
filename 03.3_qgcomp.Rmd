@@ -48,35 +48,8 @@ mixture<- names(dat[c(1:14)])
 
 #function to loop qgcomp
 ```{r}
-qgcomp_func <- function(outcomes, dat, folder_path, sex_level = NULL, cohort_level = NULL) {
-  
-  # check if sex and cohort variables exist in data
-  has_sex <- "sex" %in% colnames(dat)
-  has_cohort <- "cohort" %in% colnames(dat)
-  
-  # set default values for sex_level and cohort_level if not provided
-  if (is.null(sex_level)) {
-    if (has_sex) {
-      sex_levels <- c("all", "Female", "Male")
-    } else {
-      sex_levels <- "all"
-    }
-  } else {
-    sex_levels <- sex_level
-  }
-  
-  if (is.null(cohort_level)) {
-    if (has_cohort) {
-      cohort_levels <- c("all", "home", "mirec")
-    } else {
-      cohort_levels <- "all"
-    }
-  } else {
-    cohort_levels <- cohort_level
-  }
-  
-  # iterate over sex and cohort levels
-  for (sex_level in sex_levels) {
+qgcomp_func <- function(outcomes, dat, folder_path){
+  for (sex_level in c("all", "Female", "Male")) {
     if (sex_level == "all") {
       sex_data <- dat
       sex_formula <- "sex + "
@@ -84,7 +57,7 @@ qgcomp_func <- function(outcomes, dat, folder_path, sex_level = NULL, cohort_lev
       sex_data <- subset(dat, sex == sex_level)
       sex_formula <- ""
     }
-    for (cohort_level in cohort_levels) {
+    for (cohort_level in c("all", "home", "mirec")) {
       if (cohort_level == "all") {
         cohort_data <- sex_data
         cohort_formula <- "cohort + city+"
@@ -95,15 +68,15 @@ qgcomp_func <- function(outcomes, dat, folder_path, sex_level = NULL, cohort_lev
         filename_prefix <- paste0(sex_level, "_home")
       } else if (cohort_level == "mirec") {
         cohort_data <- subset(sex_data, cohort == "2")
-        cohort_formula <- ""
+        cohort_formula <- "city +"
         filename_prefix <- paste0(sex_level, "_mirec")
       } else {
         stop("Invalid cohort level")
       }
-      
+     
       for(outcome in outcomes){
         formula <- as.formula(paste(outcome, "~ log_DDE + log_PBDE_47 + log_TCS + log_BPA +log_MBP + log_MCPP + log_MBZP + log_sigma_DEHP + log_MEP +log_MIBP + log_di_Ethyl_OP + log_di_Methyl_OP + log_M_PB +log_P_PB + ", sex_formula, cohort_formula,"race_bin + cotinine +mom_edu_cat + home_score_total + parity_n + mom_age"))
-        
+       
         nb <- qgcomp.noboot(formula, expnms = mixture, data = cohort_data, family= gaussian(), q=10)
         boot <- qgcomp.boot(formula, expnms = mixture, data = cohort_data, family= gaussian(), q=10, B = 250, seed = 2022)
         save(nb, file = paste0(folder_path, "/", "nb_", filename_prefix, "_", outcome, ".rda"))

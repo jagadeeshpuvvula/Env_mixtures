@@ -10,50 +10,84 @@ knitr::opts_chunk$set(echo = TRUE)
 ```
 
 ```{r}
-# Load necessary packages
+library(gglasso)
+library(grpreg)
+library(sparsegl)
+library(Matrix)
 library(tidyverse)
-library(caret)
-library(mlr)
-library(ranger)
-library(glmnet)
-library(Boruta)
-library(party)
-library(deepnet)
-library(rminer)
-```
-
-```{r}
-dat<- read.csv("/Users/jpuvvula/Documents/data/home_16w_imp/mirec_transf/home_all_first_trimes/any_outcome/home_1trim_any_outc.csv") |>
-  drop_na()
 ```
 
 
 ```{r}
-
-# Function to perform feature selection and return results
-feature_selection <- function(data, vars, outcome, seed = NULL, group_vars = NULL) {
+var_selec <- function(X, y, group) {
+  # Group graphical Lasso
+  gr_cv <- cv.gglasso(X, y, group=group, loss="ls", pred.loss="L2",  nfolds=5)
+  gr_min_beta <- coef(gr_cv, s = gr_cv$lambda.min)[-1]
   
-  # Create a data frame to store results
-  results <- data.frame(variable = vars)
+  # Group Lasso
+  grpp_cv <- cv.grpreg(X, y, group = group, penalty="grLasso",seed=5678,nfolds = 5)
+  grpp_min_beta <- coef(grpp_cv, s = grpp_cv$lambda.min)[-1]
   
-  # Recursive Feature Elimination
-  rfe_model <- rfe(x = as.matrix(data[, vars]), y = data[, outcome], sizes = c(2:length(vars)), rfeControl = rfeControl(method = "cv", number = 5), verbose = FALSE)
-  rfe_importance <- rfe_model$optVariables
-  results$rfe_importance <- as.numeric(vars %in% rfe_importance)
-
-  return(results)
+  #Sparse lasso
+  sparse_cv<- cv.sparsegl(X, y, group = group, family = "gaussian", nfolds = 4)
+  sparse_min_beta<- coef(sparse_cv, s= sparse_cv$lambda.min)[-1]
+  
+  # Return results as data frame
+  return(as.data.frame(list(gr_lasso = gr_min_beta, grpp_lasso = grpp_min_beta,
+                            sparse_lasso = sparse_min_beta)))
 }
 ```
 
 
+
 ```{r}
-# Generate simulated dataset with 10 variables and 100 observations
+var_selec <- function(X, Y, group) {
+  results <- list()
+  for (i in 1:3) {
+    y <- Y[, i]
+    # Group graphical Lasso
+    gr_cv <- cv.gglasso(X, y, group=group, loss="ls", pred.loss="L2",  nfolds=5)
+    gr_min_beta <- coef(gr_cv, s = gr_cv$lambda.min)[-1]
+  
+    # Group Lasso
+    grpp_cv <- cv.grpreg(X, y, group = group, penalty="grLasso",seed=5678,nfolds = 5)
+    grpp_min_beta <- coef(grpp_cv, s = grpp_cv$lambda.min)[-1]
+  
+    #Sparse lasso
+    sparse_cv<- cv.sparsegl(X, y, group = group, family = "gaussian", nfolds = 4)
+    sparse_min_beta<- coef(sparse_cv, s= sparse_cv$lambda.min)[-1]
+  
+    # Store results in list
+    results[[paste0("outcome", i)]] <- as.data.frame(list(gr_lasso = gr_min_beta, 
+                                                          grpp_lasso = grpp_min_beta,
+                                                          sparse_lasso = sparse_min_beta))
+  }
+  # Return list of results
+  return(results)
+}
+
+
+library(MASS)
+
+# Set seed for reproducibility
 set.seed(123)
-data <- data.frame(matrix(rnorm(1100), ncol = 11))
-colnames(data) <- c(paste0("var", 1:10), "outcome")
-outcome <- rnorm(100)
+
+# Simulate predictor matrix
+n <- 100
+p <- 10
+X <- mvrnorm(n, mu = rep(0, p), Sigma = diag(p))
+
+# Simulate outcome matrix
+Y <- matrix(0, nrow = n, ncol = 3)
+Y[, 1] <- X[, 1] + X[, 2] + rnorm(n)
+Y[, 2] <- X[, 3] + X[, 4] + rnorm(n)
+Y[, 3] <- X[, 5] + X[, 6] + rnorm(n)
+
+# Set group membership of predictors
 group <- rep(1:2, each = 5)
 
-results <- feature_selection(data, colnames(data), "outcome", seed = 123, group = group)
+# Test the var_selec function
+results <- var_selec(X, Y, group)
+
 ```
 

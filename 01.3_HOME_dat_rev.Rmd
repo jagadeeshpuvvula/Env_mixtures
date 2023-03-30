@@ -52,7 +52,7 @@ join exposure, outcome and covariates for all variables at age 3
 ```{r}
 fin_dat<- full_join(dat, out_cov, by="subject_id")
 
-write_csv(fin_dat, "/Users/jpuvvula/Documents/data/home_16w_imp/mirec_transf/home_all_first_trimes/home_1trim.csv")
+write_csv(fin_dat, "/Users/jpuvvula/Documents/data/home_16w_imp/mirec_transf/home_all_first_trimes/full_data/home_1trim.csv")
 ```
 
 ```{r}
@@ -60,5 +60,14 @@ vis_miss(fin_dat[2:57], cluster = T, show_perc_col = T)
 
 
 gg_miss_upset(fin_dat[2:41], nsets = n_var_miss(fin_dat[2:41]), nintersects=NA)
+```
+
+#dropping data if all outcomes are missing
+#at least 303 subjects with some outcome measured at age
+```{r}
+dat_n <- dat %>% 
+  filter(rowSums(select(., 32:41), na.rm = TRUE) != 0)
+
+write_csv(dat_n, "/Users/jpuvvula/Documents/data/home_16w_imp/mirec_transf/home_all_first_trimes/any_outcome/home_1trim_any_outc.csv")
 ```
 

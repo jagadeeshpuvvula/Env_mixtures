@@ -5,7 +5,6 @@ date: "2023-02-14"
 output: pdf_document
 ---
 
-# ! USE R version 4.2.2
 ```{r, echo=FALSE, message=FALSE}
 library(tidyverse)
 library(janitor)
@@ -69,7 +68,7 @@ qgcomp_func <- function(outcomes, dat, folder_path){
         filename_prefix <- paste0(sex_level, "_home")
       } else if (cohort_level == "mirec") {
         cohort_data <- subset(sex_data, cohort == "2")
-        cohort_formula <- "city +"
+        cohort_formula <- ""
         filename_prefix <- paste0(sex_level, "_mirec")
       } else {
         stop("Invalid cohort level")

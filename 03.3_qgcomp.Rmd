@@ -5,6 +5,11 @@ date: "2023-02-14"
 output: pdf_document
 ---
 
+```{r}
+Sys.setenv(R_VERSION="4.2.2")
+```
+
+
 ```{r, echo=FALSE, message=FALSE}
 library(tidyverse)
 library(janitor)

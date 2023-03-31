@@ -87,7 +87,10 @@ var_selec <- function(X, Y, group) {
 }
 ```
 
+<<<<<<< HEAD
 ```{r}
 res<- var_selec(X, Y, group)
 ```
 
+=======
+>>>>>>> edc4f411eb19835aca940bfc55c0e9ea22147e0a

@@ -48,15 +48,28 @@ mixture<- names(dat[c(1:14)])
 
 #function to loop qgcomp
 ```{r}
+<<<<<<< HEAD
 qgcomp_func <- function(outcomes, dat, folder_path){
   for (sex_level in c("all", "Female", "Male")) {
     if (sex_level == "all") {
-      sex_data <- dat
-      sex_formula <- "sex + "
+=======
+qgcomp_func <- function(outcomes, dat, folder_path, include_sex = TRUE, include_cohort = TRUE) {
+ 
+  for (sex_level in c("all", "Female", "Male")) {
+    if (include_sex) {
+      if (sex_level == "all") {
+        sex_data <- dat
+        sex_formula <- "sex + "
+      } else {
+        sex_data <- subset(dat, sex == sex_level)
+        sex_formula <- ""
+      }
     } else {
-      sex_data <- subset(dat, sex == sex_level)
+>>>>>>> edc4f411eb19835aca940bfc55c0e9ea22147e0a
+      sex_data <- dat
       sex_formula <- ""
     }
+<<<<<<< HEAD
     for (cohort_level in c("all", "home", "mirec")) {
       if (cohort_level == "all") {
         cohort_data <- sex_data
@@ -70,8 +83,30 @@ qgcomp_func <- function(outcomes, dat, folder_path){
         cohort_data <- subset(sex_data, cohort == "2")
         cohort_formula <- "city +"
         filename_prefix <- paste0(sex_level, "_mirec")
+=======
+   
+    for (cohort_level in c("all", "home", "mirec")) {
+      if (include_cohort) {
+        if (cohort_level == "all") {
+          cohort_data <- sex_data
+          cohort_formula <- "cohort + city+"
+          filename_prefix <- paste0(sex_level, "_all")
+        } else if (cohort_level == "home") {
+          cohort_data <- subset(sex_data, cohort == "1")
+          cohort_formula <- ""
+          filename_prefix <- paste0(sex_level, "_home")
+        } else if (cohort_level == "mirec") {
+          cohort_data <- subset(sex_data, cohort == "2")
+          cohort_formula <- "city +"
+          filename_prefix <- paste0(sex_level, "_mirec")
+        } else {
+          stop("Invalid cohort level")
+        }
+>>>>>>> edc4f411eb19835aca940bfc55c0e9ea22147e0a
       } else {
-        stop("Invalid cohort level")
+        cohort_data <- sex_data
+        cohort_formula <- ""
+        filename_prefix <- paste0(sex_level, "_all")
       }
      
       for(outcome in outcomes){
@@ -90,7 +125,10 @@ qgcomp_func <- function(outcomes, dat, folder_path){
 
 #run this function to get all results at a folder
 ```{r}
-qgcomp_func(outcomes = c("wppsi_fsiq", "wppsi_viq", "wppsi_piq"), folder_path = "E:/BBK17/pj/test/", dat = dat)
+qgcomp_func(outcomes = c("wppsi_fsiq", "wppsi_viq", "wppsi_piq"), 
+            folder_path = "E:/BBK17/pj/test/", 
+            sex_level = TRUE, cohort_level = TRUE, 
+            dat = dat)
 ```
 
 

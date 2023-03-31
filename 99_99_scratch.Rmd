@@ -26,7 +26,7 @@ mom_age <- rnorm(100, mean = 35, sd = 5)
 # Simulate predictor variables for mixture
 mixture <- c("log_DDE", "log_PBDE_47", "log_TCS", "log_BPA")
 set.seed(456)
-mixture_data <- matrix(rnorm(1400, mean = 0, sd = 1), nrow = 100)
+mixture_data <- matrix(rnorm(400, mean = 0, sd = 1), nrow = 100)
 colnames(mixture_data) <- mixture
 
 # Combine predictor variables into a dataframe

@@ -19,7 +19,8 @@ dat<- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_fin.csv") |>
   mutate_if(is.numeric, round, 4) |>
   drop_na() |>
   clean_names() |>
-  mutate(race_bin = if_else(sex=="Male", 1, 2))|>
+  mutate(sex_bin = if_else(sex=="Male", 1, 2),
+         race_bin = if_else(race=="white", 1, 2))|>
   rename(Pb=pbsg, Hg=hgsg, DMA=dma_sg, DDE= dde_lp, PBDE_47 = pbde47_lp,
          PCB_118=pcb118_lp, PCB_138=pcb138_lp, PCB_153=pcb153_lp,
          PCB_180=pcb180_lp, PFHxS=pf_hx_spl, PFOA=pfoapl, PFOS=pfospl,
@@ -27,133 +28,103 @@ dat<- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_fin.csv") |>
          TCS=tcs_sg, BPA=bpa_sg, MBP=mbp_sg, MBZP=mbzp_sg, MCPP=mcpp_sg,
          sigma_DEHP=dehp, MEP=mep_sg, MIBP=mibp_sg, di_Ethyl_OP=op_de,
          di_Methyl_OP=op_dm, B_PB=b_pb, M_PB=m_pb, P_PB=p_pb)|>
-  select(c(Pb, Hg, DMA, DDE, PBDE_47, PCB_118, PCB_138, PCB_153, PCB_180,
+  select(c(subject_id, Pb, Hg, DMA, DDE, PBDE_47, PCB_118, PCB_138, PCB_153, PCB_180,
           PFHxS, PFOA, PFOS, BCEtP, BDCPP, DBuP, DPhP, TCS, BPA, MBP, MBZP,
           MCPP, sigma_DEHP, MEP, MIBP, di_Ethyl_OP, di_Methyl_OP, 
           B_PB, M_PB, P_PB, wppsi_fsiq, wppsi_viq, wppsi_piq, cohort, city,
-          race_bin, cotinine, mom_edu_cat, home_score_total, parity_n, mom_age)) 
+          sex_bin, race_bin, cotinine, mom_edu_cat, home_score_total, parity_n, mom_age))|>
+  mutate_at(vars(Pb, Hg, DMA, DDE, PBDE_47, PCB_118, PCB_138,PCB_153, PCB_180,
+                 PFHxS, PFOA, PFOS, BCEtP,BDCPP, DBuP, DPhP, TCS, BPA, MBP, MBZP,MCPP,
+                 sigma_DEHP, MEP, MIBP, di_Ethyl_OP, di_Methyl_OP,B_PB, M_PB, P_PB), log10)
 
-```
+dat<- dat |> rename(sex=sex_bin, race=race_bin)
 
-
-```{r, echo=FALSE, message=FALSE}
-#Creating mixture variable matrix
-mixture<- with(dat, cbind(Pb, Hg, DMA, DDE, PBDE_47, PCB_118, PCB_138, 
-                                PCB_153, PCB_180,PFHxS, PFOA, PFOS, BCEtP, 
-                                BDCPP, DBuP, DPhP, TCS, BPA, MBP, MBZP,MCPP, 
-                                sigma_DEHP, MEP, MIBP, di_Ethyl_OP, di_Methyl_OP, 
-                                B_PB, M_PB, P_PB))
-
-# log 10 conversion of exposure variables
-ln_mixture <- apply(mixture, 2, log10)
-
-# log conversion and scale outcomes
-wppsi_fsiq<- dat$wppsi_fsiq
-wppsi_viq<- dat$wppsi_viq
-wppsi_piq<- dat$wppsi_piq
-
-#  scale continuous covariates
-covariates<- with(dat, cbind(cohort, race_bin, mom_edu_cat,cotinine,
-                             home_score_total, parity_n, mom_age))
 ```
 
 =================================================================================
-FSIQ
+#BKMR loop
+#Non-linearlity modeled using #knots = (15/sample size)*100
+#convergence tested at 100 iterations
+# TUNE nd value in knots100 object and iter in kmbayes function
 ```{r}
-set.seed(2023)
-knots100 <- fields::cover.design(ln_mixture, nd=100)$design
+bkmr_func <- function(data, folder_path, include_sex = TRUE, include_cohort = TRUE) {
+  set.seed(2023)
+  
+  for (sex_level in c("all", "Female", "Male")) {
+    if (include_sex) {
+      if (sex_level == "all") {
+        sex_data <- data
+      } else {
+        sex_data <- subset(data, sex == sex_level)
+      }
+    } else {
+      sex_data <- data
+    }
+    
+    if (sex_level != "all") {
+      sex_data$sex <- NULL
+    }
+    
+    for (cohort_level in c("all", "home", "mirec")) {
+      if (include_cohort) {
+        if (cohort_level == "all") {
+          cohort_data <- sex_data
+        } else if (cohort_level == "home") {
+          cohort_data <- subset(sex_data, cohort == "1")
+        } else if (cohort_level == "mirec") {
+          cohort_data <- subset(sex_data, cohort == "2")
+        } else {
+          stop("Invalid cohort level")
+        }
+      } else {
+        cohort_data <- sex_data
+      }
+      
+      if (cohort_level != "all") {
+        cohort_data$cohort <- NULL
+      }
+      
+      ln_mixture <- as.matrix(cohort_data[,2:30])
+      outcome <- as.matrix(cohort_data[,31:33])
+      covariates <- as.matrix(cohort_data[,34:ncol(cohort_data)])
+      
+      for(i in 1:ncol(outcome)) {
+        knots100 <- fields::cover.design(ln_mixture, nd = round(0.15 * nrow(ln_mixture)))$design
+        
+        bkmr <- kmbayes(y = outcome[,i], Z = ln_mixture, X = covariates, iter = 100000, 
+                        verbose = TRUE, varsel = TRUE, 
+                        groups = c(1, 1, 1, 2, 2, 2, 2, 2, 2, 3, 3, 3,
+                                  4, 4, 4, 4, 5, 5, 6, 6, 6, 6, 6, 6,
+                                  7, 7, 8, 8, 8), 
+                        knots = knots100)
+        
+        save(bkmr, file = paste0(folder_path, "/bkmr_", 
+         if (include_sex) sex_level else "all", "_",
+         if (include_cohort) cohort_level else "all", "_",
+         colnames(outcome)[i], ".rda"))
+      }
+      
+    }
+  }
+}
 
-set.seed(2023)
-fsiq_all<- kmbayes(y= wppsi_fsiq, Z=ln_mixture, X=covariates,
-              iter = 100000, verbose = T,  varsel = T,
-              groups = c(1,1,1,2,2,2,2,2,2,3,3,3,
-                         4,4,4,4,5,5,6,6,6,6,6,6,
-                         7,7,8,8,8),
-              knots=knots100)
-
-summary(fsiq_all)
-
-#for PIPs
-ExtractPIPs(fsiq_all)
-
-######### PLOTTING ##################
-modeltoplot <- fsiq_all
-modeltoplot.name <- "wppsi_mod"
-plot.name <- "model"
-Z <- ln_mixture
-
-sel <- seq(12501, 25000, by =50)
-##############
-TracePlot(fit=modeltoplot, par = "beta", sel = sel)
-TracePlot(fit = modeltoplot, par = "sigsq.eps", sel= sel)
-
-##################
-pred.resp.univar <- PredictorResponseUnivar(fit = modeltoplot, sel=sel, method="approx")
-pred.resp.bivar  <- PredictorResponseBivar(fit = modeltoplot,  min.plot.dist = 1, sel=sel, method="approx")
-pred.resp.bivar.levels <- PredictorResponseBivarLevels(pred.resp.df = pred.resp.bivar, Z = Z,
-                                                       both_pairs = TRUE, qs = c(0.25, 0.5, 0.75))
-
-risks.overall <- OverallRiskSummaries(fit = modeltoplot, qs = seq(0.25, 0.75, 
-                                                                  by = 0.05), 
-                                      q.fixed = 0.5, method = "approx",sel=sel)
-
-risks.singvar <- SingVarRiskSummaries(fit = modeltoplot, qs.diff = c(0.25, 0.75),
-                                      q.fixed = c(0.25, 0.50, 0.75), method = "approx")
-
-risks.int <- SingVarIntSummaries(fit = modeltoplot, qs.diff = c(0.25, 0.75), qs.fixed = c(0.25, 0.75))
-
-save(fsiq_all, file = "E:/BBK17/pj/wppsi_results/bkmr/all/fsiq_all.rda")
 ```
 
-=================================================================================
-VIQ
+#Run model (select either sex or cohort to TRUE: Convergence issue)
 ```{r}
-set.seed(2023)
-knots100 <- fields::cover.design(ln_mixture_z, nd=100)$design
-
-viq_all<- kmbayes(y= wppsi_viq, Z=ln_mixture_z, X=covariates,
-              iter = 100000, verbose = T,  varsel = T,
-              groups = c(1,1,1,2,2,2,2,2,2,3,3,3,
-                         4,4,4,4,5,5,6,6,6,6,6,6,
-                         7,7,8,8,8), 
-              knots=knots100)
-
-summary(viq_all)
-
-#for PIPs
-ExtractPIPs(viq_all)
-
-######### PLOTTING ##################
-modeltoplot <- viq_all
-modeltoplot.name <- "viq_all"
-plot.name <- "model"
-Z <- ln_mixture_z
-
-sel <- seq(12501, 25000, by =50)
-##############
-TracePlot(fit=modeltoplot, par = "beta", sel = sel)
-TracePlot(fit = modeltoplot, par = "sigsq.eps", sel= sel)
-
-save(viq_all, file = "E:/BBK17/pj/wppsi_results/bkmr/all/viq_all.rda")
+bkmr_func(data = dat, 
+          folder_path = "E:/BBK17/pj/test/", 
+          include_sex = FALSE, include_cohort = TRUE)
 ```
 
-=================================================================================
-PIQ
+#Write function to extract results from model objects. 
 ```{r}
-set.seed(2023)
-knots100 <- fields::cover.design(ln_mixture_z, nd=100)$design
+load("E:/BBK17/pj/test/bkmr_all_all_wppsi_fsiq.rda")
 
-piq_all<- kmbayes(y= wppsi_piq, Z=ln_mixture_z, X=covariates,
-              iter = 100000, verbose = T,  varsel = T,
-              groups = c(1,1,1,2,2,2,2,2,2,3,3,3,
-                         4,4,4,4,5,5,6,6,6,6,6,6,
-                         7,7,8,8,8), 
-              knots=knots100)
-
-summary(piq_all)
+summary(bkmr)
 
 #for PIPs
-ExtractPIPs(piq_all)
+ExtractPIPs(bkmr)
 
 ######### PLOTTING ##################
 modeltoplot <- piq_all

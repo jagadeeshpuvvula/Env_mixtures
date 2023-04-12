@@ -5,26 +5,17 @@ date: "2023-01-31"
 output: pdf_document
 ---
 
-Center 1= HOME & 2=MIREC
-
 ```{r}
 library(tidyverse)
+library(janitor)
+library(naniar)
 ```
 
+
+#Add molar sum of DEHP and di-methyl/di-ethyl OP exposures - MIREC data
 ```{r}
-home<- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi-home.csv") |> clean_names()
-home$subject_id <- as.character(home$subject_id)
-home$race <- as.character(home$race)
-  
+dat<- read_csv("E://BBK17//pj//MIREC_exposure//mirec_full.csv")
 
-mirec<- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi-mirec.csv") |> clean_names()
-
-dat<- union(mirec, home)
-
-```
-
-Create molar sum of exposure variables
-```{r}
 #dehp = MEHHP (294.34) + MEHP (278.34) + MEOHP (292.33) +MECPP (308.33) | mol. wt from pubchem
 avg_molw <- (294.34+278.34+292.33+308.33)/4
 
@@ -66,5 +57,64 @@ dat<- left_join(final, parabens, by="subject_id") |>
 # replacing the final analytical dataset with additional variables from paraben
 write_csv(dat, "E:/BBK17/pj/wppsi_exp_out_comb/wppsi_home_mirec.csv")
 ```
+
+
+#MIREC current data version 1933 * 48 
+```{r}
+write_csv(dat, "E:/BBK17/pj/data_2023apr/mirec_full.csv")
+
+vis_miss(dat[-c(1)], cluster = T)
+
+#filter data if any one outcome is present n=707
+dat_n <- dat %>% 
+  filter(rowSums(select(., 29:36), na.rm = TRUE) != 0)
+
+vis_miss(dat_n[-c(1)], cluster = T)
+
+write_csv(dat_n, "E:/BBK17/pj/data_2023apr/obs_w_outcome/mirec_w_out.csv")
+```
+
+#Load both HOME and MIREC data with at least 1 outcome and work from here
+```{r}
+path <- "E:/BBK17/pj/data_2023apr/obs_w_outcome/"
+
+mirec<- read_csv(paste0(path, "mirec_w_out.csv")) |>
+  clean_names() |>
+  mutate_if(is.numeric, ~ round(., 3)) |>
+  rename_all(~ str_replace(., "(_sg|sg|_lp)", ""))|>
+  rename(pfhxs=pf_hx_spl, pfoa=pfoapl, pfos=pfospl, basc_inz=basc_int,
+         gest_age=gest_age_dv, wppsi_viq=viq, wppsi_piq=piq, wppsi_fsiq=fsiq)
+
+home<- read_csv(paste0(path, "home_w_out.csv"))|>
+  clean_names() |>
+  mutate_if(is.numeric, ~ round(., 3)) |>
+  rename_all(~ str_replace(., "(_sg|sg|_lp)", ""))|>
+  rename(mom_age=mom_age_deliv, race=race_cd)
+```
+
+
+#check if variables present in both data
+```{r}
+home_vars <- setdiff(names(home), names(mirec))
+cat("only available in HOME:", paste(home_vars, collapse = ", "))
+
+mirec_vars <- setdiff(names(mirec), names(home))
+cat("only available in MIREC:", paste(mirec_vars, collapse = ", "))
+################################################################################
+
+#sort the order of variables that match with mirec dataframe
+common_vars <- intersect(names(mirec), names(home))
+home_sorted <- home |>
+  select(all_of(common_vars)) |>
+  bind_cols(home |>
+              select(-all_of(common_vars)))
+```
+
+
+
+
+
+
+
 
 

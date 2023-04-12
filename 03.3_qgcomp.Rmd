@@ -9,7 +9,6 @@ output: pdf_document
 Sys.setenv(R_VERSION="4.2.2")
 ```
 
-
 ```{r, echo=FALSE, message=FALSE}
 library(tidyverse)
 library(janitor)

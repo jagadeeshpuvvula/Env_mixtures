@@ -266,6 +266,16 @@ dt_cov <- read_sas("/Users/jpuvvula/Documents/data/covariates.sas7bdat") |>
 
 write_csv(dt_cov, "/Users/jpuvvula/Documents/data/home_16w_imp/mirec_transf/covar_wppsi.csv")
 
+#extracting just education
+df <- dt_cov |>
+  select(c(1,16)) |>
+  mutate(edu3 = case_when(
+    Mom_Edu_Cd %in% 1:6 ~ 1,
+    Mom_Edu_Cd %in% 7:8 ~ 2,
+    Mom_Edu_Cd > 8 ~ 3,
+    is.na(Mom_Edu_Cd) ~ NA_real_)) |>
+  select(-c(Mom_Edu_Cd))
+
 ```
 
 
@@ -335,4 +345,8 @@ dat_exp<- dat[c(1,2,9:11)] |>
 write_csv(dat_exp, "/Users/jpuvvula/Documents/data/home_16w_imp/mirec_transf/dat/parabens.csv")
 ```
 
+#add education to the full data
+```{r}
+
+```
 

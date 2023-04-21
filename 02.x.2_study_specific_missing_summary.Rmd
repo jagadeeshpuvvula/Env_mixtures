@@ -1,0 +1,74 @@
+---
+title: "study_specific_missing_summary"
+author: "Jagadeesh Puvvula"
+date: "2023-04-19"
+output: pdf_document
+---
+
+```{r}
+library(pacman)
+pacman::p_load(tidyverse, janitor)
+path <- "E:/BBK17/pj/data_2023apr/obs_w_outcome/"
+```
+
+```{r}
+dat<- read_csv(paste0(path, "wppsi_f_analy.csv")) |>drop_na()
+x<- dat[1]
+remove(dat)
+```
+
+# count observations - unmeasured and < LOD
+```{r, for triclosan}
+match_dataframes <- function(df1, df2) {
+  # Extract first six characters of subject_id from df1
+  df1$id <- substr(as.character(df1$subject_id), 1, 6)
+  
+  # Extract specimen_bar_code from df2
+  df2$id <- substr(as.character(df2$specimen_bar_code), 1, 6)
+  
+  # Filter the observations from df2 that match with the id from df1
+  df2_matched <- df2[df2$id %in% df1$id, ]
+  
+  # Convert log.flag variable to a factor
+  df2_matched$log.flag <- as.factor(df2_matched$lod.flag)
+  
+  # Count the number of observations in each level of log.flag
+  count <- table(df2_matched$log.flag)
+  
+  # Return the count
+  return(count)
+}
+
+```
+
+
+
+```{r}
+count_lt_results <- function(x, labres) {
+  # Extract first six characters of subject_id from x
+  x$id <- substr(x$subject_id, 1, 6)
+  
+  # Extract first six characters of micro_aliquot_barcode from labres
+  labres$id <- substr(labres$specimen_bar_code, 1, 6)
+  
+  # Filter labres observations where id matches with x
+  labres_match <- labres[labres$id %in% x$id, ]
+  
+  # Count the number of observations with "<" symbol in test_result_raw_result
+  labres_lt <- labres_match[grep("<", labres_match$tests_results_raw_result), ]
+  count_lt <- table(labres_lt$tests_results_test_name)
+  
+  # Display the value with "<" symbol by each factor in test_result_test_name
+  cat("Number of observations with '<' symbol:\n")
+  for (test_name in names(count_lt)) {
+    cat(paste(test_name, ": ", count_lt[test_name], " (", 
+              round(count_lt[test_name]/573*100, 2), "%)\n", sep=""))
+    complete_lt <- labres_lt[labres_lt$tests_results_test_name == test_name & 
+                            grep("<", labres_lt$tests_results_raw_result), ]
+    cat(paste("Complete value with '<' symbol in", test_name, ":", 
+              paste0(complete_lt$tests_results_raw_result, collapse=", "), "\n"))
+  }
+}
+
+```
+

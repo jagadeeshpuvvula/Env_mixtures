@@ -46,7 +46,7 @@ dat<- dat |>
 
 ```
 
-Select number of chemicals here
+for 29 chemicals
 ```{r}
 # for all chemicals select 1:32
 dat <- dat |>
@@ -60,9 +60,50 @@ dat <- dat |>
 mixture<- names(dat[c(1:29)])
 ```
 
+for 16 chemicals
+```{r}
+dat <- dat |>
+  select(c(1,2,4:9,19:24,28:41)) |>
+  drop_na()|>
+  mutate_at(vars(1:17), ~log10(.+0.0000001)) |>
+  rename_with(~ paste0("log_", .x), 1:17) |>
+  drop_na()
+
+mixture<- names(dat[c(1:16)])
+```
+
+for group lasso assist - 15 chemicals selected by both group lasso models
+```{r}
+dat <- dat |>
+  select(c(1,5,7,8,10,14,16:21,23,25,29:41)) |>
+  drop_na()|>
+  mutate_at(vars(1:16), ~log10(.+0.0000001)) |>
+  rename_with(~ paste0("log_", .x), 1:16) |>
+  drop_na()
+
+mixture<- names(dat[c(1:15)])
+```
+
+
+for LASSO assisted - all outcomes - 9 chemicals
+```{r}
+dat <- dat |>
+  select(c(5,7,14,18:21,23,29:41)) |>
+  drop_na()|>
+  mutate_at(vars(1:10), ~log10(.+0.0000001)) |>
+  rename_with(~ paste0("log_", .x), 1:10) |>
+  drop_na()
+
+mixture<- names(dat[c(1:9)])
+```
+
 #function to loop qgcomp
 ```{r}
 #for 29 chemicals: log_Pb+log_Hg+log_DMA+log_DDE+log_PBDE_47+log_PCB_118+log_PCB_138+log_PCB_153+log_PCB_180+log_PFHxS+log_PFOA+log_PFOS+log_BCEtP+log_BDCPP+log_DBuP+log_DPhP+log_TCS+log_BPA+log_MBP+log_MBZP+log_MCPP+log_sigma_DEHP+log_MEP+log_MIBP+log_di_Ethyl_OP+log_di_Methyl_OP+log_B_PB+log_M_PB+log_P_PB
+
+#for 16 chemicals: log_Pb+log_Hg+log_DDE+log_PBDE_47++log_PCB_138+log_PCB_153+log_PCB_180+log_MBP+log_MBZP+log_MCPP+log_sigma_DEHP+log_MEP+log_MIBP+log_M_PB+log_P_PB
+
+#group lasso assist (commonly picked by grpreg and gglasso): log_Pb+log_PBDE_47+log_PCB_138+log_PCB_153+log_PFHxS+log_BDCPP+log_DPhP+log_TCS+log_BPA+log_MBP+log_MBZP+log_MCPP+log_MEP+log_di_Ethyl_OP+log_P_PB
 
 qgcomp_func <- function(outcomes, dat, folder_path, include_sex = TRUE, include_cohort = TRUE) {
  
@@ -104,10 +145,10 @@ qgcomp_func <- function(outcomes, dat, folder_path, include_sex = TRUE, include_
       }
      
       for(outcome in outcomes){
-        formula <- as.formula(paste(outcome, "~ log_Pb+log_Hg+log_DMA+log_DDE+log_PBDE_47+log_PCB_118+log_PCB_138+log_PCB_153+log_PCB_180+log_PFHxS+log_PFOA+log_PFOS+log_BCEtP+log_BDCPP+log_DBuP+log_DPhP+log_TCS+log_BPA+log_MBP+log_MBZP+log_MCPP+log_sigma_DEHP+log_MEP+log_MIBP+log_di_Ethyl_OP+log_di_Methyl_OP+log_B_PB+log_M_PB+log_P_PB + ", sex_formula, cohort_formula,"race_bin + log_cotinine +mom_edu_cat + home_score_total + parity_n + mom_age"))
+        formula <- as.formula(paste(outcome, "~ log_Pb+log_PBDE_47+log_PCB_138+log_PCB_153+log_PFHxS+log_BDCPP+log_DPhP+log_TCS+log_BPA+log_MBP+log_MBZP+log_MCPP+log_MEP+log_di_Ethyl_OP+log_P_PB + ", sex_formula, cohort_formula,"race_bin + log_cotinine +mom_edu_cat + home_score_total + parity_n + mom_age"))
        
         nb <- qgcomp.noboot(formula, expnms = mixture, data = cohort_data, family= gaussian(), q=10)
-        boot <- qgcomp.boot(formula, expnms = mixture, data = cohort_data, family= gaussian(), q=10, B = 250, seed = 2022)
+        boot <- qgcomp.boot(formula, expnms = mixture, data = cohort_data, family= gaussian(), q=10, B = 400, seed = 2022)
         save(nb, file = paste0(folder_path, "/", "nb_", filename_prefix, "_", outcome, ".rda"))
         save(boot, file = paste0(folder_path, "/", "boot_", filename_prefix, "_", outcome, ".rda"))
       }
@@ -116,10 +157,10 @@ qgcomp_func <- function(outcomes, dat, folder_path, include_sex = TRUE, include_
 }
 ```
 
-#run this function to get all results at a folder
+#run this function to get all results at a folder 
 ```{r}
 qgcomp_func(outcomes = c("wppsi_fsiq", "wppsi_viq", "wppsi_piq"), 
-            folder_path = "E:/BBK17/pj/data_2023apr/results/qgcomp/29chem", 
+            folder_path = "E:/BBK17/pj/data_2023apr/results/qgcomp/lasso_15chem", 
             include_sex = TRUE, include_cohort = TRUE, 
             dat = dat)
 ```
@@ -128,7 +169,7 @@ qgcomp_func(outcomes = c("wppsi_fsiq", "wppsi_viq", "wppsi_piq"),
 #Compile all results from the above loop to a single csv file
 ```{r}
 # set the folder location
-folder_location <- "E:/BBK17/pj/data_2023apr/results/qgcomp/29chem"
+folder_location <- "E:/BBK17/pj/data_2023apr/results/qgcomp/lasso_15chem"
 
 # get the file names in the folder
 file_names <- list.files(folder_location)
@@ -183,7 +224,7 @@ for (file_name in file_names) {
   rm(list = object_name)
 }
 
-write_csv(results, "E:/BBK17/pj/data_2023apr/results/qgcomp/29chem/r_obj_summ.csv")
+write_csv(results, "E:/BBK17/pj/data_2023apr/results/qgcomp/lasso_15chem/r_obj_summ.csv")
 ```
 
 
@@ -209,9 +250,8 @@ ggplot(res, aes(x = as.factor(outcome), y = estimate, ymin = lower_ci, ymax = up
   scale_colour_manual(values=cbbPalette) +
   labs(x=NULL,
        y=expression(paste(beta[q-gcomp]," [95% CI]")),
-       title = "Joint association between prenatal chemical mixture during first trimester and child IQ",
-       caption = "Mixture includes 14 environmental chemicals: Triclosan, BPA, POPs (DDE,PBDE-47), Parabens (Methyl-paraben, Propyl-paraben), Phthalates (MBP, MBZP, MCPP, MEP, MIBP, Sigma-DEHP), OP-pesticides (Sigma-di-ethyl-op, Sigma-di-methyl-op)
-       Effect estimates adjusted for cohort, city (for pooled and MIREC), Maternal: serum cotinine, education, race, age, parity; Child: gender, HOME-score
+       title = "",
+       caption = "Effect estimates adjusted for cohort, city (for pooled and MIREC), Maternal: serum cotinine, education, race, age, parity; Child: gender, HOME-score
        Effect estimates associated with every 10% increase in the mixture; For bootstrap, estimates generated using 250 random samples")+
   theme_bw()+
   theme(axis.line = element_line(colour = "black"))+
@@ -241,7 +281,7 @@ ggplot(res, aes(x = as.factor(outcome), y = estimate, ymin = lower_ci, ymax = up
 
 
 
-ggsave("E:/BBK17/pj/data_2023apr/results/qgcomp/29chem/29_chem_plot.tiff", 
+ggsave("E:/BBK17/pj/data_2023apr/results/qgcomp/lasso_15chem/lasso_15chem_plot.tiff", 
        width = 8.5,height = 6,
        dpi=300)
 ```

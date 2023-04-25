@@ -361,7 +361,7 @@ extract_data_from_folder <- function(folder_location) {
 
 #Extracting PIPs and overall estimates
 ```{r}
-results <- extract_data_from_folder("E:/BBK17/pj/data_2023apr/results/bkmr/16_chem")
+results <- extract_data_from_folder("E:/BBK17/pj/data_2023apr/results/bkmr/lasso_15chem")
 ```
 
 
@@ -376,7 +376,7 @@ ggplot(overall_risk, aes(overall_risk_df.quantile, overall_risk_df.est,
     geom_hline(yintercept = 00, linetype = "dashed", color = "gray") + 
     geom_pointrange() + theme_minimal() +
     labs(x = "Quantile", y = "Estimate")+
-    facet_grid(overall_risk_df.data_name~overall_risk_df.outcome_name*overall_risk_df.measure_name)+
+    facet_grid(overall_risk_df.data_name~overall_risk_df.outcome_name*overall_risk_df.measure_name, scales = "free_y", space = "free_y")+
     theme(axis.text=element_text(size=10), 
           axis.title=element_text(size=10,face="bold"),
           strip.text = element_text(size=10),
@@ -388,9 +388,7 @@ ggplot(overall_risk, aes(overall_risk_df.quantile, overall_risk_df.est,
           panel.grid.major = element_blank(),
           panel.grid.major.y = element_blank()) +
   scale_x_continuous(breaks = seq(0.1, 0.9, by = 0.2),
-                     labels = seq(0.1, 0.9, by = 0.2))+
-  scale_y_continuous(breaks = seq(-4, 4, by = 2), 
-                     labels = seq(-4, 4, by = 2))
+                     labels = seq(0.1, 0.9, by = 0.2))
 
 ```
 

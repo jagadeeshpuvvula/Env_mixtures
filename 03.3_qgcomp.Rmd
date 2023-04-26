@@ -72,7 +72,7 @@ dat <- dat |>
 mixture<- names(dat[c(1:16)])
 ```
 
-for group lasso assist - 15 chemicals selected by both group lasso models
+for group lasso assist - 15 chemicals negtive coef -grpreg
 ```{r}
 dat <- dat |>
   select(c(1,5,7,8,10,14,16:21,23,25,29:41)) |>
@@ -85,16 +85,16 @@ mixture<- names(dat[c(1:15)])
 ```
 
 
-for LASSO assisted - all outcomes - 9 chemicals
+for group lasso assist - 14 chemicals positive coef -grpreg
 ```{r}
 dat <- dat |>
-  select(c(5,7,14,18:21,23,29:41)) |>
+  select(c(2,3,4,6,9,11,12,13,15,22,24,26,27,28,30:41)) |>
   drop_na()|>
-  mutate_at(vars(1:10), ~log10(.+0.0000001)) |>
-  rename_with(~ paste0("log_", .x), 1:10) |>
+  mutate_at(vars(1:15), ~log10(.+0.0000001)) |>
+  rename_with(~ paste0("log_", .x), 1:15) |>
   drop_na()
 
-mixture<- names(dat[c(1:9)])
+mixture<- names(dat[c(1:14)])
 ```
 
 #function to loop qgcomp
@@ -103,7 +103,10 @@ mixture<- names(dat[c(1:9)])
 
 #for 16 chemicals: log_Pb+log_Hg+log_DDE+log_PBDE_47++log_PCB_138+log_PCB_153+log_PCB_180+log_MBP+log_MBZP+log_MCPP+log_sigma_DEHP+log_MEP+log_MIBP+log_M_PB+log_P_PB
 
-#group lasso assist (commonly picked by grpreg and gglasso): log_Pb+log_PBDE_47+log_PCB_138+log_PCB_153+log_PFHxS+log_BDCPP+log_DPhP+log_TCS+log_BPA+log_MBP+log_MBZP+log_MCPP+log_MEP+log_di_Ethyl_OP+log_P_PB
+#group lasso assist (negative coefficients -selected by grpreg)-15 chemicals: log_Pb+log_PBDE_47+log_PCB_138+log_PCB_153+log_PFHxS+log_BDCPP+log_DPhP+log_TCS+log_BPA+log_MBP+log_MBZP+log_MCPP+log_MEP+log_di_Ethyl_OP+log_P_PB
+
+##group lasso assist (positive coefficients -selected by grpreg)- chemicals: log_Hg+log_DMA+log_DDE+log_PCB_118+log_PCB_180+log_PFOA+log_PFOS+log_BCEtP+log_DBuP+log_sigma_DEHP+log_MIBP+log_di_Methyl_OP+log_B_PB+log_M_PB
+
 
 qgcomp_func <- function(outcomes, dat, folder_path, include_sex = TRUE, include_cohort = TRUE) {
  
@@ -145,7 +148,7 @@ qgcomp_func <- function(outcomes, dat, folder_path, include_sex = TRUE, include_
       }
      
       for(outcome in outcomes){
-        formula <- as.formula(paste(outcome, "~ log_Pb+log_PBDE_47+log_PCB_138+log_PCB_153+log_PFHxS+log_BDCPP+log_DPhP+log_TCS+log_BPA+log_MBP+log_MBZP+log_MCPP+log_MEP+log_di_Ethyl_OP+log_P_PB + ", sex_formula, cohort_formula,"race_bin + log_cotinine +mom_edu_cat + home_score_total + parity_n + mom_age"))
+        formula <- as.formula(paste(outcome, "~ log_Hg+log_DMA+log_DDE+log_PCB_118+log_PCB_180+log_PFOA+log_PFOS+log_BCEtP+log_DBuP+log_sigma_DEHP+log_MIBP+log_di_Methyl_OP+log_B_PB+log_M_PB + ", sex_formula, cohort_formula,"race_bin + log_cotinine +mom_edu_cat + home_score_total + parity_n + mom_age"))
        
         nb <- qgcomp.noboot(formula, expnms = mixture, data = cohort_data, family= gaussian(), q=10)
         boot <- qgcomp.boot(formula, expnms = mixture, data = cohort_data, family= gaussian(), q=10, B = 400, seed = 2022)
@@ -160,7 +163,7 @@ qgcomp_func <- function(outcomes, dat, folder_path, include_sex = TRUE, include_
 #run this function to get all results at a folder 
 ```{r}
 qgcomp_func(outcomes = c("wppsi_fsiq", "wppsi_viq", "wppsi_piq"), 
-            folder_path = "E:/BBK17/pj/data_2023apr/results/qgcomp/lasso_15chem", 
+            folder_path = "E:/BBK17/pj/data_2023apr/results/qgcomp/lasso_pos_14chem", 
             include_sex = TRUE, include_cohort = TRUE, 
             dat = dat)
 ```
@@ -169,7 +172,7 @@ qgcomp_func(outcomes = c("wppsi_fsiq", "wppsi_viq", "wppsi_piq"),
 #Compile all results from the above loop to a single csv file
 ```{r}
 # set the folder location
-folder_location <- "E:/BBK17/pj/data_2023apr/results/qgcomp/lasso_15chem"
+folder_location <- "E:/BBK17/pj/data_2023apr/results/qgcomp/lasso_pos_14chem"
 
 # get the file names in the folder
 file_names <- list.files(folder_location)
@@ -224,7 +227,7 @@ for (file_name in file_names) {
   rm(list = object_name)
 }
 
-write_csv(results, "E:/BBK17/pj/data_2023apr/results/qgcomp/lasso_15chem/r_obj_summ.csv")
+write_csv(results, "E:/BBK17/pj/data_2023apr/results/qgcomp/lasso_pos_14chem/r_obj_summ.csv")
 ```
 
 
@@ -281,7 +284,7 @@ ggplot(res, aes(x = as.factor(outcome), y = estimate, ymin = lower_ci, ymax = up
 
 
 
-ggsave("E:/BBK17/pj/data_2023apr/results/qgcomp/lasso_15chem/lasso_15chem_plot.tiff", 
+ggsave("E:/BBK17/pj/data_2023apr/results/qgcomp/lasso_pos_14chem/lasso_pos_14chem_plot.tiff", 
        width = 8.5,height = 6,
        dpi=300)
 ```

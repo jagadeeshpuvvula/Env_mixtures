@@ -361,7 +361,7 @@ extract_data_from_folder <- function(folder_location) {
 
 #Extracting PIPs and overall estimates
 ```{r}
-results <- extract_data_from_folder("E:/BBK17/pj/data_2023apr/results/bkmr/lasso_15chem")
+results <- extract_data_from_folder("E:/BBK17/pj/data_2023apr/results/bkmr/16_chem")
 ```
 
 

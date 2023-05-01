@@ -77,7 +77,7 @@ dat_mirec <- dat |> filter(cohort=="2")
 ```
 
 
-#lasso assisted variable selection
+#grpreg LASSO with neg coef for at least one outcome: 15 chem
 ```{r}
 chemicals_15<- c("Pb", "PFHxS", "P_PB", "di_Methyl_OP",
                  "BDCPP", "DPhP", 
@@ -105,6 +105,36 @@ table(dat$sex, dat$cohort)
 dat_mirec <- dat |> filter(cohort=="2")
 ```
 
+
+#grpreg LASSO with pos coef for at least one outcome: 14 chem
+```{r}
+chemicals_14<- c("Hg","DMA",
+                 "DDE","PCB_118","PCB_180",
+                 "PFOA","PFOS",
+                 "BCEtP","DBuP",
+                 "sigma_DEHP","MIBP",
+                 "di_Methyl_OP",
+                 "B_PB","M_PB")
+
+chem_group_14<- c(rep(1,times=2), rep(2,times=3), rep(3, times=2),
+               rep(4,times=2),rep(5,times=2),rep(6,times=1),rep(7,times=2))
+outcomes<-c("wppsi_fsiq","wppsi_viq", "wppsi_piq")
+covariates<- c("cotinine", "home_score_total", "mom_age", "cohort",
+                           "city", "sex", "race", "mom_edu_cat", "parity_n" )
+
+# for all chemicals select 1:32
+dat <- dat |>
+  select(c(chemicals_14, covariates, outcomes)) |>
+  drop_na()|>
+  mutate_at(vars(1:15), ~log10(.+0.0000001)) |>
+  drop_na() |>
+  mutate_all(as.numeric)
+
+table(dat$sex, dat$cohort)
+
+
+dat_mirec <- dat |> filter(cohort=="2")
+```
 
 -------------------------------------------
 
@@ -276,7 +306,7 @@ bkmr_cohort(data=dat,
           include_cohort = TRUE)
 ```
 
-#lasso assisted 15 chemicals
+#grpreg LASSO neg. coef: 15 chemicals
 ```{r}
 bkmr_sex(data=dat, 
           folder_path = "E:/BBK17/pj/data_2023apr/results/bkmr/lasso_15chem", 
@@ -303,7 +333,32 @@ bkmr_cohort(data=dat,
           include_cohort = TRUE)
 ```
 
+#grpreg LASSO pos. coef: 14 chemicals
+```{r}
+bkmr_sex(data=dat, 
+          folder_path = "E:/BBK17/pj/data_2023apr/results/bkmr/lasso_pos14chem", 
+          ln_mixture_vars= chemicals_14,
+          groups=chem_group_14,
+          outcome_vars=outcomes, 
+          covariate_vars=covariates, 
+          include_sex = TRUE)
+#gender sepcific estimates only for mirec
+bkmr_sex(data=dat_mirec, 
+          folder_path = "E:/BBK17/pj/data_2023apr/results/bkmr/lasso_pos14chem/mirec_sex", 
+          ln_mixture_vars= chemicals_14,
+          groups=chem_group_14,
+          outcome_vars=outcomes, 
+          covariate_vars=covariates, 
+          include_sex = TRUE)
 
+bkmr_cohort(data=dat, 
+          folder_path = "E:/BBK17/pj/data_2023apr/results/bkmr/lasso_pos14chem", 
+          ln_mixture_vars= chemicals_14,
+          groups=chem_group_14,
+          outcome_vars=outcomes, 
+          covariate_vars=covariates, 
+          include_cohort = TRUE)
+```
 
 
 ###############################################################################
@@ -361,7 +416,7 @@ extract_data_from_folder <- function(folder_location) {
 
 #Extracting PIPs and overall estimates
 ```{r}
-results <- extract_data_from_folder("E:/BBK17/pj/data_2023apr/results/bkmr/16_chem")
+results <- extract_data_from_folder("E:/BBK17/pj/data_2023apr/results/bkmr/lasso_pos14chem")
 ```
 
 

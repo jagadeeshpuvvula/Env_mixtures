@@ -289,4 +289,107 @@ ggsave("E:/BBK17/pj/data_2023apr/results/qgcomp/lasso_pos_14chem/lasso_pos_14che
        dpi=300)
 ```
 
+# Function to extract chemical weights for each qgcomp run
+```{r}
+extract_weights <- function(folder_location) {
+  # get list of files that start with "nb"
+  nb_files <- list.files(path = folder_location, pattern = "^nb.*\\.rda$", full.names = TRUE)
+  
+  # create empty list to store results
+  results_list <- list()
+  
+  # loop through each nb file
+  for (file in nb_files) {
+    # load data from file
+    load(file)
+    
+    # extract neg and pos weights
+    neg <- as.data.frame(nb$neg.weights) |> 
+      rename(weight = `nb$neg.weights`) |> 
+      rownames_to_column("chemical") |> 
+      mutate(direction="neg")
+    
+    pos <- as.data.frame(nb$pos.weights) |> 
+      rename(weight = `nb$pos.weights`) |> 
+      rownames_to_column("chemical") |> 
+      mutate(direction="pos")
+    
+    weights_df <- bind_rows(neg, pos)
+    
+    # extract file name without path and .rda extension using regular expression
+    file_name <- sub(".*/(.*)\\.rda", "\\1", file)
+    
+    # add file name as a variable to weights_df
+    weights_df$file_name <- file_name
+    
+    # append weights_df to results_list
+    results_list[[file_name]] <- weights_df
+  }
+  
+  # combine all results into a single dataframe
+  results_df <- do.call(rbind, results_list)
+  
+  return(results_df)
+}
+```
+
+#extract chemical weights 
+```{r}
+qgcomp_weights <- extract_weights("E:/BBK17/pj/data_2023apr/results/qgcomp/lasso_pos_14chem")
+write_csv(qgcomp_weights, "E:/BBK17/pj/data_2023apr/results/qgcomp/lasso_pos_14chem/chem_weight.csv")
+```
+
+# load chemical weights
+```{r}
+neg_assn<- read_csv("E:/BBK17/pj/data_2023apr/results/qgcomp/lasso_15chem/chem_weight.csv")
+pos_assn<- read_csv("E:/BBK17/pj/data_2023apr/results/qgcomp/lasso_pos_14chem/chem_weight.csv")
+```
+
+#visualize chemical weights
+```{r}
+dat<- pos_assn |> 
+  mutate(file_name = str_remove(file_name, "nb_")) |>
+  separate(file_name, c("gender", "cohort", "wppsi", "outcome"), sep = "_") |>
+  mutate(weight= if_else(direction=="neg", weight*-1, weight),
+         chemical=gsub("log_", "", chemical))
+
+# specify the order of levels in a factor variable
+dat$chemical <- factor(dat$chemical,
+                      levels = c("Pb", "Hg", "DMA", "DDE", "PBDE_47", "PCB_118", "PCB_138", "PCB_153", "PCB_180",
+                                 "PFHxS", "PFOA", "PFOS", "BCEtP", "BDCPP", "DBuP", "DPhP", "TCS", "BPA", "MBP",
+                                 "MBZP", "MCPP", "sigma_DEHP", "MEP", "MIBP", "di_Ethyl_OP", "di_Methyl_OP", 
+                                 "B_PB", "M_PB", "P_PB"))
+
+ggplot(dat, aes(x = outcome, y = chemical, fill = weight))+
+  geom_tile()+
+  geom_text(aes(label = round(weight, 3)), 
+            color = "black", size = 3, fontface = "bold", show.legend = FALSE)+
+  labs(x = "", y = "", fill = "weight")+
+  facet_grid(.~gender*cohort, scales = "free_y", space = "free_y", switch = "both")+
+  theme_bw()+
+  theme(axis.text=element_text(size=12), 
+        axis.title=element_text(size=12,face="bold"),
+        strip.text = element_text(size=12),
+        panel.grid.minor = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.major.y = element_blank(),
+        axis.text.x = element_text(angle = 0, hjust = 1, vjust = 1, size = 12),
+        axis.text.y = element_text(size = 12), 
+        panel.spacing.x=unit(0.02, "lines"),
+        panel.spacing.y=unit(0.02, "lines"),
+        strip.text.y = element_blank())+
+  guides(fill=FALSE)+
+  scale_fill_gradient2(low = "red", mid = "gray", high = "blue", 
+                       midpoint = 0, name = "Weight",
+                       guide = guide_colorbar(title.position = "top",
+                                              title.hjust = 0.5))
+  
+```
+
+
+
+
+
+
+
 

@@ -1,0 +1,109 @@
+---
+title: "05.01_linear_reg"
+author: "Jagadeesh Puvvula"
+date: "2023-05-12"
+output: pdf_document
+---
+
+```{r}
+library(pacman)
+pacman::p_load(tidyverse, janitor)
+path <- "E:/BBK17/pj/data_2023apr/obs_w_outcome/"
+
+dat<- read_csv(paste0(path, "wppsi_f_analy.csv"))
+```
+
+```{r, echo=FALSE, message=FALSE}
+dat<- dat |>
+  mutate_if(is.numeric, round, 4) |>
+  clean_names() |>
+  rename(Pb=pb, Hg=hg, DMA=dma, DDE= dde, PBDE_47 = pbde47,
+         PCB_118=pcb118, PCB_138=pcb138, PCB_153=pcb153,
+         PCB_180=pcb180, PFHxS=pfhxs, PFOA=pfoa, PFOS=pfos,
+         BCEtP=bcetp, BDCPP=bdcpp, DBuP=dbup, DPhP=dphp,
+         TCS=tcs, BPA=bpa, MBP=mbp, MBZP=mbzp, MCPP=mcpp,
+         sigma_DEHP=dehp, MEP=mep, MIBP=mibp, di_Ethyl_OP=op_de,
+         di_Methyl_OP=op_dm, B_PB=b_pb, M_PB=m_pb, P_PB=p_pb, city=center,
+         mom_edu_cat=edu3)|>
+  mutate(race_bin = ifelse(race == "white", 1, 2))|>
+  mutate(sex = ifelse(sex == "1", "Male", "Female"))|>
+  select(c(Pb, Hg, DMA, DDE, PBDE_47, PCB_118, PCB_138, PCB_153, PCB_180,
+          PFHxS, PFOA, PFOS, BCEtP, BDCPP, DBuP, DPhP, TCS, BPA, MBP, MBZP,
+          MCPP, sigma_DEHP, MEP, MIBP, di_Ethyl_OP, di_Methyl_OP, 
+          B_PB, M_PB, P_PB, cotinine, home_score_total, mom_age, 
+          cohort, city, sex, race_bin,  mom_edu_cat, parity_n, 
+           wppsi_fsiq, wppsi_viq, wppsi_piq,))
+
+dat<- dat |> 
+  mutate(across(all_of(c("cohort", "city", "sex", "race_bin", 
+                         "parity_n", "mom_edu_cat")), as.factor))
+
+```
+
+for 29 chemicals
+```{r}
+# for all chemicals select 1:32
+dat <- dat |>
+  select(1:41) |>
+  drop_na()|>
+  mutate_at(vars(1:30), ~log10(.+0.0000001)) |>
+  rename_with(~ paste0("log_", .x), 1:30) |>
+  drop_na()
+```
+
+#function to loop linear regression
+```{r}
+lm_func <- function(dependent_vars, independent_vars, covariates, data){
+  
+  # create empty lists to store results
+  dependent_list <- list()
+  independent_list <- list()
+  covariate_list <- list()
+  coef_list <- list()
+  p_value_list <- list()
+  
+  # loop through all combinations of dependent and independent variables
+  for (i in 1:length(dependent_vars)){
+    for (j in 1:length(independent_vars)){
+      
+      # run linear regression with covariates
+      formula <- as.formula(paste(dependent_vars[i], "~", paste(independent_vars[j], "+log_cotinine+home_score_total+mom_age+cohort+city+sex+race_bin+mom_edu_cat+parity_n")))
+      model <- lm(formula, data)
+      
+      # store results in lists
+      dependent_list[[length(dependent_list)+1]] <- dependent_vars[i]
+      independent_list[[length(independent_list)+1]] <- independent_vars[j]
+      coef_list[[length(coef_list)+1]] <- coef(model)[independent_vars[j]]
+      p_value_list[[length(p_value_list)+1]] <- summary(model)$coefficients[independent_vars[j], 4]
+      
+    }
+  }
+  
+  # create dataframe with results
+  results <- data.frame(dependent_variable = unlist(dependent_list),
+                        independent_variable = unlist(independent_list),
+                        coefficient = unlist(coef_list),
+                        p_value = unlist(p_value_list))
+  
+  # return dataframe
+  return(results)
+}
+
+```
+
+#run this function to get all results at a folder 
+```{r}
+lm_reas<- lm_func(dependent_vars = c("wppsi_fsiq", "wppsi_viq", "wppsi_piq"),
+            independent_vars=c("log_Pb", "log_Hg", "log_DMA", "log_DDE", "log_PBDE_47",
+                               "log_PCB_118", "log_PCB_138", "log_PCB_153", "log_PCB_180", 
+                               "log_PFHxS", "log_PFOA", "log_PFOS", "log_BCEtP", "log_BDCPP",
+                               "log_DBuP", "log_DPhP", "log_TCS", "log_BPA", "log_MBP",
+                               "log_MBZP", "log_MCPP", "log_sigma_DEHP", "log_MEP", "log_MIBP",
+                               "log_di_Ethyl_OP", "log_di_Methyl_OP", "log_B_PB", "log_M_PB", "log_P_PB"),
+            covariates = c("log_cotinine", "home_score_total", "mom_age", "cohort", "city", "sex",
+                           "race_bin", "mom_edu_cat", "parity_n"),
+            dat = dat)
+```
+
+
+

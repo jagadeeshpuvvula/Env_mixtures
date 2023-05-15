@@ -51,47 +51,87 @@ dat <- dat |>
   drop_na()
 ```
 
-#function to loop linear regression
+# linear regression model for 29 chemicals - one chemical per iteration - also includes strata option
 ```{r}
-lm_func <- function(dependent_vars, independent_vars, covariates, data){
-  
+lm_func <- function(dependent_vars, independent_vars, covariates, data, include_sex = TRUE, include_cohort = TRUE) {
   # create empty lists to store results
   dependent_list <- list()
   independent_list <- list()
-  covariate_list <- list()
+  sex_level_list <- list()
+  cohort_level_list <- list()
   coef_list <- list()
   p_value_list <- list()
-  
-  # loop through all combinations of dependent and independent variables
-  for (i in 1:length(dependent_vars)){
-    for (j in 1:length(independent_vars)){
-      
-      # run linear regression with covariates
-      formula <- as.formula(paste(dependent_vars[i], "~", paste(independent_vars[j], "+log_cotinine+home_score_total+mom_age+cohort+city+sex+race_bin+mom_edu_cat+parity_n")))
-      model <- lm(formula, data)
-      
-      # store results in lists
-      dependent_list[[length(dependent_list)+1]] <- dependent_vars[i]
-      independent_list[[length(independent_list)+1]] <- independent_vars[j]
-      coef_list[[length(coef_list)+1]] <- coef(model)[independent_vars[j]]
-      p_value_list[[length(p_value_list)+1]] <- summary(model)$coefficients[independent_vars[j], 4]
-      
+
+  for (sex_level in c("all", "Female", "Male")) {
+    if (include_sex) {
+      if (sex_level == "all") {
+        sex_data <- data
+        sex_formula <- "+sex"
+      } else {
+        sex_data <- subset(data, sex == sex_level)
+        sex_formula <- ""
+      }
+    } else {
+      sex_data <- data
+      sex_formula <- ""
+    }
+
+    for (cohort_level in c("all", "home", "mirec")) {
+      if (include_cohort) {
+        if (cohort_level == "all") {
+          cohort_data <- sex_data
+          cohort_formula <- "+cohort + city"
+        } else if (cohort_level == "home") {
+          cohort_data <- subset(sex_data, cohort == "1")
+          cohort_formula <- ""
+        } else if (cohort_level == "mirec") {
+          cohort_data <- subset(sex_data, cohort == "2")
+          cohort_formula <- "+city"
+        } else {
+          stop("Invalid cohort level")
+        }
+      } else {
+        cohort_data <- sex_data
+        cohort_formula <- ""
+      }
+
+      # loop through all combinations of dependent and independent variables
+      for (i in 1:length(dependent_vars)) {
+        for (j in 1:length(independent_vars)) {
+          # run linear regression with covariates
+          formula <- as.formula(paste(dependent_vars[i], "~", paste(independent_vars[j], "+log_cotinine+home_score_total+mom_age+race_bin+mom_edu_cat+parity_n", sex_formula, cohort_formula)))
+          model <- lm(formula, cohort_data)
+
+          # store results in lists
+          dependent_list[[length(dependent_list) + 1]] <- dependent_vars[i]
+          independent_list[[length(independent_list) + 1]] <- independent_vars[j]
+          sex_level_list[[length(sex_level_list) + 1]] <- sex_level
+          cohort_level_list[[length(cohort_level_list) + 1]] <- cohort_level
+          coef_list[[length(coef_list) + 1]] <- coef(model)[independent_vars[j]]
+          p_value_list[[length(p_value_list) + 1]] <- summary(model)$coefficients[independent_vars[j], 4]
+        }
+      }
     }
   }
-  
+
   # create dataframe with results
-  results <- data.frame(dependent_variable = unlist(dependent_list),
-                        independent_variable = unlist(independent_list),
-                        coefficient = unlist(coef_list),
-                        p_value = unlist(p_value_list))
-  
+  results <- data.frame(
+    dependent_variable = unlist(dependent_list),
+    independent_variable = unlist(independent_list),
+    sex_level = unlist(sex_level_list),
+    cohort_level = unlist(cohort_level_list),
+    coefficient = unlist(coef_list),
+    p_value = unlist(p_value_list)
+  )
+
   # return dataframe
   return(results)
 }
 
+
 ```
 
-#run this function to get all results at a folder 
+#Get lm results using the function
 ```{r}
 lm_reas<- lm_func(dependent_vars = c("wppsi_fsiq", "wppsi_viq", "wppsi_piq"),
             independent_vars=c("log_Pb", "log_Hg", "log_DMA", "log_DDE", "log_PBDE_47",
@@ -102,8 +142,55 @@ lm_reas<- lm_func(dependent_vars = c("wppsi_fsiq", "wppsi_viq", "wppsi_piq"),
                                "log_di_Ethyl_OP", "log_di_Methyl_OP", "log_B_PB", "log_M_PB", "log_P_PB"),
             covariates = c("log_cotinine", "home_score_total", "mom_age", "cohort", "city", "sex",
                            "race_bin", "mom_edu_cat", "parity_n"),
-            dat = dat)
+            dat = dat, include_sex = TRUE, include_cohort = TRUE)
 ```
 
+# Save lm results
+```{r}
+write_csv(lm_reas, "E:/BBK17/pj/data_2023apr/results/lm/lm_single_chem.csv")
+```
+
+
+# visualization of lm results
+```{r}
+dat_lm_res<- lm_reas |>
+  rename(chemical="independent_variable", outcome="dependent_variable")|>
+  mutate(p_sig= if_else(p_value<0.05, "sig", "non_sig"),
+         chemical=gsub("log_", "", chemical))
+
+# specify the order of levels in a factor variable
+dat_lm_res$chemical <- factor(dat_lm_res$chemical,
+                      levels = c("Pb", "Hg", "DMA", "DDE", "PBDE_47", "PCB_118", "PCB_138", "PCB_153", "PCB_180",
+                                 "PFHxS", "PFOA", "PFOS", "BCEtP", "BDCPP", "DBuP", "DPhP", "TCS", "BPA", "MBP",
+                                 "MBZP", "MCPP", "sigma_DEHP", "MEP", "MIBP", "di_Ethyl_OP", "di_Methyl_OP", 
+                                 "B_PB", "M_PB", "P_PB"))
+
+ggplot(dat_lm_res, aes(x = outcome  , y = chemical, fill = coefficient))+
+  geom_tile()+
+  geom_text(aes(label = round(coefficient, 3),
+                fontface = ifelse(p_sig == "sig", "bold", "plain")),
+            color = "black", size = 3, show.legend = FALSE) +
+  labs(x = "", y = "", fill = "coefficient")+
+  facet_grid(.~sex_level*cohort_level, scales = "free_y", space = "free_y", switch = "both")+
+  theme_bw()+
+  theme(axis.text=element_text(size=10), 
+        axis.title=element_text(size=10,face="bold"),
+        strip.text = element_text(size=10),
+        panel.grid.minor = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.major.y = element_blank(),
+        axis.text.x = element_text(angle = 35, hjust = 1, vjust = 1, size = 10),
+        axis.text.y = element_text(size = 10), 
+        panel.spacing.x=unit(0.02, "lines"),
+        panel.spacing.y=unit(0.02, "lines"),
+        strip.text.y = element_blank())+
+  guides(fill=FALSE)+
+  scale_fill_gradient2(low = "red", mid = "gray", high = "blue", 
+                       midpoint = 0, name = "Weight",
+                       guide = guide_colorbar(title.position = "top",
+                                              title.hjust = 0.5))
+
+
+```
 
 

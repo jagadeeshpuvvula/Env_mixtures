@@ -1,0 +1,312 @@
+---
+title: "mirec_data"
+author: "puvvula"
+date: "2022-10-05"
+output: pdf_document
+---
+
+```{r}
+library(tidyverse)
+library(readxl)
+library(janitor)
+library(skimr)
+library(reshape2)
+library(naniar)
+```
+
+Outcome: child 3 Yr scores
+```{r}
+#parent: SRS-2
+#child: NEPSY, and WPPSI-3
+#get WPPSI composite scores from here
+################################################################################
+################################################################################
+wppsi<-  read_csv("E:/BBK17/4. BBK17_CD+ CRF data corrections_Nov18 2022/CDPLUS.2_NEURO.9_20221117/NDEV_WPPSI_Yes to NEURO BBK.csv") |>
+  clean_names()|>
+  select(centre, subject_id, age_testing_yrs, wppsi6_1, wppsi7_1, wppsi8_1, wppsi9_1) |>
+  drop_na()
+
+colnames(wppsi) <- c("subject_id", "age",  "viq", "piq", "fsiq", "general_language")
+
+#filter composite scores
+write_csv(wppsi, "E://BBK17//pj//outcome//wppsi.csv")
+
+################################################################################
+################################################################################
+
+basc<- read_csv("E:/BBK17/4. BBK17_CD+ CRF data corrections_Nov18 2022/CDPLUS.2_NEURO.3_20221117/MSAQ_DATA_BASC_Yes to NEURO BBK.csv") |>
+  clean_names() |>
+  select(1,2,168:170)|>
+  rename(basc_ext=bastexcddv,
+         basc_int=bastincddv,
+         basc_bsi=bastbscddv) |>
+  drop_na()
+
+
+brief<- read_csv("E:/BBK17/4. BBK17_CD+ CRF data corrections_Nov18 2022/CDPLUS.2_NEURO.4_20221117/MSAQ_DATA_BRIEF_Yes to NEURO BBK.csv")|>
+  clean_names() |>
+  select(1,2,38,40)|>
+  rename(brief_wm=brietwmcddv,
+         brief_po=brietpocddv) |>
+  drop_na()
+
+basc_brief<- full_join(basc,brief[c(2:4)], by="subject_id")
+
+
+write_csv(basc_brief, "E://BBK17//pj//outcome//basc_brief.csv")
+
+################################################################################
+################################################################################
+# join basc and wppsi
+mirec_out<- full_join(basc_brief, wppsi, by="subject_id")
+write_csv(mirec_out, "E://BBK17//pj//mirec_out.csv")
+```
+
+
+First trimester - Exposure
+```{r}
+
+# triclosan (removing not reported records)
+dat<- read_csv2("E://BBK17//3. BBK17_lab test correction on Dacima_Nov7 2022//MIREC_RESEARCHERS RESULTS table_code 001//QueryData_code001.csv") |>
+  clean_names() |>
+  rename(tests_results_raw_result =researcher_results_raw_result) |>
+  filter(complete.cases(researcher_results_unit_set))
+
+dat$tests_results_test_name<- str_extract(dat$researcher_results_test_name, "^.{3}") 
+dat$tests_results_test_name<-as.factor(dat$tests_results_test_name)
+dat$tests_results_raw_result<-as.numeric(dat$tests_results_raw_result)
+dat<- dat |> filter(as.factor(tests_results_test_name) == "TRI")
+
+# sum of triclosan glusuronide, free and sulfate
+labres <- dat |> 
+  group_by(specimen_bar_code) |>
+  summarise(test.result=sum(tests_results_raw_result)) |>
+  mutate(tests_results_test_name ="triclosan", visit = "12w")
+
+#flag LT lod values for total triclosan 
+# LOD = 0.12; from https://ehp.niehs.nih.gov/doi/epdf/10.1289/ehp.1408187
+labres$lod.flag<-  as.numeric(ifelse(labres$test.result< 0.1200, 1, 0))
+
+#Phthalates
+labres<- read_csv2("E://BBK17/2. BBK17_pending lab tests_July19 2022//LAB//MIREC_MICROALIQOUT RESULTS table code 001-01.001-03//QueryData_code 001-01.csv") |>
+  clean_names()|>
+  rename(tests_results_test_name = micro_aliquot_tests_results_test_name,
+         tests_results_raw_result =micro_aliquot_tests_results_raw_result)
+
+#BPA, Urine Arsenic, OP pesticides, OPFR, Specific gravity
+labres <-read_csv2("E://BBK17//1. BBK17_June10 2022//LAB//MIREC_TEST RESULTS table_codes 001.002.009.013.016.049.054.060.096.097.101//QueryData_code001.csv") |>
+  clean_names() |> 
+  mutate(id_join = str_sub(specimen_bar_code, 1,6))
+
+df_1a <- df_1[c(5,6,10)] |> 
+  pivot_wider(names_from = c(tests_results_test_name),
+              values_from = tests_results_raw_result) 
+
+num<- names(df_1a[c(2:15)])
+df_1a[num]<- sapply(df_1a[num], as.numeric)
+
+write_csv(df_1a, "E://BBK17//pj//pj_dat//ex_dat6.csv")
+
+#Urine: Phthalates
+df_2 <-read_csv2("E://BBK17//1. BBK17_June10 2022//LAB//MIREC_TEST RESULTS table_codes 001.002.009.013.016.049.054.060.096.097.101//QueryData_code002.csv") 
+
+#Urine: Creatinine
+df_6 <-read_csv2("E://BBK17//1. BBK17_June10 2022//LAB//MIREC_TEST RESULTS table_codes 001.002.009.013.016.049.054.060.096.097.101//QueryData_code049.csv") |> clean_names()
+
+#Plasma: PBDE, PCB, OC Pesticides
+df_3 <-read_csv2("E://BBK17//1. BBK17_June10 2022//LAB//MIREC_TEST RESULTS table_codes 001.002.009.013.016.049.054.060.096.097.101//QueryData_code009.csv") |> clean_names()
+
+#Plasma: Tobacco and PFCs
+df_4 <-read_csv2("E://BBK17//1. BBK17_June10 2022//LAB//MIREC_TEST RESULTS table_codes 001.002.009.013.016.049.054.060.096.097.101//QueryData_code013.csv") |> clean_names()
+
+#Whole Blood: - metals
+df_5 <-read_csv2("E://BBK17//1. BBK17_June10 2022//LAB//MIREC_TEST RESULTS table_codes 001.002.009.013.016.049.054.060.096.097.101//QueryData_code016.csv") |> clean_names()
+
+
+#OPFR
+labres<- read_csv2("E://BBK17/2. BBK17_pending lab tests_July19 2022//LAB//MIREC_MICROALIQOUT RESULTS table code 001-01.001-03//QueryData_code001-03.csv") |>
+    clean_names()|>
+    rename(tests_results_test_name = micro_aliquot_tests_results_test_name,
+           tests_results_raw_result =micro_aliquot_tests_results_raw_result)
+
+```
+
+Standardizing units
+```{r}
+#Metals: Lead & Mercury (mol. wt from pubchem)
+
+#molecular weight x conversion factor to get values in mcg/L
+pb<- 207.2/1e6 # micromole/L -> mcg/L
+hg<-200.59/1e9 #nanomole/L -> mcg/L
+#multiply above values with absolute result from imputed dataset
+dt<- read_csv("E://BBK17/pj//imputed_data//HGSG.csv")
+dt$result.res<-dt$result.res*hg*1e6
+
+write_csv(dt, "E://BBK17/pj//imputed_unit_corr//HGSG.csv")
+
+# PCBs,PBDE, DDE (mcg/L -> ng/L)
+dt<- read_csv("E://BBK17/pj//imputed_data//BDE47PL.csv")
+dt$result.res <- dt$result.res*1000
+write_csv(dt, "E://BBK17/pj//imputed_unit_corr//BDE47PL.csv")
+
+# DMAA micromol/L -> PPB (mol. wt from pubchem)
+dt<- read_csv("E://BBK17/pj//imputed_data//DMAAUR.csv")
+dt$result.res1 <- (dt$result.res*170)
+write_csv(dt, "E://BBK17/pj//imputed_unit_corr//DMA.csv")
+
+```
+
+specific gravity standardization = ((analyte concentration x (median urine specific grav. -1)) / (1-individual specific grav. -1))
+Creatinine adjustment = analyte concentration / creatinine concentration
+lipid adjustment = (analyte concentration / lipid level)*102.6
+
+```{r}
+urine_sg<- read_csv("E://BBK17/pj//imputed_unit_corr//DENS.csv")
+urine_sg$join_id<- str_extract(urine_sg$subject_id,  "^.{8}")
+
+dt<- read_csv("E://BBK17/pj//imputed_unit_corr//triclosan.csv") 
+dt$join_id<- str_extract(dt$subject_id,  "^.{8}")
+dat<- inner_join(dt,urine_sg, by="join_id")
+
+med_sg<- median(dat$result.res.y)
+dat$tcs_sg <- ((dat$result.res.x*(med_sg-1))/(dat$result.res.y-1))
+
+dat<- dat[c(1,2,10)] |> rename(tcs = result.res.x, subject_id = subject_id.x) |>
+  pivot_longer(!subject_id, names_to = "analyte", values_to = "conc")
+
+write_csv(dat, "E://BBK17/pj//imputed_unit_corr//sg_adj//tcs.csv")
+
+
+################ creatinine adjustment ########################
+
+cre<- read_csv("E://BBK17/pj//imputed_data//CRE.csv")
+cre$join_id<- str_extract(cre$subject_id,  "^.{8}")
+
+dt<- read_csv("E://BBK17/pj//imputed_data//COTISE.csv") 
+dt$join_id<- str_extract(dt$subject_id,  "^.{8}")
+dat<- inner_join(dt,cre, by="join_id")
+
+dat$cotinine_cr <- (dat$result.res.x/dat$result.res.y)
+dat<- dat[c(1,2,10)] |> rename(cotinine = result.res.x) |>
+  pivot_longer(!subject_id.x, names_to = "analyte", values_to = "conc")
+
+write_csv(dat, "E://BBK17/pj//imputed_data//cre_adj//cotinine.csv")
+
+############ lipid adjustment for DDE, PBDE, PCB ############
+
+lipi<-  read_csv("E://BBK17/pj//imputed_unit_corr//LIPIPL.csv") 
+lipi$join_id<- str_extract(lipi$subject_id,  "^.{8}") 
+
+dt <- read_csv("E://BBK17/pj//imputed_unit_corr//BDE47PL.csv") 
+dt$join_id<- str_extract(dt$subject_id,  "^.{8}")
+dat<- inner_join(dt,lipi, by="join_id")
+ 
+dat$pbde47_lp <- (dat$result.res.x/dat$result.res.y)
+dat<- dat[c(1,2,10)] |> rename(pbde47 = result.res.x, subject_id = subject_id.x) |>
+  pivot_longer(!subject_id, names_to = "analyte", values_to = "conc")
+
+write_csv(dat, "E://BBK17/pj//imputed_unit_corr//lipi_adj//pbde47.csv")
+
+```
+
+Converting all exposures to long format - join
+```{r}
+dat<- read_csv("E://BBK17/pj//imputed_data//HGSG.csv") 
+dat<- dat[c(1,2)] |> rename(hg = result.res) |>
+  pivot_longer(!subject_id, names_to = "analyte", values_to = "conc")
+
+write_csv(dat, "E://BBK17/pj//imputed_data//merging//hg.csv")
+```
+
+Merging exposures to long format
+```{r}
+file_names<- list.files(path= "E://BBK17//pj//imputed_unit_corr//mirec_fin_merge",
+                        recursive = T,
+                        pattern = "\\.csv$",
+                        full.names = T)
+
+dat<- read_csv(file_names)
+dat$subject_id<- str_extract(dat$subject_id,  "^.{6}")
+
+write_csv(dat, "E://BBK17//pj//mirec_exposure_fin.csv")
+
+######## Exposure data summary ####################
+geomean <- function(x, na.rm = T, trim = 0, ...) 
+  { exp(mean(log(x, ...), na.rm = na.rm, trim = trim, ...)) }
+
+geosd <- function(x, na.rm = T, ...)
+  { exp(sd(log(x, ...), na.rm = na.rm, ...)) }
+
+dat_summ<- dat |> 
+  group_by(analyte) |>
+  summarise(no_obs= n(),
+            geometric_mean = geomean(conc), geometric_SD = geosd(conc),
+            arithmatic_mean=mean((conc), na.rm=T), arithmatic_std=sd((conc), na.rm = T),
+            median = median((conc), na.rm = T), q25 = quantile(conc, .25, na.rm=T),
+            q75 = quantile(conc, .75, na.rm=T)) |>
+  mutate_if(is.numeric, round, 3)
+
+write_csv(dat_summ, "E://BBK17//pj//mirec_exposure_summary.csv")
+
+```
+
+
+Exposure missing data summary
+```{r}
+dat<- read_csv("E://BBK17//pj//mirec_exposure_fin.csv") |>
+  pivot_wider(names_from = analyte, values_from = conc)
+
+# filter sg/lp adjusted variables
+dat<- dat[c(1,3,5,7,9,11,13,15,17,19,21,23,25,26,28,30,32,34,36,38,40,42,44,46,47,49,51,53,55:58,60)] 
+dat$site<- str_extract(dat$subject_id,  "^.{2}") |>
+  as.factor()
+
+dat<- dat |> drop_na()
+
+#Select either WPPSI or BASC from here (dont use both outcomes from here)
+dat_out<- read_csv("E://BBK17//pj//mirec_out.csv")
+
+gg_miss_upset(dat_out, nsets=5, nintersects=NA)
+
+dat_out$site<- str_extract(dat_out$subject_id,  "^.{2}") |>
+  as.factor()
+
+#site specific count by outcomes
+
+x<-dat_out[c(1:6,10)] |>
+  drop_na()
+
+```
+
+combine exposure and outcome
+```{r}
+dat_fin<- inner_join(dat, dat_out, by="subject_id") |>
+  drop_na()
+
+cormat<- round(x=cor(dat_fin[2:40], method = "spearman", 
+                     use= "complete.obs"), digits=2) |>
+  melt() |> clean_names()
+
+ggplot(cormat, aes(x=var2, y=var1, fill=value)) +
+  geom_tile(color="white")+
+  scale_fill_gradient2(low="red", high="blue", mid="white",
+                       midpoint=0,
+                       limit=c(-1,1), space= "Lab",
+                       name="Spearman\nCorrelation")+
+  theme_minimal()+
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, size = 12, hjust = 1),
+        axis.text.y = element_text(angle = 0, vjust = 0.15, size = 12, hjust = 1),
+        axis.title.x = element_blank(),
+        axis.title.y = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.border = element_blank(),
+        panel.background = element_blank(),
+        axis.ticks = element_blank())+
+  coord_fixed()
+
+ggsave("E://BBK17//pj//corrplot.tiff",
+       width=14, height= 12, dpi=300)
+```
+
+
+

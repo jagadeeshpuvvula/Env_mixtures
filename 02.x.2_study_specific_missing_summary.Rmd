@@ -5,15 +5,10 @@ date: "2023-04-19"
 output: pdf_document
 ---
 
-```{r}
-library(pacman)
-pacman::p_load(tidyverse, janitor)
-mirec_path <- "E:/BBK17/pj/data_2023apr/obs_w_outcome/"
-home_path <- "~/Documents/data/"
-```
-
 #collect home data for lt_lod percent
 ```{r}
+home_path <- "~/Documents/data/"
+
 # Use list.files() with recursive = TRUE to search for SAS files in the current directory and its subdirectories
 file_list <- list.files(path=home_path, pattern = "\\.sas7bdat$", recursive = F, full.names = T)
 
@@ -32,13 +27,28 @@ data <- map_dfr(file_list,  ~select(read_sas(.x), 1, 2, 5, contains("Flg"))) |>
 write_csv(data, paste0(home_path, "home_lt_lod_pct.csv"))
 ```
 
-
++========================================================================+
 
 ```{r}
-dat<- read_csv(paste0(path, "wppsi_f_analy.csv")) |>drop_na() |>filter(cohort=="2")
+library(pacman)
+pacman::p_load(tidyverse, janitor)
+path <- "E:/BBK17/pj/data_2023apr/obs_w_outcome/"
+
+```
+
+```{r}
+dat<- read_csv(paste0(path, "wppsi_f_analy.csv")) |>drop_na() |>filter(cohort=="1")
 x<- dat[1]
 remove(dat)
 ```
+
+#home flod variable
+```{r}
+home<- read_csv("E:/BBK17/pj/data_2023apr/home_lt_lod_pct.csv") |>
+  mutate_at(vars(2:4), as.factor) |>
+  rename(subject_id = SubjectID)
+```
+
 
 # count observations - unmeasured and < LOD
 ```{r, for triclosan}
@@ -94,13 +104,23 @@ count_lt_results <- function(x, labres, sample_size) {
 
 ```
 
-#count
+#lod percentages for mirec only
 ```{r}
 count_lt_results(x=x, labres = labres,
-                 sample_size= 139) 
-
-
-
+                 sample_size= 478)
 ```
+
+
+```{r}
+home_summ<- home |>
+  filter(Visit=="16W") |>
+  group_by(Analyte_Code) |>
+  mutate(subject_id=as.character(subject_id)) |>
+  inner_join(x, by="subject_id") |>
+  summarise(count = sum(flg_lod == "1"),
+            percent = (sum(flg_lod == "1") / n()) * 100)
+```
+
+
 
 

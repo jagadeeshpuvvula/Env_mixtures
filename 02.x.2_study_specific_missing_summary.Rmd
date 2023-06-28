@@ -8,8 +8,31 @@ output: pdf_document
 ```{r}
 library(pacman)
 pacman::p_load(tidyverse, janitor)
-path <- "E:/BBK17/pj/data_2023apr/obs_w_outcome/"
+mirec_path <- "E:/BBK17/pj/data_2023apr/obs_w_outcome/"
+home_path <- "~/Documents/data/"
 ```
+
+#collect home data for lt_lod percent
+```{r}
+# Use list.files() with recursive = TRUE to search for SAS files in the current directory and its subdirectories
+file_list <- list.files(path=home_path, pattern = "\\.sas7bdat$", recursive = F, full.names = T)
+
+# Filter out files with specific names
+excluded_files <- c("outcomes.sas7bdat", "covariates.sas7bdat")
+file_list <- file_list[!basename(file_list) %in% excluded_files]
+
+# Use map_dfr() to load and bind all the files together, selecting variables 1, 2, 5, and 9
+data <- map_dfr(file_list,  ~select(read_sas(.x), 1, 2, 5, contains("Flg"))) |>
+  mutate_all(~replace_na(., 0)) |>
+  mutate(flg_lod=Flg_LOD+Flg_LOD_lp) |>
+  mutate_all(as.factor) |>
+  select(-c(4:6))
+
+#export to mirec server
+write_csv(data, paste0(home_path, "home_lt_lod_pct.csv"))
+```
+
+
 
 ```{r}
 dat<- read_csv(paste0(path, "wppsi_f_analy.csv")) |>drop_na() |>filter(cohort=="2")
@@ -43,7 +66,7 @@ match_dataframes <- function(df1, df2) {
 
 #function to count subjects with lt LOD values
 ```{r}
-count_lt_results <- function(x, labres) {
+count_lt_results <- function(x, labres, sample_size) {
   # Extract first six characters of subject_id from x
   x$id <- substr(x$subject_id, 1, 6)
   
@@ -61,7 +84,7 @@ count_lt_results <- function(x, labres) {
   cat("Number of observations with '<' symbol:\n")
   for (test_name in names(count_lt)) {
     cat(paste(test_name, ": ", count_lt[test_name], " (", 
-              round(count_lt[test_name]/478*100, 2), "%)\n", sep=""))
+              round(count_lt[test_name]/sample_size*100, 2), "%)\n", sep=""))
     complete_lt <- labres_lt[labres_lt$tests_results_test_name == test_name & 
                             grep("<", labres_lt$tests_results_raw_result), ]
     cat(paste("Complete value with '<' symbol in", test_name, ":", 
@@ -73,7 +96,8 @@ count_lt_results <- function(x, labres) {
 
 #count
 ```{r}
-count_lt_results(x=x, labres = labres) 
+count_lt_results(x=x, labres = labres,
+                 sample_size= 139) 
 
 
 

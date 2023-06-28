@@ -12,7 +12,7 @@ path <- "E:/BBK17/pj/data_2023apr/obs_w_outcome/"
 ```
 
 ```{r}
-dat<- read_csv(paste0(path, "wppsi_f_analy.csv")) |>drop_na()
+dat<- read_csv(paste0(path, "wppsi_f_analy.csv")) |>drop_na() |>filter(cohort=="2")
 x<- dat[1]
 remove(dat)
 ```
@@ -41,8 +41,7 @@ match_dataframes <- function(df1, df2) {
 
 ```
 
-
-
+#function to count subjects with lt LOD values
 ```{r}
 count_lt_results <- function(x, labres) {
   # Extract first six characters of subject_id from x
@@ -62,7 +61,7 @@ count_lt_results <- function(x, labres) {
   cat("Number of observations with '<' symbol:\n")
   for (test_name in names(count_lt)) {
     cat(paste(test_name, ": ", count_lt[test_name], " (", 
-              round(count_lt[test_name]/573*100, 2), "%)\n", sep=""))
+              round(count_lt[test_name]/478*100, 2), "%)\n", sep=""))
     complete_lt <- labres_lt[labres_lt$tests_results_test_name == test_name & 
                             grep("<", labres_lt$tests_results_raw_result), ]
     cat(paste("Complete value with '<' symbol in", test_name, ":", 
@@ -71,4 +70,10 @@ count_lt_results <- function(x, labres) {
 }
 
 ```
+
+#count
+```{r}
+count_lt_results(x=x, labres = labres) 
+```
+
 

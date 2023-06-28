@@ -6,12 +6,8 @@ output: pdf_document
 ---
 
 ```{r}
-library(tidyverse)
-library(readxl)
-library(janitor)
-library(skimr)
-library(reshape2)
-library(naniar)
+library(pacman)
+pacman::p_load(tidyverse, janitor, readxl, skimr, naniar)
 ```
 
 Outcome: child 3 Yr scores
@@ -107,7 +103,8 @@ df_1a[num]<- sapply(df_1a[num], as.numeric)
 write_csv(df_1a, "E://BBK17//pj//pj_dat//ex_dat6.csv")
 
 #Urine: Phthalates
-df_2 <-read_csv2("E://BBK17//1. BBK17_June10 2022//LAB//MIREC_TEST RESULTS table_codes 001.002.009.013.016.049.054.060.096.097.101//QueryData_code002.csv") 
+df_2 <-read_csv2("E://BBK17//1. BBK17_June10 2022//LAB//MIREC_TEST RESULTS table_codes 001.002.009.013.016.049.054.060.096.097.101//QueryData_code002.csv") |>
+  clean_names()
 
 #Urine: Creatinine
 df_6 <-read_csv2("E://BBK17//1. BBK17_June10 2022//LAB//MIREC_TEST RESULTS table_codes 001.002.009.013.016.049.054.060.096.097.101//QueryData_code049.csv") |> clean_names()

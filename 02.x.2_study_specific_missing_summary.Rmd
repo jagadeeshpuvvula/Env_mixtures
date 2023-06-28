@@ -74,6 +74,9 @@ count_lt_results <- function(x, labres) {
 #count
 ```{r}
 count_lt_results(x=x, labres = labres) 
+
+
+
 ```
 
 

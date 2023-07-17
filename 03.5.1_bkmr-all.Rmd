@@ -19,6 +19,7 @@ dat<- read_csv(paste0(path, "wppsi_f_analy.csv"))
 dat<- dat |>
   mutate_if(is.numeric, round, 4) |>
   clean_names() |>
+  mutate(pb = if_else(cohort == "1", pb * 10, pb))|>
   rename(Pb=pb, Hg=hg, DMA=dma, DDE= dde, PBDE_47 = pbde47,
          PCB_118=pcb118, PCB_138=pcb138, PCB_153=pcb153,
          PCB_180=pcb180, PFHxS=pfhxs, PFOA=pfoa, PFOS=pfos,
@@ -27,13 +28,13 @@ dat<- dat |>
          sigma_DEHP=dehp, MEP=mep, MIBP=mibp, di_Ethyl_OP=op_de,
          di_Methyl_OP=op_dm, B_PB=b_pb, M_PB=m_pb, P_PB=p_pb, city=center,
          mom_edu_cat=edu3)|>
-  mutate(race = ifelse(race == "white", 1, 2))|>
+  mutate(race_bin = ifelse(race == "white", 1, 2))|>
   select(c(Pb, Hg, DMA, DDE, PBDE_47, PCB_118, PCB_138, PCB_153, PCB_180,
           PFHxS, PFOA, PFOS, BCEtP, BDCPP, DBuP, DPhP, TCS, BPA, MBP, MBZP,
           MCPP, sigma_DEHP, MEP, MIBP, di_Ethyl_OP, di_Methyl_OP, 
           B_PB, M_PB, P_PB, cotinine, home_score_total, mom_age, 
-          cohort, city, sex, race,  mom_edu_cat, parity_n, 
-           wppsi_fsiq, wppsi_viq, wppsi_piq,))
+          cohort, city, sex, race_bin,  mom_edu_cat, parity_n, 
+           wppsi_fsiq, wppsi_viq, wppsi_piq,)) 
 ```
 
 #for 29 chemicals
@@ -89,11 +90,11 @@ chem_group_15<- c(rep(1,times=4), rep(2,times=2), rep(3, times=2),
                rep(4,times=3),rep(5,times=4))
 outcomes<-c("wppsi_fsiq","wppsi_viq", "wppsi_piq")
 covariates<- c("cotinine", "home_score_total", "mom_age", "cohort",
-                           "city", "sex", "race", "mom_edu_cat", "parity_n" )
+                           "city", "sex", "race_bin", "mom_edu_cat", "parity_n" )
 
 # for all chemicals select 1:32
 dat <- dat |>
-  select(c(chemicals_16, covariates, outcomes)) |>
+  select(c(chemicals_15, covariates, outcomes)) |>
   drop_na()|>
   mutate_at(vars(1:17), ~log10(.+0.0000001)) |>
   drop_na() |>
@@ -120,7 +121,7 @@ chem_group_14<- c(rep(1,times=2), rep(2,times=3), rep(3, times=2),
                rep(4,times=2),rep(5,times=2),rep(6,times=1),rep(7,times=2))
 outcomes<-c("wppsi_fsiq","wppsi_viq", "wppsi_piq")
 covariates<- c("cotinine", "home_score_total", "mom_age", "cohort",
-                           "city", "sex", "race", "mom_edu_cat", "parity_n" )
+                           "city", "sex", "race_bin", "mom_edu_cat", "parity_n" )
 
 # for all chemicals select 1:32
 dat <- dat |>
@@ -399,7 +400,7 @@ extract_data_from_folder <- function(folder_location) {
     pips_df <- bind_rows(pips_df, pips)
     
     # Extract the overall risk and add it to the overall_risk_df data frame
-    sel <- seq(12501, 25000, by = 50)
+    sel <- seq(25000, 50000, by = 50)
     overall_risk <- OverallRiskSummaries(fit = bkmr, qs = seq(0.10, 0.90, by = 0.05), q.fixed = 0.5, method = "approx", sel = sel)
     overall_risk$model_name <- model_name
     overall_risk$data_name <- data_name
@@ -419,33 +420,75 @@ extract_data_from_folder <- function(folder_location) {
 results <- extract_data_from_folder("E:/BBK17/pj/data_2023apr/results/bkmr/lasso_pos14chem")
 ```
 
-
-plotting overall estimates
-
+#prepare data for plotting
 ```{r}
-overall_risk<- results[2] |>as.data.frame()
+overall_risk<- results[2] |>as.data.frame() |>
+  clean_names()|>
+  rename("outcome" = "overall_risk_df_measure_name",
+         "cohort" = "overall_risk_df_outcome_name",
+         "gender"= "overall_risk_df_data_name") |>
+  mutate(cohort = fct_recode(as.factor(cohort), Pooled = "all", HOME = "home", MIREC = "mirec")) |>
+  mutate(outcome = fct_recode(as.factor(outcome), FSIQ = "fsiq", VIQ = "viq", PIQ = "piq")) |>
+  mutate(gender = fct_recode(as.factor(gender), All = "all", Female = "female", Male = "male"))
+```
 
-ggplot(overall_risk, aes(overall_risk_df.quantile, overall_risk_df.est, 
-                         ymin = overall_risk_df.est - 1.96*overall_risk_df.sd, 
-                         ymax = overall_risk_df.est + 1.96*overall_risk_df.sd)) + 
+#plotting overall estimates
+```{r}
+ggplot(overall_risk, aes(overall_risk_df_quantile, overall_risk_df_est, 
+                         ymin = overall_risk_df_est - 1.96*overall_risk_df_sd, 
+                         ymax = overall_risk_df_est + 1.96*overall_risk_df_sd)) + 
     geom_hline(yintercept = 00, linetype = "dashed", color = "gray") + 
-    geom_pointrange() + theme_minimal() +
-    labs(x = "Quantile", y = "Estimate")+
-    facet_grid(overall_risk_df.data_name~overall_risk_df.outcome_name*overall_risk_df.measure_name, scales = "free_y", space = "free_y")+
-    theme(axis.text=element_text(size=10), 
+    geom_pointrange(size = 0.15, aes(color = ifelse((overall_risk_df_est - 1.96 * overall_risk_df_sd) <= 0 &
+                                                  (overall_risk_df_est + 1.96 * overall_risk_df_sd) >= 0,
+                                                "Non-significant", "Significant"))) + 
+  scale_color_manual(values = c("Non-significant" = "#0072B2", "Significant" = "#D55E00")) +
+    labs(x=NULL,
+       y=expression(paste(beta[bkmr]," [95% CrI]")),
+       title = "",
+       caption = "")+
+  theme_bw()+
+    facet_grid(gender~outcome*cohort,scales = "free", space = "free_x", switch = "x")+
+    theme(axis.line = element_line(colour = "black"),
+          axis.text=element_text(size=10), 
           axis.title=element_text(size=10,face="bold"),
           strip.text = element_text(size=10),
-          axis.text.x = element_text(angle = 40, hjust = 1, vjust = 1, size = 10),
+          axis.text.x = element_text(angle = 0, hjust = 1, vjust = 1, size = 10),
           axis.text.y = element_text(size = 10), 
-          panel.spacing.x=unit(0.8, "lines"),
-          panel.spacing.y=unit(0.02, "lines"),
+          panel.spacing.x=unit(0.5, "lines"),
+          panel.spacing.y=unit(0.5, "lines"),
           panel.grid.minor = element_blank(),
           panel.grid.major = element_blank(),
-          panel.grid.major.y = element_blank()) +
-  scale_x_continuous(breaks = seq(0.1, 0.9, by = 0.2),
-                     labels = seq(0.1, 0.9, by = 0.2))
+          panel.grid.major.y = element_blank(),
+          plot.caption = element_text(size = 6),
+          plot.title=element_text(size = 10, hjust = 0),
+          panel.border = element_blank(),
+          text=element_text(size=10),
+          axis.ticks.x=element_blank(),
+          strip.text.x=element_text(size=10,angle=0),
+          strip.text.y = element_text(size=10),
+          strip.placement = "outside",
+          strip.background = element_rect(fill=NULL, colour = NULL),
+          legend.box.just = "center",
+          legend.spacing = unit(0, "cm"),
+          legend.position = "bottom",
+          legend.box = "horizontal",
+          legend.direction = "horizontal",
+          legend.text = element_text(size = 8),
+          legend.key = element_blank(),
+          legend.key.height = unit(3, "mm")) +
+  guides(col=guide_legend(title = "Statistical significance"))+
+  scale_x_continuous(breaks = seq(0.2, 0.8, by = 0.3),
+                     labels = seq(0.2, 0.8, by = 0.3))
 
 ```
+
+#save effect estimate plots
+```{r}
+ggsave("E:/BBK17/pj/data_2023apr/results/bkmr/lasso_pos14chem/lasso_pos14chem_est.tiff", 
+       width = 16,height = 10,
+       dpi=300)
+```
+
 
 
 # Function to extract pips for all bkmr runs

@@ -37,7 +37,7 @@ path <- "E:/BBK17/pj/data_2023apr/obs_w_outcome/"
 ```
 
 ```{r}
-dat<- read_csv(paste0(path, "wppsi_f_analy.csv")) |>drop_na() |>filter(cohort=="1")
+dat<- read_csv(paste0(path, "wppsi_f_analy.csv")) |>drop_na() |>filter(cohort=="2")
 x<- dat[1]
 remove(dat)
 ```
@@ -118,7 +118,7 @@ home_summ<- home |>
   mutate(subject_id=as.character(subject_id)) |>
   inner_join(x, by="subject_id") |>
   summarise(count = sum(flg_lod == "1"),
-            percent = (sum(flg_lod == "1") / n()) * 100)
+            percent = round((sum(flg_lod == "1") / n()) * 100,2))
 ```
 
 

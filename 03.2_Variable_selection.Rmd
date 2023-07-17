@@ -8,12 +8,32 @@ output: pdf_document
 
 ```{r}
 library(pacman)
-pacman::p_load(tidyverse, janitor)
+pacman::p_load(tidyverse, reshape2, janitor)
 path <- "E:/BBK17/pj/data_2023apr/obs_w_outcome/"
-dat<- read_csv(paste0(path, "wppsi_f_analy.csv")) |>
-  select(c(4:45)) |>
-  select(-c(31:33,36:39)) |>
-  drop_na()
+res<- "E:/BBK17/pj/data_2023apr/results/iq_paper/"
+```
+
+
+```{r}
+dat <- read_csv(paste0(path, "wppsi_f_analy.csv")) |> drop_na() |>
+  filter( cohort == "1" | cohort == "2" ) |> # 1- for HOME
+  mutate_if(is.numeric, round, 4)|>
+  mutate(pb = if_else(cohort == "HOME", pb * 10, pb)) |>
+  clean_names() |>
+  rename(sigma_DEHP=dehp, di_Ethyl_OP=op_de, di_Methyl_OP=op_dm, city=center)|>
+  rename_at(vars(4:32), toupper) |>
+  mutate(cohort = ifelse(cohort == "1", "HOME", "MIREC")) |>
+  select(c(PB, HG, DMA, 
+           DDE, PBDE47, PCB118, PCB138, PCB153, PCB180,
+           PFHXS, PFOA, PFOS, 
+           BCETP, BDCPP, DBUP, DPHP, 
+           B_PB, M_PB, P_PB,
+           TCS, BPA, 
+           MBP, MBZP, MCPP, SIGMA_DEHP, MEP, MIBP,
+           DI_ETHYL_OP, DI_METHYL_OP,
+           cotinine, mom_age, home_score_total,
+           wppsi_fsiq, wppsi_viq, wppsi_piq))
+  
 ```
 
 
@@ -32,8 +52,8 @@ Y <- as.matrix(dat[c(33:35)])
 
 # group index for X variables
 group<- as.integer(c(rep(1,times=3), rep(2,times=6), rep(3, times=3),
-                         rep(4,times=4), rep(5, times=2), rep(6,times=6),
-                         rep(7,times=2), rep(8, times=3), rep(9,times=3)))
+                     rep(4,times=4), rep(5, times=3), rep(6,times=2),
+                     rep(7,times=6), rep(8, times=2), rep(9,times=3)))
 ```
 
 ```{r}
@@ -80,64 +100,53 @@ var_selec <- function(X, Y, group) {
 res<- var_selec(X, Y, group)
 ```
 
+#compile results into a dataframe
 ```{r}
 # Add group variable to each list
 res <- lapply(res, function(x) {
   df <- as.data.frame(x)
   df$group <- group
-  round(df, 3)
+  round(df, 5)
 })
 
-# Create a vector of outcome variable names
-outcome_vars <- c("outcome1", "outcome2", "outcome3")
 
-# Use lapply() to apply the as.data.frame() function to each outcome variable
-df_list <- lapply(outcome_vars, function(x) as.data.frame(res[[x]]))
-
-# Use Reduce() to combine the data frames in the list by column
-combined_df <- Reduce(function(x, y) rbind(x, y), df_list)
-
-# Rename the columns
-names(combined_df) <- c("gglasso", "grpreg", "sparsegl", "stabs")
-
-# Add outcome_vars as a variable
-combined_df$outcome_vars <- outcome_vars
-
-
-#for visualization
-combined_df_fin <- combined_df |>
-  mutate(outcome_vars = fct_recode(as.factor(outcome_vars), FSIQ = "outcome1", 
-                                   VIQ = "outcome2", PIQ = "outcome3")) |>
-  mutate_if(is.numeric, ~ round(., 5)) |>
+combined_df_fin<- bind_rows(res, .id = "list_name") %>%
+  mutate(list_name = fct_recode(list_name, FSIQ = "outcome1", 
+                                VIQ = "outcome2", PIQ = "outcome3")) |>
   rownames_to_column(var = "row_name") |>
-  mutate(row_name = as.factor(row_name)) 
+  mutate(row_name = str_remove_all(row_name, "\\.\\.\\.\\d+"))
+
 
 #expot data for manually cleaning the variable names
-write_csv(combined_df_fin, "E:/BBK17/pj/data_2023apr/results/var_sel/varsel.csv")
-
-#use the modified data 
-combined_df_fin<- read_csv( "E:/BBK17/pj/data_2023apr/results/var_sel/varsel.csv") |>
-  pivot_longer(!c(row_name, group, outcome_vars), names_to = "model", values_to = "coef")
+write_csv(combined_df_fin, paste0(res, "varsel.csv"))
 
 ```
 
-
+#visualize group lasso results
 ```{r}
+
+#use the modified data 
+combined_df_fin<- read_csv(paste0(res, "varsel.csv")) |>
+  pivot_longer(!c(row_name, group, list_name), names_to = "model", values_to = "coef") |>
+  filter(model=="grpp_lasso" & group != 9)|>
+  
+
 ggplot(combined_df_fin, aes(x = model, y = row_name, 
                             fill = ifelse(coef == 0 & !is.na(coef), "gray80", 
                                           ifelse(coef > 0, "royalblue1", "orangered1"))))+
-  geom_tile(color="gray50") + 
+  geom_tile(color="gray50", width=0.5) + 
   scale_fill_identity() +
   theme_minimal() + 
   labs(x = "", y = "", fill = "Coefficient") +  
-  facet_grid(group~outcome_vars, scales = "free_y", space = "free_y", switch = "both") + 
-  geom_text(aes(label = ifelse(!is.na(coef), round(coef, 5), "")), 
+  facet_grid(group~list_name, scales = "free_y", space = "free_y", switch = "both") + 
+  geom_text(aes(label = ifelse(!is.na(coef), round(coef, 4), "")), 
             color = "white", size = 4, fontface = "bold", show.legend = FALSE)+
-  theme(axis.text=element_text(size=12), 
-        axis.title=element_text(size=12,face="bold"),
-        strip.text = element_text(size=12),
-        legend.text=element_text(size=12),
-        legend.title=element_text(size=12),
+  scale_x_discrete(expand = c(0, 0))+
+  theme(axis.text=element_text(size=11), 
+        axis.title=element_text(size=11,face="bold"),
+        strip.text = element_text(size=11),
+        legend.text=element_text(size=11),
+        legend.title=element_text(size=11),
         legend.position="bottom",
         legend.justification="right",
         legend.box="horizontal",
@@ -146,8 +155,8 @@ ggplot(combined_df_fin, aes(x = model, y = row_name,
         panel.grid.minor = element_blank(),
         panel.grid.major = element_blank(),
         panel.grid.major.y = element_blank(),
-        axis.text.x = element_text(angle = 0, hjust = 1, vjust = 1, size = 12),
-        axis.text.y = element_text(size = 12), 
+        axis.text.x = element_blank(),
+        axis.text.y = element_text(size = 11), 
         panel.spacing.x=unit(0.8, "lines"),
         panel.spacing.y=unit(0.02, "lines"),
         strip.text.y = element_blank())
@@ -156,7 +165,7 @@ ggplot(combined_df_fin, aes(x = model, y = row_name,
 
 ```{r}
 ggsave("E:/BBK17/pj/data_2023apr/results/var_sel/varsel.tiff", 
-       width = 12,height = 14,
+       width = 4,height = 9,
        dpi=300)
 ```
 

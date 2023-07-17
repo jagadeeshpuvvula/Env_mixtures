@@ -10,163 +10,51 @@ output:
 
 
 ```{r, echo=FALSE, message=FALSE}
-library(tidyverse)
-library(janitor)
-library(reshape2)
-library(kableExtra)
-```
-
-HOME correlation
-```{r, echo=FALSE, message=FALSE, fig.height=10, fig.width=6.5, dpi=300}
-dat<- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_fin.csv") |>
-  mutate_if(is.numeric, round, 4) |>
-  drop_na() |>
-  clean_names() |>
-  filter(cohort==1) |>
-  rename(Pb=pbsg, Hg=hgsg, DMA=dma_sg, DDE= dde_lp, PBDE_47 = pbde47_lp,
-         PCB_118=pcb118_lp, PCB_138=pcb138_lp, PCB_153=pcb153_lp,
-         PCB_180=pcb180_lp, PFHxS=pf_hx_spl, PFOA=pfoapl, PFOS=pfospl,
-         BCEtP=bcetp_sg, BDCPP=bdcpp_sg, DBuP=dbup_sg, DPhP=dphp_sg,
-         TCS=tcs_sg, BPA=bpa_sg, MBP=mbp_sg, MBZP=mbzp_sg, MCPP=mcpp_sg,
-         sigma_DEHP=dehp, MEP=mep_sg, MIBP=mibp_sg, di_Ethyl_OP=op_de,
-         di_Methyl_OP=op_dm, B_PB=b_pb, M_PB=m_pb, P_PB=p_pb)|>
-  select(c(Pb, Hg, DMA, DDE, PBDE_47, PCB_118, PCB_138, PCB_153, PCB_180,
-          PFHxS, PFOA, PFOS, BCEtP, BDCPP, DBuP, DPhP, TCS, BPA, MBP, MBZP,
-          MCPP, sigma_DEHP, MEP, MIBP, di_Ethyl_OP, di_Methyl_OP, 
-          B_PB, M_PB, P_PB))
-
-group<- c("Metals", "Metals", "Metals", "POP", "POP", "POP", "POP", "POP",
-          "POP", "PFAS","PFAS","PFAS", "OPFR", "OPFR", "OPFR", "OPFR",
-          "TCS", "BPA", "Phthalate", "Phthalate", "Phthalate", 
-          "Phthalate", "Phthalate", "Phthalate", "OP_Pest.", "OP_Pest.")
-
-
-cormat<- round(x=cor(dat, method = "spearman", 
-                     use= "complete.obs"), digits=2) |>
-  melt() |> clean_names()
-
-ggplot(cormat, aes(x=var2, y=var1, fill=value)) +
-  geom_tile(color="white")+
-  scale_fill_gradient2(low="red", high="blue", mid="white",
-                       midpoint=0,
-                       limit=c(-1,1), space= "Lab",
-                      name="Spearman Correlation | HOME [n=139]")+
-  theme_minimal()+
-  theme(axis.text.x = element_text(angle = 45, vjust = 1, size = 12, hjust = 1),
-        axis.text.y = element_text(angle = 0, vjust = 1, size = 12, hjust = 1),
-        axis.title.x = element_blank(),
-        axis.title.y = element_blank(),
-        panel.grid.major = element_blank(),
-        panel.border = element_blank(),
-        panel.background = element_blank(),
-        axis.ticks = element_blank(),
-        legend.position = "bottom", legend.box = "horizontal")+
-  coord_fixed()
-
-ggsave("E:/BBK17/pj/wppsi_results/correlation_plots/home-corr.tiff",
-       width=14, height= 12, dpi=300)
+library(pacman)
+pacman::p_load(tidyverse, reshape2, kableExtra)
+path <- "E:/BBK17/pj/data_2023apr/obs_w_outcome/"
+res<- "E:/BBK17/pj/data_2023apr/results/iq_paper/"
 ```
 
 
-MIREC correlation
-```{r, echo=FALSE, message=FALSE, fig.height=10, fig.width=6.5, dpi=300}
-dat<- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_fin.csv") |>
+#dat for IQ paper plots
+```{r}
+dat <- read_csv(paste0(path, "wppsi_f_analy.csv")) |> drop_na() |>
+  filter( cohort == "1" | cohort == "2" ) |> # 1- for HOME
   mutate_if(is.numeric, round, 4) |>
-  drop_na() |>
   clean_names() |>
-  filter(cohort==2) |>
-  rename(Pb=pbsg, Hg=hgsg, DMA=dma_sg, DDE= dde_lp, PBDE_47 = pbde47_lp,
-         PCB_118=pcb118_lp, PCB_138=pcb138_lp, PCB_153=pcb153_lp,
-         PCB_180=pcb180_lp, PFHxS=pf_hx_spl, PFOA=pfoapl, PFOS=pfospl,
-         BCEtP=bcetp_sg, BDCPP=bdcpp_sg, DBuP=dbup_sg, DPhP=dphp_sg,
-         TCS=tcs_sg, BPA=bpa_sg, MBP=mbp_sg, MBZP=mbzp_sg, MCPP=mcpp_sg,
-         sigma_DEHP=dehp, MEP=mep_sg, MIBP=mibp_sg, di_Ethyl_OP=op_de,
-         di_Methyl_OP=op_dm, B_PB=b_pb, M_PB=m_pb, P_PB=p_pb)|>
-  select(c(Pb, Hg, DMA, DDE, PBDE_47, PCB_118, PCB_138, PCB_153, PCB_180,
-          PFHxS, PFOA, PFOS, BCEtP, BDCPP, DBuP, DPhP, TCS, BPA, MBP, MBZP,
-          MCPP, sigma_DEHP, MEP, MIBP, di_Ethyl_OP, di_Methyl_OP, 
-          B_PB, M_PB, P_PB))
-
-group<- c("Metals", "Metals", "Metals", "POP", "POP", "POP", "POP", "POP",
-          "POP", "PFAS","PFAS","PFAS", "OPFR", "OPFR", "OPFR", "OPFR",
-          "TCS", "BPA", "Phthalate", "Phthalate", "Phthalate", 
-          "Phthalate", "Phthalate", "Phthalate", "OP_Pest.", "OP_Pest.")
-
-
-cormat<- round(x=cor(dat, method = "spearman", 
-                     use= "complete.obs"), digits=2) |>
-  melt() |> clean_names()
-
-ggplot(cormat, aes(x=var2, y=var1, fill=value)) +
-  geom_tile(color="white")+
-  scale_fill_gradient2(low="red", high="blue", mid="white",
-                       midpoint=0,
-                       limit=c(-1,1), space= "Lab",
-                      name="Spearman Correlation | MIREC [n=478]")+
-  theme_minimal()+
-  theme(axis.text.x = element_text(angle = 45, vjust = 1, size = 12, hjust = 1),
-        axis.text.y = element_text(angle = 0, vjust = 1, size = 12, hjust = 1),
-        axis.title.x = element_blank(),
-        axis.title.y = element_blank(),
-        panel.grid.major = element_blank(),
-        panel.border = element_blank(),
-        panel.background = element_blank(),
-        axis.ticks = element_blank(),
-        legend.position = "bottom", legend.box = "horizontal")+
-  coord_fixed()
-
-ggsave("E:/BBK17/pj/wppsi_results/correlation_plots/mirec-corr.tiff",
-       width=14, height= 12, dpi=300)
+  rename(sigma_DEHP=dehp, di_Ethyl_OP=op_de, di_Methyl_OP=op_dm, city=center)|>
+  rename_at(vars(4:33), toupper) |>
+  mutate(cohort = ifelse(cohort == "1", "HOME", "MIREC")) |>
+  select(c(cohort, PB, HG, DMA, 
+           DDE, PBDE47, PCB118, PCB138, PCB153, PCB180,
+           PFHXS, PFOA, PFOS, 
+           BCETP, BDCPP, DBUP, DPHP, 
+           B_PB, M_PB, P_PB,
+           TCS, BPA, 
+           MBP, MBZP, MCPP, SIGMA_DEHP, MEP, MIBP,
+           DI_ETHYL_OP, DI_METHYL_OP)) |>
+  mutate(PB = if_else(cohort == "HOME", PB * 10, PB))
 ```
 
-
-combined correlation
+correlation
 ```{r, echo=FALSE, message=FALSE, fig.height=10, fig.width=6.5, dpi=300}
-dat<- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_fin.csv") |>
-  mutate_if(is.numeric, round, 4) |>
-  drop_na() |>
-  clean_names() |>
-  rename(Pb=pbsg, Hg=hgsg, DMA=dma_sg, DDE= dde_lp, PBDE_47 = pbde47_lp,
-         PCB_118=pcb118_lp, PCB_138=pcb138_lp, PCB_153=pcb153_lp,
-         PCB_180=pcb180_lp, PFHxS=pf_hx_spl, PFOA=pfoapl, PFOS=pfospl,
-         BCEtP=bcetp_sg, BDCPP=bdcpp_sg, DBuP=dbup_sg, DPhP=dphp_sg,
-         TCS=tcs_sg, BPA=bpa_sg, MBP=mbp_sg, MBZP=mbzp_sg, MCPP=mcpp_sg,
-         sigma_DEHP=dehp, MEP=mep_sg, MIBP=mibp_sg, di_Ethyl_OP=op_de,
-         di_Methyl_OP=op_dm, B_PB=b_pb, M_PB=m_pb, P_PB=p_pb)|>
-  select(c(Pb, Hg, DMA, DDE, PBDE_47, PCB_118, PCB_138, PCB_153, PCB_180,
-          PFHxS, PFOA, PFOS, BCEtP, BDCPP, DBuP, DPhP, TCS, BPA, MBP, MBZP,
-          MCPP, sigma_DEHP, MEP, MIBP, di_Ethyl_OP, di_Methyl_OP, 
-          B_PB, M_PB, P_PB))
+dat_cor<- dat |> select(-c(cohort))
 
+cormat <- round(x=cor(dat_cor, method = "spearman", use = "complete.obs"), digits = 2) |>
+  melt() |> 
+  clean_names()
 
-var_groups <- c(POPs = "Group A", Parbens = "Group B", TCS_BPA = "Group C",
-                 Phthalates = "Group D", OP_pest. = "Group E", BPA = "Group F",
-                 Phthalate = "Group G", OP_Pest. = "Group H")
-
-
-dat <- dat |>
-  select(4,5,17,18,19,21,20,22,23,24,25,26,28:29)
-
-group<- as.factor(c(rep("POPs",times=2), rep("Parabens",times=2), 
-                    rep("TCS_BPA",times=2), rep("Phthalates",times=6), 
-                    rep("OP_Pest.",times=2)))
-
-
-cormat <- round(x=cor(dat, method = "spearman", use = "complete.obs"), digits = 2) %>%
-  melt() %>%
-  clean_names() %>%
-  mutate(group = var1 %>% factor(levels = var_groups))
-
-ggplot(cormat, aes(x = var2, y = var1, fill = value, label = value, group = group)) +
+ggplot(cormat, aes(x = var2, y = var1, fill = value)) + #, label = value
   geom_tile(color = "white") +
-  geom_text(color = "black", size = 3, vjust = 1) +
+  #geom_text(color = "black", size = 3, vjust = 1) +
   scale_fill_gradient2(low = "red", high = "blue", mid = "white",
                        midpoint = 0,
                        limit = c(-1, 1), space = "Lab",
-                       name = "Spearman Correlation | MIREC & HOME [n=617]") +
+                       name = "Spearman Correlation | HOME & MIREC [n=617]") +
   theme_minimal() +
-  theme(axis.text.x = element_text(angle = 45, vjust = 1, size = 12, hjust = 1),
-        axis.text.y = element_text(angle = 0, vjust = 1, size = 12, hjust = 1),
+  theme(axis.text.x = element_text(angle = 45, vjust = 1, size = 11, hjust = 1),
+        axis.text.y = element_text(angle = 0, vjust = 0.5, size = 11, hjust = 1),
         axis.title.x = element_blank(),
         axis.title.y = element_blank(),
         panel.grid.major = element_blank(),
@@ -176,113 +64,20 @@ ggplot(cormat, aes(x = var2, y = var1, fill = value, label = value, group = grou
         legend.position = "bottom", legend.box = "horizontal") +
   coord_fixed() +
   # add vertical and horizontal lines to separate variable groups
-  geom_vline(xintercept = c(2.5, 4.5, 10.5, 12.5, 14.5), color = "black") +
-  geom_hline(yintercept = c(2.5, 4.5, 10.5, 12.5, 14.5), color = "black") 
+  geom_vline(xintercept = c(0, 3.5, 9.5, 12.5,  16.5, 19.5, 21.5, 27.5, 29.5), color = "black", size=1.25) +
+  geom_hline(yintercept = c(0, 3.5, 9.5, 12.5, 16.5, 19.5, 21.5, 27.5, 29.5), color = "black", size=1.25) 
 
 
-ggsave("E:/BBK17/pj/wppsi_results/correlation_plots/combi-corr.tiff",
+ggsave(paste0(res, "combined_corrplt.tiff"),
        width=10, height= 8, dpi=300)
 ```
 
 
-HOME summary
+data summary
 ```{r, echo=FALSE, message=FALSE, fig.height=10, fig.width=6.5, dpi=300}
 ####### CONVERT DATA TO LONG FORMAT
-dat_wide <- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_fin.csv") |>
-  mutate_if(is.numeric, round, 4) |>
-  filter(cohort==1) |>
-  drop_na() |>
-  clean_names() |>
-  rename(Pb=pbsg, Hg=hgsg, DMA=dma_sg, DDE= dde_lp, PBDE_47 = pbde47_lp,
-         PCB_118=pcb118_lp, PCB_138=pcb138_lp, PCB_153=pcb153_lp,
-         PCB_180=pcb180_lp, PFHxS=pf_hx_spl, PFOA=pfoapl, PFOS=pfospl,
-         BCEtP=bcetp_sg, BDCPP=bdcpp_sg, DBuP=dbup_sg, DPhP=dphp_sg,
-         TCS=tcs_sg, BPA=bpa_sg, MBP=mbp_sg, MBZP=mbzp_sg, MCPP=mcpp_sg,
-         sigma_DEHP=dehp, MEP=mep_sg, MIBP=mibp_sg, di_Ethyl_OP=op_de,
-         di_Methyl_OP=op_dm, B_PB=b_pb, M_PB=m_pb, P_PB=p_pb) |>
-  select(c(4:37))|>
-  pivot_longer(!subject_id, names_to = "measure", values_to = "value")
-
-
-######## Exposure data summary ####################
-geomean <- function(x, na.rm = T, trim = 0, ...) 
-  { exp(mean(log(x, ...), na.rm = na.rm, trim = trim, ...)) }
-
-geosd <- function(x, na.rm = T, ...)
-  { exp(sd(log(x, ...), na.rm = na.rm, ...)) }
-
-dat_summ_home<- dat_wide |> 
-    group_by(measure) |>
-    summarise(geometric_mean = geomean(value), geometric_SD = geosd(value),
-              arithmatic_mean=mean((value), na.rm=T), arithmatic_std=sd((value), na.rm = T),
-              median = median((value), na.rm = T), q25 = quantile(value, .25, na.rm=T),
-              q75 = quantile(value, .75, na.rm=T)) |>
-    mutate_if(is.numeric, round, 3)
-
-kable(dat_summ_home, longtable=T, booktabs=T, caption = "HOME - Data summary") |>
-  kable_styling(latex_options = c("repeat_header"))
-
-write_csv(dat_summ_home, "E:/BBK17/pj/wppsi_results/summary_tables/home-summary.csv")
-```
-
-
-MIREC summary
-```{r, echo=FALSE, message=FALSE, fig.height=10, fig.width=6.5, dpi=300}
-####### CONVERT DATA TO LONG FORMAT
-dat_wide <- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_fin.csv") |>
-  mutate_if(is.numeric, round, 4) |>
-  filter(cohort==2) |>
-  drop_na() |>
-  clean_names() |>
-  rename(Pb=pbsg, Hg=hgsg, DMA=dma_sg, DDE= dde_lp, PBDE_47 = pbde47_lp,
-         PCB_118=pcb118_lp, PCB_138=pcb138_lp, PCB_153=pcb153_lp,
-         PCB_180=pcb180_lp, PFHxS=pf_hx_spl, PFOA=pfoapl, PFOS=pfospl,
-         BCEtP=bcetp_sg, BDCPP=bdcpp_sg, DBuP=dbup_sg, DPhP=dphp_sg,
-         TCS=tcs_sg, BPA=bpa_sg, MBP=mbp_sg, MBZP=mbzp_sg, MCPP=mcpp_sg,
-         sigma_DEHP=dehp, MEP=mep_sg, MIBP=mibp_sg, di_Ethyl_OP=op_de,
-         di_Methyl_OP=op_dm, B_PB=b_pb, M_PB=m_pb, P_PB=p_pb) |>
-  select(c(4:37))|>
-  pivot_longer(!subject_id, names_to = "measure", values_to = "value")
-
-
-######## Exposure data summary ####################
-geomean <- function(x, na.rm = T, trim = 0, ...) 
-  { exp(mean(log(x, ...), na.rm = na.rm, trim = trim, ...)) }
-
-geosd <- function(x, na.rm = T, ...)
-  { exp(sd(log(x, ...), na.rm = na.rm, ...)) }
-
-dat_summ_mirec<- dat_wide |> 
-    group_by(measure) |>
-    summarise(geometric_mean = geomean(value), geometric_SD = geosd(value),
-              arithmatic_mean=mean((value), na.rm=T), arithmatic_std=sd((value), na.rm = T),
-              median = median((value), na.rm = T), q25 = quantile(value, .25, na.rm=T),
-              q75 = quantile(value, .75, na.rm=T)) |>
-    mutate_if(is.numeric, round, 3)
-
-kable(dat_summ_mirec, longtable=T, booktabs=T, caption = "MIREC - Data summary") |>
-  kable_styling(latex_options = c("repeat_header"))
-
-write_csv(dat_summ_mirec, "E:/BBK17/pj/wppsi_results/summary_tables/mirec-summary.csv")
-```
-
-
-combined summary
-```{r, echo=FALSE, message=FALSE, fig.height=10, fig.width=6.5, dpi=300}
-####### CONVERT DATA TO LONG FORMAT
-dat_wide <- read_csv("E:/BBK17/pj/wppsi_exp_out_comb/wppsi_fin.csv") |>
-  mutate_if(is.numeric, round, 4) |>
-  drop_na() |>
-  clean_names() |>
-  rename(Pb=pbsg, Hg=hgsg, DMA=dma_sg, DDE= dde_lp, PBDE_47 = pbde47_lp,
-         PCB_118=pcb118_lp, PCB_138=pcb138_lp, PCB_153=pcb153_lp,
-         PCB_180=pcb180_lp, PFHxS=pf_hx_spl, PFOA=pfoapl, PFOS=pfospl,
-         BCEtP=bcetp_sg, BDCPP=bdcpp_sg, DBuP=dbup_sg, DPhP=dphp_sg,
-         TCS=tcs_sg, BPA=bpa_sg, MBP=mbp_sg, MBZP=mbzp_sg, MCPP=mcpp_sg,
-         sigma_DEHP=dehp, MEP=mep_sg, MIBP=mibp_sg, di_Ethyl_OP=op_de,
-         di_Methyl_OP=op_dm, B_PB=b_pb, M_PB=m_pb, P_PB=p_pb) |>
-  select(c(4:37))|>
-  pivot_longer(!subject_id, names_to = "measure", values_to = "value")
+dat_wide<- dat |>
+  pivot_longer(!cohort, names_to = "measure", values_to = "value")
 
 
 ######## Exposure data summary ####################
@@ -293,16 +88,16 @@ geosd <- function(x, na.rm = T, ...)
   { exp(sd(log(x, ...), na.rm = na.rm, ...)) }
 
 dat_summ<- dat_wide |> 
-    group_by(measure) |>
+    group_by(measure, cohort) |>
     summarise(geometric_mean = geomean(value), geometric_SD = geosd(value),
               arithmatic_mean=mean((value), na.rm=T), arithmatic_std=sd((value), na.rm = T),
               median = median((value), na.rm = T), q25 = quantile(value, .25, na.rm=T),
               q75 = quantile(value, .75, na.rm=T)) |>
     mutate_if(is.numeric, round, 3)
 
-kable(dat_summ, longtable=T, booktabs=T, caption = "Combines - Data summary") |>
+kable(dat_summ, longtable=T, booktabs=T, caption = "") |>
   kable_styling(latex_options = c("repeat_header"))
 
-write_csv(dat_summ, "E:/BBK17/pj/wppsi_results/summary_tables/combined-summary.csv")
+write_csv(dat_summ, paste0(res, "summary_table.csv"))
 ```
 

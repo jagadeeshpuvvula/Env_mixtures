@@ -23,6 +23,7 @@ dat<- read_csv(paste0(path, "wppsi_f_analy.csv"))
 dat<- dat |>
   mutate_if(is.numeric, round, 4) |>
   clean_names() |>
+  mutate(pb = if_else(cohort == "1", pb * 10, pb))|>
   rename(Pb=pb, Hg=hg, DMA=dma, DDE= dde, PBDE_47 = pbde47,
          PCB_118=pcb118, PCB_138=pcb138, PCB_153=pcb153,
          PCB_180=pcb180, PFHxS=pfhxs, PFOA=pfoa, PFOS=pfos,
@@ -38,13 +39,20 @@ dat<- dat |>
           MCPP, sigma_DEHP, MEP, MIBP, di_Ethyl_OP, di_Methyl_OP, 
           B_PB, M_PB, P_PB, cotinine, home_score_total, mom_age, 
           cohort, city, sex, race_bin,  mom_edu_cat, parity_n, 
-           wppsi_fsiq, wppsi_viq, wppsi_piq,))
+           wppsi_fsiq, wppsi_viq, wppsi_piq,)) 
 
 dat<- dat |> 
   mutate(across(all_of(c("cohort", "city", "sex", "race_bin", 
                          "parity_n", "mom_edu_cat")), as.factor))
 
 ```
+
+#for sensitivity remove WISC supplemented data
+```{r}
+
+```
+
+
 
 for 29 chemicals
 ```{r}
@@ -75,7 +83,7 @@ mixture<- names(dat[c(1:16)])
 for group lasso assist - 15 chemicals negtive coef -grpreg
 ```{r}
 dat <- dat |>
-  select(c(1,5,7,8,10,14,16:21,23,25,29:41)) |>
+  select(c(1,5,7,8,10,14,16:21,23,25,29:41)) |> #add 8 for pcb153
   drop_na()|>
   mutate_at(vars(1:16), ~log10(.+0.0000001)) |>
   rename_with(~ paste0("log_", .x), 1:16) |>
@@ -99,16 +107,17 @@ mixture<- names(dat[c(1:14)])
 
 #function to loop qgcomp
 ```{r}
-#for 29 chemicals: log_Pb+log_Hg+log_DMA+log_DDE+log_PBDE_47+log_PCB_118+log_PCB_138+log_PCB_153+log_PCB_180+log_PFHxS+log_PFOA+log_PFOS+log_BCEtP+log_BDCPP+log_DBuP+log_DPhP+log_TCS+log_BPA+log_MBP+log_MBZP+log_MCPP+log_sigma_DEHP+log_MEP+log_MIBP+log_di_Ethyl_OP+log_di_Methyl_OP+log_B_PB+log_M_PB+log_P_PB
+#for 29 chemicals: log_Pb+log_Hg+log_DMA+log_DDE+log_PBDE_47+log_PCB_118+log_PCB_138+log_PCB_153+log_PCB_180+log_PFHxS+log_PFOA+log_PFOS+log_BCEtP+log_BDCPP+log_DBuP+log_DPhP+log_TCS+log_BPA+log_MBP+log_MBZP+log_MCPP+log_sigma_DEHP+log_MEP+log_MIBP+log_di_Ethyl_OP+log_di_Methyl_OP+log_B_PB+log_M_PB+log_P_PB+
 
-#for 16 chemicals: log_Pb+log_Hg+log_DDE+log_PBDE_47++log_PCB_138+log_PCB_153+log_PCB_180+log_MBP+log_MBZP+log_MCPP+log_sigma_DEHP+log_MEP+log_MIBP+log_M_PB+log_P_PB
+#for 16 chemicals: log_Pb+log_Hg+log_DDE+log_PBDE_47++log_PCB_138+log_PCB_153+log_PCB_180+log_MBP+log_MBZP+log_MCPP+log_sigma_DEHP+log_MEP+log_MIBP+log_M_PB+log_P_PB+
 
-#group lasso assist (negative coefficients -selected by grpreg)-15 chemicals: log_Pb+log_PBDE_47+log_PCB_138+log_PCB_153+log_PFHxS+log_BDCPP+log_DPhP+log_TCS+log_BPA+log_MBP+log_MBZP+log_MCPP+log_MEP+log_di_Ethyl_OP+log_P_PB
+#group lasso assist (negative coefficients -selected by grpreg)-15 chemicals: log_Pb+log_PBDE_47+log_PCB_138+log_PCB_153+log_PFHxS+log_BDCPP+log_DPhP+log_TCS+log_BPA+log_MBP+log_MBZP+log_MCPP+log_MEP+log_di_Ethyl_OP+log_P_PB+
 
-##group lasso assist (positive coefficients -selected by grpreg)- chemicals: log_Hg+log_DMA+log_DDE+log_PCB_118+log_PCB_180+log_PFOA+log_PFOS+log_BCEtP+log_DBuP+log_sigma_DEHP+log_MIBP+log_di_Methyl_OP+log_B_PB+log_M_PB
+##group lasso assist (positive coefficients -selected by grpreg)- chemicals: log_Hg+log_DMA+log_DDE+log_PCB_118+log_PCB_180+log_PFOA+log_PFOS+log_BCEtP+log_DBuP+log_sigma_DEHP+log_MIBP+log_di_Methyl_OP+log_B_PB+log_M_PB+
 
 
-qgcomp_func <- function(outcomes, dat, folder_path, include_sex = TRUE, include_cohort = TRUE) {
+qgcomp_func <- function(outcomes, dat, output_folder, chemicals, covariates, 
+                        include_sex = TRUE, include_cohort = TRUE) {
  
   for (sex_level in c("all", "Female", "Male")) {
     if (include_sex) {
@@ -148,12 +157,12 @@ qgcomp_func <- function(outcomes, dat, folder_path, include_sex = TRUE, include_
       }
      
       for(outcome in outcomes){
-        formula <- as.formula(paste(outcome, "~ log_Hg+log_DMA+log_DDE+log_PCB_118+log_PCB_180+log_PFOA+log_PFOS+log_BCEtP+log_DBuP+log_sigma_DEHP+log_MIBP+log_di_Methyl_OP+log_B_PB+log_M_PB + ", sex_formula, cohort_formula,"race_bin + log_cotinine +mom_edu_cat + home_score_total + parity_n + mom_age"))
+        formula <- as.formula(paste(outcome, chemicals, sex_formula, cohort_formula, covariates))
        
         nb <- qgcomp.noboot(formula, expnms = mixture, data = cohort_data, family= gaussian(), q=10)
         boot <- qgcomp.boot(formula, expnms = mixture, data = cohort_data, family= gaussian(), q=10, B = 400, seed = 2022)
-        save(nb, file = paste0(folder_path, "/", "nb_", filename_prefix, "_", outcome, ".rda"))
-        save(boot, file = paste0(folder_path, "/", "boot_", filename_prefix, "_", outcome, ".rda"))
+        save(nb, file = paste0(output_folder, "/", "nb_", filename_prefix, "_", outcome, ".rda"))
+        save(boot, file = paste0(output_folder, "/", "boot_", filename_prefix, "_", outcome, ".rda"))
       }
     }
   }
@@ -163,90 +172,106 @@ qgcomp_func <- function(outcomes, dat, folder_path, include_sex = TRUE, include_
 #run this function to get all results at a folder 
 ```{r}
 qgcomp_func(outcomes = c("wppsi_fsiq", "wppsi_viq", "wppsi_piq"), 
-            folder_path = "E:/BBK17/pj/data_2023apr/results/qgcomp/lasso_pos_14chem", 
+            output_folder = "E:/BBK17/pj/data_2023apr/results/qgcomp/gcomp_29chem", 
             include_sex = TRUE, include_cohort = TRUE, 
+            chemicals = "~log_Pb+log_Hg+log_DMA+log_DDE+log_PBDE_47+log_PCB_118+log_PCB_138+log_PCB_153+
+            log_PCB_180+log_PFHxS+log_PFOA+log_PFOS+log_BCEtP+log_BDCPP+log_DBuP+log_DPhP+log_TCS+log_BPA+
+            log_MBP+log_MBZP+log_MCPP+log_sigma_DEHP+log_MEP+log_MIBP+log_di_Ethyl_OP+
+            log_di_Methyl_OP+log_B_PB+log_M_PB+log_P_PB+",
+            covariates= "race_bin + log_cotinine +mom_edu_cat + home_score_total + parity_n + mom_age",
             dat = dat)
 ```
 
 
-#Compile all results from the above loop to a single csv file
+#function to compile estimates and CI from rda files
 ```{r}
 # set the folder location
-folder_location <- "E:/BBK17/pj/data_2023apr/results/qgcomp/lasso_pos_14chem"
+#folder_location <- "E:/BBK17/pj/data_2023apr/results/qgcomp/lasso_pos_14chem"
 
-# get the file names in the folder
-file_names <- list.files(folder_location)
-
-# create empty data frame to store the results
-results <- data.frame(file = character(),
-                      estimate = numeric(),
-                      lower_ci = numeric(),
-                      upper_ci = numeric(),
-                      stringsAsFactors = FALSE)
-
-#loops through all .rda files and extract estimates, CI & p-values
-for (file_name in file_names) {
-  # load the object from the file
-  load(file.path(folder_location, file_name))
-  # extract the object name using grep or grepl
-  object_name <- ls()[grep("^boot|^nb", ls())]
-  # extract the required information using the summary function and the object name
-  estimate <- get(object_name)$coef["psi1"]
-  CI <- get(object_name)$ci
-  lower_ci <- CI[1]
-  upper_ci <- CI[2]
-  p_value <- get(object_name)$pval[2]
-  # split file name by "_" and remove ".rda"
-  file_parts <- strsplit(gsub("\\.rda", "", file_name), "_")[[1]]
-  # assign parts to variables
-  part1 <- file_parts[1]
-  part2 <- file_parts[2]
-  part3 <- file_parts[3]
-  part4 <- file_parts[5]
-  # print out the values
-  cat("File:", file_name, "\n")
-  cat("  Estimate:", estimate, "\n")
-  cat("  Lower CI:", lower_ci, "\n")
-  cat("  Upper CI:", upper_ci, "\n")
-  cat("  p-value:", p_value, "\n")
-  cat("  Part 1:", part1, "\n")
-  cat("  Part 2:", part2, "\n")
-  cat("  Part 3:", part3, "\n")
-  cat("  Part 4:", part4, "\n")
-  # add the results to the data frame
-  results <- rbind(results, data.frame(boot_strp = part1,
-                                       gender = part2,
-                                       cohort = part3,
-                                       outcome = part4,
-                                       estimate = estimate,
-                                       lower_ci = lower_ci,
-                                       upper_ci = upper_ci,
-                                       p_value = p_value,
-                                       stringsAsFactors = FALSE))
-  # remove the object from the R environment to avoid conflicts with other objects (all objects saved as nb or boot)
-  rm(list = object_name)
+get_gcomp_estimates<- function(results_folder) {
+  # get the file names in the folder
+  file_names <- list.files(results_folder)
+  
+  # create empty data frame to store the results
+  results <- data.frame(file = character(),
+                        estimate = numeric(),
+                        lower_ci = numeric(),
+                        upper_ci = numeric(),
+                        stringsAsFactors = FALSE)
+  
+  #loops through all .rda files and extract estimates, CI & p-values
+  for (file_name in file_names) {
+    # load the object from the file
+    load(file.path(results_folder, file_name))
+    # extract the object name using grep or grepl
+    object_name <- ls()[grep("^boot|^nb", ls())]
+    # extract the required information using the summary function and the object name
+    estimate <- get(object_name)$coef["psi1"]
+    CI <- get(object_name)$ci
+    lower_ci <- CI[1]
+    upper_ci <- CI[2]
+    p_value <- get(object_name)$pval[2]
+    # split file name by "_" and remove ".rda"
+    file_parts <- strsplit(gsub("\\.rda", "", file_name), "_")[[1]]
+    # assign parts to variables
+    part1 <- file_parts[1]
+    part2 <- file_parts[2]
+    part3 <- file_parts[3]
+    part4 <- file_parts[5]
+    # print out the values
+    cat("File:", file_name, "\n")
+    cat("  Estimate:", estimate, "\n")
+    cat("  Lower CI:", lower_ci, "\n")
+    cat("  Upper CI:", upper_ci, "\n")
+    cat("  p-value:", p_value, "\n")
+    cat("  Part 1:", part1, "\n")
+    cat("  Part 2:", part2, "\n")
+    cat("  Part 3:", part3, "\n")
+    cat("  Part 4:", part4, "\n")
+    # add the results to the data frame
+    results <- rbind(results, data.frame(boot_strp = part1,
+                                         gender = part2,
+                                         cohort = part3,
+                                         outcome = part4,
+                                         estimate = estimate,
+                                         lower_ci = lower_ci,
+                                         upper_ci = upper_ci,
+                                         p_value = p_value,
+                                         stringsAsFactors = FALSE))
+    # remove the object from the R environment to avoid conflicts with other objects (all objects saved as nb or boot)
+    rm(list = object_name)
+  }
+  
+  return(results)
 }
-
-write_csv(results, "E:/BBK17/pj/data_2023apr/results/qgcomp/lasso_pos_14chem/r_obj_summ.csv")
 ```
 
+#extract and export results
+```{r}
+results<- get_gcomp_estimates(results_folder = "E:/BBK17/pj/data_2023apr/results/qgcomp/gcomp_29chem")
 
-#consolidated results
-```{r, echo=FALSE, message=FALSE, fig.height=4, fig.width=6, dpi=300}
+write_csv(results, "E:/BBK17/pj/data_2023apr/results/qgcomp/gcomp_29chem/r_obj_summ.csv")
+```
+
+#data prep for visualizing estimates and CI
+```{r}
 res<- results |>
   rename(bootstrap=boot_strp) |>
   mutate(p_value = if_else(p_value <= 0.05, "<0.05", ">0.05")) |>
   mutate(cohort = fct_recode(as.factor(cohort), Pooled = "all", HOME = "home", MIREC = "mirec")) |>
   mutate(outcome = fct_recode(as.factor(outcome), FSIQ = "fsiq", VIQ = "viq", PIQ = "piq")) |>
-  mutate(gender = fct_recode(as.factor(gender), All = "all", Female = "female", Male = "male")) |>
+  mutate(gender = fct_recode(as.factor(gender), All = "all", Female = "Female", Male = "Male")) |>
   mutate(bootstrap = fct_recode(as.factor(bootstrap), Yes = "boot", No = "nb")) |>
   filter(abs(lower_ci) <= 40 & abs(upper_ci) <= 40)
 
 res$cohort<- factor(res$cohort, levels = c("Pooled", "HOME", "MIREC"))
 
 cbbPalette <- c("#D55E00", "#0072B2")
+```
 
-ggplot(res, aes(x = as.factor(outcome), y = estimate, ymin = lower_ci, ymax = upper_ci)) + 
+#visualizing estimates and CI
+```{r, echo=FALSE, message=FALSE, fig.height=4, fig.width=6, dpi=300}
+ggplot(res, aes(x = as.factor(cohort), y = estimate, ymin = lower_ci, ymax = upper_ci)) + 
   geom_pointrange(aes(col = as.factor(p_value), shape=bootstrap), 
                   position=position_dodge(width=0.5),size = 0.6) +
   geom_hline(aes(yintercept = 0), linetype="dashed") + 
@@ -254,12 +279,11 @@ ggplot(res, aes(x = as.factor(outcome), y = estimate, ymin = lower_ci, ymax = up
   labs(x=NULL,
        y=expression(paste(beta[q-gcomp]," [95% CI]")),
        title = "",
-       caption = "Effect estimates adjusted for cohort, city (for pooled and MIREC), Maternal: serum cotinine, education, race, age, parity; Child: gender, HOME-score
-       Effect estimates associated with every 10% increase in the mixture; For bootstrap, estimates generated using 250 random samples")+
+       caption = "")+
   theme_bw()+
   theme(axis.line = element_line(colour = "black"))+
   theme(plot.caption = element_text(size = 6),
-        plot.title=element_text(size = 11, hjust = 0),
+        plot.title=element_text(size = 10, hjust = 0),
         panel.border = element_blank(),
         panel.grid.major = element_blank(),
         panel.grid.minor = element_blank(),
@@ -269,25 +293,29 @@ ggplot(res, aes(x = as.factor(outcome), y = estimate, ymin = lower_ci, ymax = up
         axis.text.x=element_text(size=10,angle=0),
         axis.ticks.x=element_blank(),
         strip.text.x=element_text(size=10,angle=0),
-        strip.text.y = element_text(size=12),
+        strip.text.y = element_text(size=10),
         strip.placement = "outside",
         strip.background = element_rect(fill=NULL, colour = NULL),
-        legend.box.just = "right",
+        legend.box.just = "center",
         legend.spacing = unit(0, "cm"),
-        legend.position = c(0.85,0.95),
-        legend.box = "vertical",
+        legend.position = "bottom",
+        legend.box = "horizontal",
         legend.direction = "horizontal",
         legend.text = element_text(size = 8),
         legend.key = element_blank(),
         legend.key.height = unit(3, "mm"))+
-  facet_grid(gender~cohort, scales = "free", switch = "x", space = "free_x")
+  guides(col=guide_legend(title = "P-value"),
+         shape=guide_legend(title = "Bootstrap"))+
+  facet_grid(gender~outcome, scales = "free", switch = "x", space = "free_x")
+```
 
-
-
-ggsave("E:/BBK17/pj/data_2023apr/results/qgcomp/lasso_pos_14chem/lasso_pos_14chem_plot.tiff", 
+#export figure
+```{r}
+ggsave("E:/BBK17/pj/data_2023apr/results/qgcomp/gcomp_29chem/gcomp_29chem_plot.tiff", 
        width = 8.5,height = 6,
        dpi=300)
 ```
+
 
 # Function to extract chemical weights for each qgcomp run
 ```{r}
@@ -335,8 +363,8 @@ extract_weights <- function(folder_location) {
 
 #extract chemical weights 
 ```{r}
-qgcomp_weights <- extract_weights("E:/BBK17/pj/data_2023apr/results/qgcomp/lasso_pos_14chem")
-write_csv(qgcomp_weights, "E:/BBK17/pj/data_2023apr/results/qgcomp/lasso_pos_14chem/chem_weight.csv")
+qgcomp_weights <- extract_weights("E:/BBK17/pj/data_2023apr/results/qgcomp/gcomp_29chem")
+write_csv(qgcomp_weights, "E:/BBK17/pj/data_2023apr/results/qgcomp/gcomp_29chem/chem_weight.csv")
 ```
 
 # load chemical weights
@@ -345,13 +373,18 @@ neg_assn<- read_csv("E:/BBK17/pj/data_2023apr/results/qgcomp/lasso_15chem/chem_w
 pos_assn<- read_csv("E:/BBK17/pj/data_2023apr/results/qgcomp/lasso_pos_14chem/chem_weight.csv")
 ```
 
-#visualize chemical weights
+#data prep for visualization
 ```{r}
-dat<- pos_assn |> 
+dat <- qgcomp_weights |> 
   mutate(file_name = str_remove(file_name, "nb_")) |>
   separate(file_name, c("gender", "cohort", "wppsi", "outcome"), sep = "_") |>
   mutate(weight= if_else(direction=="neg", weight*-1, weight),
-         chemical=gsub("log_", "", chemical))
+         chemical=gsub("log_", "", chemical),
+         outcome = str_to_upper(outcome),
+         cohort = fct_recode(cohort, "Pooled" = "all",
+                             "HOME" = "home",
+                             "MIREC" = "mirec"),
+         gender =fct_recode(gender, "All"= "all"))
 
 # specify the order of levels in a factor variable
 dat$chemical <- factor(dat$chemical,
@@ -359,22 +392,26 @@ dat$chemical <- factor(dat$chemical,
                                  "PFHxS", "PFOA", "PFOS", "BCEtP", "BDCPP", "DBuP", "DPhP", "TCS", "BPA", "MBP",
                                  "MBZP", "MCPP", "sigma_DEHP", "MEP", "MIBP", "di_Ethyl_OP", "di_Methyl_OP", 
                                  "B_PB", "M_PB", "P_PB"))
+```
 
-ggplot(dat, aes(x = outcome, y = chemical, fill = weight))+
+
+#visualize chemical weights
+```{r}
+ggplot(dat, aes( y = chemical, x=cohort, fill = weight))+
   geom_tile()+
   geom_text(aes(label = round(weight, 3)), 
             color = "black", size = 3, fontface = "bold", show.legend = FALSE)+
   labs(x = "", y = "", fill = "weight")+
-  facet_grid(.~gender*cohort, scales = "free_y", space = "free_y", switch = "both")+
+  facet_grid(~outcome+gender, scales = "free_y", space = "free_y", switch = "both")+
   theme_bw()+
-  theme(axis.text=element_text(size=12), 
-        axis.title=element_text(size=12,face="bold"),
-        strip.text = element_text(size=12),
+  theme(axis.text=element_text(size=11), 
+        axis.title=element_text(size=11,face="bold"),
+        strip.text = element_text(size=11),
         panel.grid.minor = element_blank(),
         panel.grid.major = element_blank(),
         panel.grid.major.y = element_blank(),
-        axis.text.x = element_text(angle = 0, hjust = 1, vjust = 1, size = 12),
-        axis.text.y = element_text(size = 12), 
+        axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1, size = 11),
+        axis.text.y = element_text(size = 11), 
         panel.spacing.x=unit(0.02, "lines"),
         panel.spacing.y=unit(0.02, "lines"),
         strip.text.y = element_blank())+
@@ -383,9 +420,15 @@ ggplot(dat, aes(x = outcome, y = chemical, fill = weight))+
                        midpoint = 0, name = "Weight",
                        guide = guide_colorbar(title.position = "top",
                                               title.hjust = 0.5))
-  
+
 ```
 
+#export figure
+```{r}
+ggsave("E:/BBK17/pj/data_2023apr/results/qgcomp/gcomp_29chem/gcomp_29chem_weight.tiff", 
+       width = 11,height = 6,
+       dpi=300)
+```
 
 
 

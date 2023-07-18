@@ -17,6 +17,7 @@ dat<- read_csv(paste0(path, "wppsi_f_analy.csv"))
 dat<- dat |>
   mutate_if(is.numeric, round, 4) |>
   clean_names() |>
+  mutate(pb = if_else(cohort == "1", pb * 10, pb)) |>
   rename(Pb=pb, Hg=hg, DMA=dma, DDE= dde, PBDE_47 = pbde47,
          PCB_118=pcb118, PCB_138=pcb138, PCB_153=pcb153,
          PCB_180=pcb180, PFHxS=pfhxs, PFOA=pfoa, PFOS=pfos,
@@ -150,13 +151,20 @@ lm_reas<- lm_func(dependent_vars = c("wppsi_fsiq", "wppsi_viq", "wppsi_piq"),
 write_csv(lm_reas, "E:/BBK17/pj/data_2023apr/results/lm/lm_single_chem.csv")
 ```
 
-
-# visualization of lm results
+#data prep for visualization
 ```{r}
 dat_lm_res<- lm_reas |>
   rename(chemical="independent_variable", outcome="dependent_variable")|>
   mutate(p_sig= if_else(p_value<0.05, "sig", "non_sig"),
-         chemical=gsub("log_", "", chemical))
+         chemical=gsub("log_", "", chemical),
+         cohort_level = fct_recode(cohort_level, "Pooled" = "all",
+                             "HOME" = "home",
+                             "MIREC" = "mirec"),
+         sex_level =fct_recode(sex_level, "All"= "all"),
+         outcome =fct_recode(outcome, "FSIQ"= "wppsi_fsiq",
+                             "VIQ" = "wppsi_viq",
+                             "PIQ" = "wppsi_piq"))
+  
 
 # specify the order of levels in a factor variable
 dat_lm_res$chemical <- factor(dat_lm_res$chemical,
@@ -164,14 +172,18 @@ dat_lm_res$chemical <- factor(dat_lm_res$chemical,
                                  "PFHxS", "PFOA", "PFOS", "BCEtP", "BDCPP", "DBuP", "DPhP", "TCS", "BPA", "MBP",
                                  "MBZP", "MCPP", "sigma_DEHP", "MEP", "MIBP", "di_Ethyl_OP", "di_Methyl_OP", 
                                  "B_PB", "M_PB", "P_PB"))
+```
 
-ggplot(dat_lm_res, aes(x = outcome  , y = chemical, fill = coefficient))+
+
+# visualization of lm results
+```{r}
+ggplot(dat_lm_res, aes(x = cohort_level  , y = chemical, fill = coefficient))+
   geom_tile()+
-  geom_text(aes(label = round(coefficient, 3),
+  geom_text(aes(label = round(coefficient, 2),
                 fontface = ifelse(p_sig == "sig", "bold", "plain")),
             color = "black", size = 3, show.legend = FALSE) +
   labs(x = "", y = "", fill = "coefficient")+
-  facet_grid(.~sex_level*cohort_level, scales = "free_y", space = "free_y", switch = "both")+
+  facet_grid(.~outcome+sex_level, scales = "free_y", space = "free_y", switch = "both")+
   theme_bw()+
   theme(axis.text=element_text(size=10), 
         axis.title=element_text(size=10,face="bold"),
@@ -193,4 +205,10 @@ ggplot(dat_lm_res, aes(x = outcome  , y = chemical, fill = coefficient))+
 
 ```
 
+#export lm visualization
+```{r}
+ggsave("E:/BBK17/pj/data_2023apr/results/lm/lm_coef.tiff", 
+       width = 11,height = 6,
+       dpi=300)
+```
 

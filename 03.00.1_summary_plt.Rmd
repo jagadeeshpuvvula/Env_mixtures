@@ -29,9 +29,9 @@ dt<- dat |>
   clean_names() |>
   rename(sigma_DEHP=dehp, di_Ethyl_OP=op_de, di_Methyl_OP=op_dm, city=center,
          mom_edu_cat=edu3)|>
-  rename_at(vars(4:33), toupper) |>
+  rename_at(vars(4:33, 43:45), toupper) |>
   mutate(cohort = ifelse(cohort == "1", "HOME", "MIREC")) |>
-  select(1,2, 4:32) |>
+  select(1,2, 4:32, 43:45) |>
   pivot_longer(cols = -c(1,2), names_to = "measure", values_to = "value") 
 
 #plot formatting
@@ -76,7 +76,7 @@ st<- st |> left_join(bel_lod, by=c("measure", "cohort"))
 define groups
 ```{r, echo=FALSE, message=FALSE}
 group_dict <- list(
-  "Outcome" = c("wppsi_fsiq", "wppsi_piq", "wppsi_viq"),
+  "Outcome" = c("WPPSI_FSIQ", "WPPSI_PIQ", "WPPSI_VIQ"),
   "Metals" = c("PB", "HG", "DMA"),
   "POPs" = c("DDE", "PBDE47", "PCB118", "PCB138", "PCB153", "PCB180"),
   "PFAS" = c("PFHXS", "PFOA", "PFOS"),
@@ -349,19 +349,16 @@ op_pest<-ggplot(dt_op_pest, aes(y = as.factor(cohort), x = median, xmin = q25, x
 
 outcome
 ```{r, echo=FALSE, message=FALSE}
-dt_outcome<- dt |> filter(group=="Outcome")
+dt_outcome<- st |> filter(group=="Outcome")
 
 outcome_mean <- dt_outcome |> 
   group_by(measure) |> 
   summarize(mean_val = mean(median))
 
-outcome<-ggplot(dt_outcome, aes(y = as.factor(cohort), x = median, xmin = q25, xmax = q75))+ 
+outcome<-ggplot(dt_outcome, aes(y = as.factor(cohort), x = median, xmin = q25, xmax = q75)) + 
   geom_pointrange(aes(col = cohort), position=position_dodge(width=1),size = 1) +
     scale_color_manual(values = c("HOME" = "#0072B2", 
                                   "MIREC" = "#D55E00", "Pooled" = "#000000"))+
-  geom_text(aes(label = ifelse(cohort == "HOME", "H", ifelse(cohort == "MIREC", "M", "P"))), 
-              color = "white", size =4, nudge_y = 0.01, fontface = "bold") +
-  geom_text(aes(label = round(pct_lod, 1), vjust = -1, color = "black", size=3)) + 
     ylab("") +
     ggtitle("")+
     xlab("")+
@@ -384,12 +381,14 @@ outcome<-ggplot(dt_outcome, aes(y = as.factor(cohort), x = median, xmin = q25, x
 ```{r, echo=FALSE, message=FALSE, fig.height=12, fig.width=12, dpi=300}
 merged_plt<- plot_grid(metal, pops,pfas,
           paraben,opfr,tcs_bpa,
-          op_pest,phthalate, 
+          op_pest,phthalate, outcome,
           labels = c("Metals (ng/ml)", "POPs (ng/g lipid)", 
                      "PFAS (ng/ml)", 
                      "Parabens (ng/ml)", "OPFR (ng/ml)", "TCS & BPA (ng/ml)",
                      "OP_Pesticides (ng/ml)", "Phthalates (ng/ml)", "WPPSI-Scale"),
-          rel_widths = c(1.7,1.8,1.6,1.7,1.8,1.6,1.6,1.8,1.6),
+          rel_widths = c(1.6,1.8,1.6,
+                         1.6,1.8,1.6,
+                         1.6,1.8,1.6),
           label_size = 10,
           nrow = 3,
           ncol = 3)

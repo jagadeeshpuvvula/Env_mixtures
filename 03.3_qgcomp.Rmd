@@ -16,8 +16,17 @@ pacman::p_load(tidyverse, janitor, qgcomp)
 path <- "E:/BBK17/pj/data_2023apr/obs_w_outcome/"
 
 dat<- read_csv(paste0(path, "wppsi_f_analy.csv"))
+```
+
+#Sensitivity analysis: Remove WISC suppliment
+```{r}
+rm_wppsi<- read_csv("E:/BBK17/pj/data_2023apr/only_wppsi_filter/only_wppsi.csv")
+
+dat <- dat %>%
+  filter(cohort != "1" | subject_id %in% rm_wppsi$subject_id)
 
 ```
+
 
 ```{r, echo=FALSE, message=FALSE}
 dat<- dat |>
@@ -46,12 +55,6 @@ dat<- dat |>
                          "parity_n", "mom_edu_cat")), as.factor))
 
 ```
-
-#for sensitivity remove WISC supplemented data
-```{r}
-
-```
-
 
 
 for 29 chemicals
@@ -104,6 +107,8 @@ dat <- dat |>
 
 mixture<- names(dat[c(1:14)])
 ```
+
+
 
 #function to loop qgcomp
 ```{r}
@@ -172,12 +177,10 @@ qgcomp_func <- function(outcomes, dat, output_folder, chemicals, covariates,
 #run this function to get all results at a folder 
 ```{r}
 qgcomp_func(outcomes = c("wppsi_fsiq", "wppsi_viq", "wppsi_piq"), 
-            output_folder = "E:/BBK17/pj/data_2023apr/results/qgcomp/gcomp_29chem", 
+            output_folder = "E:/BBK17/pj/data_2023apr/results/qgcomp/lasso_pos_14chem_wo_wisc", 
             include_sex = TRUE, include_cohort = TRUE, 
-            chemicals = "~log_Pb+log_Hg+log_DMA+log_DDE+log_PBDE_47+log_PCB_118+log_PCB_138+log_PCB_153+
-            log_PCB_180+log_PFHxS+log_PFOA+log_PFOS+log_BCEtP+log_BDCPP+log_DBuP+log_DPhP+log_TCS+log_BPA+
-            log_MBP+log_MBZP+log_MCPP+log_sigma_DEHP+log_MEP+log_MIBP+log_di_Ethyl_OP+
-            log_di_Methyl_OP+log_B_PB+log_M_PB+log_P_PB+",
+            chemicals = "~log_Hg+log_DMA+log_DDE+log_PCB_118+log_PCB_180+log_PFOA+log_PFOS+log_BCEtP+
+            log_DBuP+log_sigma_DEHP+log_MIBP+log_di_Methyl_OP+log_B_PB+log_M_PB+",
             covariates= "race_bin + log_cotinine +mom_edu_cat + home_score_total + parity_n + mom_age",
             dat = dat)
 ```
@@ -185,9 +188,6 @@ qgcomp_func(outcomes = c("wppsi_fsiq", "wppsi_viq", "wppsi_piq"),
 
 #function to compile estimates and CI from rda files
 ```{r}
-# set the folder location
-#folder_location <- "E:/BBK17/pj/data_2023apr/results/qgcomp/lasso_pos_14chem"
-
 get_gcomp_estimates<- function(results_folder) {
   # get the file names in the folder
   file_names <- list.files(results_folder)
@@ -248,9 +248,9 @@ get_gcomp_estimates<- function(results_folder) {
 
 #extract and export results
 ```{r}
-results<- get_gcomp_estimates(results_folder = "E:/BBK17/pj/data_2023apr/results/qgcomp/gcomp_29chem")
+results<- get_gcomp_estimates(results_folder = "E:/BBK17/pj/data_2023apr/results/qgcomp/lasso_pos_14chem_wo_wisc")
 
-write_csv(results, "E:/BBK17/pj/data_2023apr/results/qgcomp/gcomp_29chem/r_obj_summ.csv")
+write_csv(results, "E:/BBK17/pj/data_2023apr/results/qgcomp/lasso_pos_14chem_wo_wisc/r_obj_summ.csv")
 ```
 
 #data prep for visualizing estimates and CI
@@ -311,7 +311,7 @@ ggplot(res, aes(x = as.factor(cohort), y = estimate, ymin = lower_ci, ymax = upp
 
 #export figure
 ```{r}
-ggsave("E:/BBK17/pj/data_2023apr/results/qgcomp/gcomp_29chem/gcomp_29chem_plot.tiff", 
+ggsave("E:/BBK17/pj/data_2023apr/results/qgcomp/lasso_pos_14chem_wo_wisc/lasso_pos_14chem_wo_wisc_plot.tiff", 
        width = 8.5,height = 6,
        dpi=300)
 ```
@@ -363,8 +363,8 @@ extract_weights <- function(folder_location) {
 
 #extract chemical weights 
 ```{r}
-qgcomp_weights <- extract_weights("E:/BBK17/pj/data_2023apr/results/qgcomp/gcomp_29chem")
-write_csv(qgcomp_weights, "E:/BBK17/pj/data_2023apr/results/qgcomp/gcomp_29chem/chem_weight.csv")
+qgcomp_weights <- extract_weights("E:/BBK17/pj/data_2023apr/results/qgcomp/lasso_pos_14chem_wo_wisc")
+write_csv(qgcomp_weights, "E:/BBK17/pj/data_2023apr/results/qgcomp/lasso_pos_14chem_wo_wisc/chem_weight.csv")
 ```
 
 # load chemical weights

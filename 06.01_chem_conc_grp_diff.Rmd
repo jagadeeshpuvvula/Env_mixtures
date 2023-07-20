@@ -34,8 +34,7 @@ dat<- dat |>
           MCPP, sigma_DEHP, MEP, MIBP, di_Ethyl_OP, di_Methyl_OP, 
           B_PB, M_PB, P_PB, cotinine, home_score_total, mom_age, 
           cohort, city, sex, race_bin,  mom_edu_cat, parity_n, 
-           wppsi_fsiq, wppsi_viq, wppsi_piq,)) |>
-  select(1:41) |>
+           wppsi_fsiq, wppsi_viq, wppsi_piq)) |>
   drop_na()|>
   mutate_at(vars(1:30), ~log10(.+0.0000001))
 ```
@@ -73,7 +72,7 @@ group_diff_lm <- function(data, continuous_vars, group_var, folder_location) {
 
 ```{r}
 group_diff_lm(data=dat,
-              continuous_vars = colnames(dat)[c(1:32, 39:40)],
+              continuous_vars = colnames(dat)[c(1:32, 39:41)],
               group_var = "cohort",
               folder_location = "E:/BBK17/pj/data_2023apr/results/grp_diff")
 ```

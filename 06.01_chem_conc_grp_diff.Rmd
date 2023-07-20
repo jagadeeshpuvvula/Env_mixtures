@@ -46,7 +46,7 @@ dat<- dat |>
 group_diff_lm <- function(data, continuous_vars, group_var, folder_location) {
   
   # Create a new dummy variable for cohort groups
-  data$cohort_dummy <- ifelse(data[[group_var]] == "1", 0, 1) #HOME as reference group
+  data$cohort_dummy <- ifelse(data[[group_var]] == "2", 0, 1) #MIREC as reference group
   
   # Perform linear regression for each continuous variable against the cohort_dummy
   results <- lapply(continuous_vars, function(var) {

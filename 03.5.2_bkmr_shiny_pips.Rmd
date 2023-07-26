@@ -9,6 +9,8 @@ output: pdf_document
 library(pacman)
 pacman::p_load(tidyverse, janitor, shiny)
 ```
+#skip until line 41 - data formatted and exported 
+
 
 # Shiny data format
 ```{r}
@@ -40,7 +42,7 @@ write_csv(pip_df, "E:/BBK17/pj/data_2023apr/results/bkmr/bkmr_pips.csv")
 pip_df<- read_csv("E:/BBK17/pj/data_2023apr/results/bkmr/bkmr_pips.csv")
 ```
 
-#shiny page layout
+#shiny user interface
 ```{r}
 # Define the UI
 ui <- fluidPage(
@@ -76,7 +78,7 @@ ui <- fluidPage(
 
 ```
 
-#page format
+#function for dynamic tables
 ```{r}
 server <- function(input, output) {
   
@@ -129,7 +131,6 @@ server <- function(input, output) {
   })
   
 }
-
 ```
 
 #launch page

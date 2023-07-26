@@ -1,0 +1,139 @@
+---
+title: "03.5.2_bkmr_shiny_pips"
+author: "Jagadeesh Puvvula"
+date: "2023-07-26"
+output: pdf_document
+---
+
+```{r, echo=FALSE, message=FALSE}
+library(pacman)
+pacman::p_load(tidyverse, janitor, shiny)
+```
+
+# Shiny data format
+```{r}
+pos_pip_df<- read_csv("E:/BBK17/pj/data_2023apr/results/bkmr/lasso_pos14chem/lasso_14chem.csv") |>
+  mutate(chemical_set="LASSO_PCS")
+
+neg_pip_df<- read_csv("E:/BBK17/pj/data_2023apr/results/bkmr/lasso_15chem/lasso_neg_pips.csv")|>
+  mutate(chemical_set="LASSO_NCS")
+
+all_chem_pip_df<- read_csv("E:/BBK17/pj/data_2023apr/results/bkmr/29_chem/29_chem.csv") |>
+  mutate(chemical_set="All_29_chemicals")
+
+pip_df<- bind_rows(pos_pip_df, neg_pip_df, all_chem_pip_df) |>
+  mutate(comps = str_remove(file_name, "bkmr_")) |>
+  separate(comps, c("gender", "cohort", "wppsi", "outcome"), sep = "_") |>
+  mutate(outcome=toupper(outcome),
+         cohort = recode(cohort, "all" = "Pooled","home" = "HOME","mirec" = "MIREC"),
+         gender = recode(gender, "all" = "Pooled","male" = "Male","female" = "Female"))|>
+  rename(Chemical_group = "group", Environmental_chemical = "variable")
+
+remove(pos_pip_df, neg_pip_df, all_chem_pip_df)
+
+write_csv(pip_df, "E:/BBK17/pj/data_2023apr/results/bkmr/bkmr_pips.csv")
+```
+
+
+#read data to generate the page
+```{r}
+pip_df<- read_csv("E:/BBK17/pj/data_2023apr/results/bkmr/bkmr_pips.csv")
+```
+
+#shiny page layout
+```{r}
+# Define the UI
+ui <- fluidPage(
+  titlePanel("Prenatal exposure to environmental chemicals and early-age cognitive abilities: A pooled cohort study"),
+  sidebarLayout(
+    sidebarPanel(
+      selectInput("chemical_set", "Select a chemical set:",
+                  choices = unique(pip_df$chemical_set)),
+      selectInput("outcome", "Select an outcome:",
+                  choices = unique(pip_df$outcome)),
+      selectInput("gender", "Select a gender:",
+                  choices = unique(pip_df$gender)),
+      selectInput("cohort", "Select a cohort:",
+                  choices = unique(pip_df$cohort))
+    ),
+    mainPanel(
+      fluidRow(
+        column(12,
+               tableOutput("table")
+        )
+      ),
+      fluidRow(
+        column(6,
+               actionButton("sort_groupPIP", "Sort by GroupPIP"),
+        ),
+        column(6,
+               actionButton("sort_condPIP", "Sort by CondPIP")
+        )
+      )
+    )
+  )
+)
+
+```
+
+#page format
+```{r}
+server <- function(input, output) {
+  
+  # Filter the data based on the input values
+  filtered_df <- reactive({
+    pip_df %>%
+      filter(
+        chemical_set == input$chemical_set,
+        outcome == input$outcome,
+        gender == input$gender,
+        cohort == input$cohort
+      ) %>%
+      select(Environmental_chemical, Chemical_group, groupPIP, condPIP)
+  })
+  
+  # Generate the output table
+  output$table <- renderTable({
+    df <- filtered_df()
+    df$Chemical_group <- sapply(df$Chemical_group, function(x) {
+      paste0(x)
+    })
+    df
+  }, sanitize.text.function = function(x) x)
+  
+  # Sort the data by groupPIP
+  sorted_df_groupPIP <- eventReactive(input$sort_groupPIP, {
+    df <- filtered_df()
+    df <- df[order(df$groupPIP), ]
+    df
+  })
+  
+  # Sort the data by condPIP
+  sorted_df_condPIP <- eventReactive(input$sort_condPIP, {
+    df <- filtered_df()
+    df <- df[order(df$condPIP), ]
+    df
+  })
+  
+  # Update the output table based on the sort buttons
+  observeEvent(input$sort_groupPIP, {
+    output$table <- renderTable({
+      sorted_df_groupPIP()
+    }, sanitize.text.function = function(x) x)
+  })
+  
+  observeEvent(input$sort_condPIP, {
+    output$table <- renderTable({
+      sorted_df_condPIP()
+    }, sanitize.text.function = function(x) x)
+  })
+  
+}
+
+```
+
+#launch page
+```{r}
+shinyApp(ui = ui, server = server)
+```
+

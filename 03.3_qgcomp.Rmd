@@ -22,7 +22,7 @@ dat<- read_csv(paste0(path, "wppsi_f_analy.csv"))
 ```{r}
 rm_wppsi<- read_csv("E:/BBK17/pj/data_2023apr/only_wppsi_filter/only_wppsi.csv")
 
-dat <- dat %>%
+dat <- dat |>
   filter(cohort != "1" | subject_id %in% rm_wppsi$subject_id)
 
 ```
@@ -71,17 +71,6 @@ dat <- dat |>
 mixture<- names(dat[c(1:29)])
 ```
 
-for 16 chemicals
-```{r}
-dat <- dat |>
-  select(c(1,2,4:9,19:24,28:41)) |>
-  drop_na()|>
-  mutate_at(vars(1:17), ~log10(.+0.0000001)) |>
-  rename_with(~ paste0("log_", .x), 1:17) |>
-  drop_na()
-
-mixture<- names(dat[c(1:16)])
-```
 
 for group lasso assist - 15 chemicals negtive coef -grpreg
 ```{r}
@@ -114,15 +103,13 @@ mixture<- names(dat[c(1:14)])
 ```{r}
 #for 29 chemicals: log_Pb+log_Hg+log_DMA+log_DDE+log_PBDE_47+log_PCB_118+log_PCB_138+log_PCB_153+log_PCB_180+log_PFHxS+log_PFOA+log_PFOS+log_BCEtP+log_BDCPP+log_DBuP+log_DPhP+log_TCS+log_BPA+log_MBP+log_MBZP+log_MCPP+log_sigma_DEHP+log_MEP+log_MIBP+log_di_Ethyl_OP+log_di_Methyl_OP+log_B_PB+log_M_PB+log_P_PB+
 
-#for 16 chemicals: log_Pb+log_Hg+log_DDE+log_PBDE_47++log_PCB_138+log_PCB_153+log_PCB_180+log_MBP+log_MBZP+log_MCPP+log_sigma_DEHP+log_MEP+log_MIBP+log_M_PB+log_P_PB+
-
 #group lasso assist (negative coefficients -selected by grpreg)-15 chemicals: log_Pb+log_PBDE_47+log_PCB_138+log_PCB_153+log_PFHxS+log_BDCPP+log_DPhP+log_TCS+log_BPA+log_MBP+log_MBZP+log_MCPP+log_MEP+log_di_Ethyl_OP+log_P_PB+
 
 ##group lasso assist (positive coefficients -selected by grpreg)- chemicals: log_Hg+log_DMA+log_DDE+log_PCB_118+log_PCB_180+log_PFOA+log_PFOS+log_BCEtP+log_DBuP+log_sigma_DEHP+log_MIBP+log_di_Methyl_OP+log_B_PB+log_M_PB+
 
 
 qgcomp_func <- function(outcomes, dat, output_folder, chemicals, covariates, 
-                        include_sex = TRUE, include_cohort = TRUE) {
+                        include_sex = TRUE, include_cohort = TRUE, q) {
  
   for (sex_level in c("all", "Female", "Male")) {
     if (include_sex) {
@@ -164,8 +151,8 @@ qgcomp_func <- function(outcomes, dat, output_folder, chemicals, covariates,
       for(outcome in outcomes){
         formula <- as.formula(paste(outcome, chemicals, sex_formula, cohort_formula, covariates))
        
-        nb <- qgcomp.noboot(formula, expnms = mixture, data = cohort_data, family= gaussian(), q=10)
-        boot <- qgcomp.boot(formula, expnms = mixture, data = cohort_data, family= gaussian(), q=10, B = 400, seed = 2022)
+        nb <- qgcomp.noboot(formula, expnms = mixture, data = cohort_data, family= gaussian(), q=q)
+        boot <- qgcomp.boot(formula, expnms = mixture, data = cohort_data, family= gaussian(), q=q, B = 400, seed = 2022)
         save(nb, file = paste0(output_folder, "/", "nb_", filename_prefix, "_", outcome, ".rda"))
         save(boot, file = paste0(output_folder, "/", "boot_", filename_prefix, "_", outcome, ".rda"))
       }
@@ -174,16 +161,48 @@ qgcomp_func <- function(outcomes, dat, output_folder, chemicals, covariates,
 }
 ```
 
-#run this function to get all results at a folder 
+#for analyzing 29 cheimcals
 ```{r}
 qgcomp_func(outcomes = c("wppsi_fsiq", "wppsi_viq", "wppsi_piq"), 
-            output_folder = "E:/BBK17/pj/data_2023apr/results/qgcomp/lasso_pos_14chem_wo_wisc", 
+            output_folder = "E:/BBK17/pj/data_2023apr/results/qgcomp/qgcomp_29chem_wo_wisc", 
             include_sex = TRUE, include_cohort = TRUE, 
-            chemicals = "~log_Hg+log_DMA+log_DDE+log_PCB_118+log_PCB_180+log_PFOA+log_PFOS+log_BCEtP+
-            log_DBuP+log_sigma_DEHP+log_MIBP+log_di_Methyl_OP+log_B_PB+log_M_PB+",
+            chemicals = "~log_Pb+log_Hg+log_DMA+log_DDE+log_PBDE_47+log_PCB_118+
+            log_PCB_138+log_PCB_153+log_PCB_180+log_PFHxS+log_PFOA+log_PFOS+
+            log_BCEtP+log_BDCPP+log_DBuP+log_DPhP+log_TCS+log_BPA+log_MBP+
+            log_MBZP+log_MCPP+log_sigma_DEHP+log_MEP+log_MIBP+log_di_Ethyl_OP+
+            log_di_Methyl_OP+log_B_PB+log_M_PB+log_P_PB+",
             covariates= "race_bin + log_cotinine +mom_edu_cat + home_score_total + parity_n + mom_age",
+            q=4,
             dat = dat)
 ```
+
+#for NCS chemicals - 15 chemicals
+```{r}
+qgcomp_func(outcomes = c("wppsi_fsiq", "wppsi_viq", "wppsi_piq"), 
+            output_folder = "E:/BBK17/pj/data_2023apr/results/qgcomp/qgcomp_ncs_wo_wisc", 
+            include_sex = TRUE, include_cohort = TRUE, 
+            chemicals = "~log_Pb+log_PBDE_47+log_PCB_138+log_PCB_153+
+            log_PFHxS+log_BDCPP+log_DPhP+log_TCS+log_BPA+log_MBP+log_MBZP+
+            log_MCPP+log_MEP+log_di_Ethyl_OP+log_P_PB+",
+            covariates= "race_bin + log_cotinine +mom_edu_cat + home_score_total + parity_n + mom_age",
+            q=4,
+            dat = dat)
+```
+
+
+#for PCS chemicals - 14 chemicals
+```{r}
+qgcomp_func(outcomes = c("wppsi_fsiq", "wppsi_viq", "wppsi_piq"), 
+            output_folder = "E:/BBK17/pj/data_2023apr/results/qgcomp/qgcomp_pcs_wo_wisc", 
+            include_sex = TRUE, include_cohort = TRUE, 
+            chemicals = "~log_Hg+log_DMA+log_DDE+log_PCB_118+log_PCB_180+
+            log_PFOA+log_PFOS+log_BCEtP+log_DBuP+log_sigma_DEHP+log_MIBP+
+            log_di_Methyl_OP+log_B_PB+log_M_PB+",
+            covariates= "race_bin + log_cotinine +mom_edu_cat + home_score_total + parity_n + mom_age",
+            q=4,
+            dat = dat)
+```
+
 
 
 #function to compile estimates and CI from rda files
@@ -248,16 +267,21 @@ get_gcomp_estimates<- function(results_folder) {
 
 #extract and export results
 ```{r}
-results<- get_gcomp_estimates(results_folder = "E:/BBK17/pj/data_2023apr/results/qgcomp/lasso_pos_14chem_wo_wisc")
+#29-chem: E:/BBK17/pj/data_2023apr/results/qgcomp/gcomp_29chem
+#NCS: E:/BBK17/pj/data_2023apr/results/qgcomp/qgcomp_ncs
+#PCS: E:/BBK17/pj/data_2023apr/results/qgcomp/qgcomp_pcs
 
-write_csv(results, "E:/BBK17/pj/data_2023apr/results/qgcomp/lasso_pos_14chem_wo_wisc/r_obj_summ.csv")
+results<- get_gcomp_estimates(results_folder = "E:/BBK17/pj/data_2023apr/results/qgcomp/qgcomp_pcs_wo_wisc")
+
+write_csv(results, "E:/BBK17/pj/data_2023apr/results/qgcomp/qgcomp_pcs_wo_wisc/r_obj_summ.csv")
 ```
 
 #data prep for visualizing estimates and CI
 ```{r}
 res<- results |>
   rename(bootstrap=boot_strp) |>
-  mutate(p_value = if_else(p_value <= 0.05, "<0.05", ">0.05")) |>
+  mutate(p_value = if_else(p_value <= 0.05, "<0.05", ">0.05"),
+         ci_null = (lower_ci <=0 & upper_ci >=0)) |>
   mutate(cohort = fct_recode(as.factor(cohort), Pooled = "all", HOME = "home", MIREC = "mirec")) |>
   mutate(outcome = fct_recode(as.factor(outcome), FSIQ = "fsiq", VIQ = "viq", PIQ = "piq")) |>
   mutate(gender = fct_recode(as.factor(gender), All = "all", Female = "Female", Male = "Male")) |>
@@ -265,6 +289,7 @@ res<- results |>
   filter(abs(lower_ci) <= 40 & abs(upper_ci) <= 40)
 
 res$cohort<- factor(res$cohort, levels = c("Pooled", "HOME", "MIREC"))
+res$bootstrap<- factor(res$bootstrap, levels = c("Yes", "No"))
 
 cbbPalette <- c("#D55E00", "#0072B2")
 ```
@@ -272,12 +297,12 @@ cbbPalette <- c("#D55E00", "#0072B2")
 #visualizing estimates and CI
 ```{r, echo=FALSE, message=FALSE, fig.height=4, fig.width=6, dpi=300}
 ggplot(res, aes(x = as.factor(cohort), y = estimate, ymin = lower_ci, ymax = upper_ci)) + 
-  geom_pointrange(aes(col = as.factor(p_value), shape=bootstrap), 
+  geom_pointrange(aes(col = as.factor(ci_null), shape=bootstrap), 
                   position=position_dodge(width=0.5),size = 0.6) +
   geom_hline(aes(yintercept = 0), linetype="dashed") + 
   scale_colour_manual(values=cbbPalette) +
   labs(x=NULL,
-       y=expression(paste(beta[q-gcomp]," [95% CI]")),
+       y=expression(paste(beta[Q-gcomp]," [95% CI]")),
        title = "",
        caption = "")+
   theme_bw()+
@@ -304,14 +329,18 @@ ggplot(res, aes(x = as.factor(cohort), y = estimate, ymin = lower_ci, ymax = upp
         legend.text = element_text(size = 8),
         legend.key = element_blank(),
         legend.key.height = unit(3, "mm"))+
-  guides(col=guide_legend(title = "P-value"),
+  guides(col="none",
          shape=guide_legend(title = "Bootstrap"))+
   facet_grid(gender~outcome, scales = "free", switch = "x", space = "free_x")
 ```
 
 #export figure
 ```{r}
-ggsave("E:/BBK17/pj/data_2023apr/results/qgcomp/lasso_pos_14chem_wo_wisc/lasso_pos_14chem_wo_wisc_plot.tiff", 
+#29-chem: E:/BBK17/pj/data_2023apr/results/qgcomp/gcomp_29chem
+#NCS: E:/BBK17/pj/data_2023apr/results/qgcomp/qgcomp_ncs
+#PCS: E:/BBK17/pj/data_2023apr/results/qgcomp/qgcomp_pcs
+
+ggsave("E:/BBK17/pj/data_2023apr/results/qgcomp/qgcomp_pcs_wo_wisc/qgcomp_pcs_wo_wisc.tiff", 
        width = 8.5,height = 6,
        dpi=300)
 ```
@@ -363,8 +392,10 @@ extract_weights <- function(folder_location) {
 
 #extract chemical weights 
 ```{r}
-qgcomp_weights <- extract_weights("E:/BBK17/pj/data_2023apr/results/qgcomp/lasso_pos_14chem_wo_wisc")
-write_csv(qgcomp_weights, "E:/BBK17/pj/data_2023apr/results/qgcomp/lasso_pos_14chem_wo_wisc/chem_weight.csv")
+#29-chem: E:/BBK17/pj/data_2023apr/results/qgcomp/gcomp_29chem
+
+qgcomp_weights <- extract_weights("E:/BBK17/pj/data_2023apr/results/qgcomp/qgcomp_pcs_wo_wisc")
+write_csv(qgcomp_weights, "E:/BBK17/pj/data_2023apr/results/qgcomp/qgcomp_pcs_wo_wisc/chem_weight.csv")
 ```
 
 # load chemical weights
@@ -414,18 +445,21 @@ ggplot(dat, aes( y = chemical, x=cohort, fill = weight))+
         axis.text.y = element_text(size = 11), 
         panel.spacing.x=unit(0.02, "lines"),
         panel.spacing.y=unit(0.02, "lines"),
-        strip.text.y = element_blank())+
-  guides(fill=FALSE)+
+        strip.text.y = element_blank(),
+        legend.margin = margin(t=-10),
+        legend.position = "bottom", legend.box = "horizontal",
+        legend.key.width = unit(0.8, "cm"),
+        legend.key.height = unit(0.1, "cm"))+
   scale_fill_gradient2(low = "red", mid = "gray", high = "blue", 
-                       midpoint = 0, name = "Weight",
-                       guide = guide_colorbar(title.position = "top",
-                                              title.hjust = 0.5))
+                       midpoint = 0, name = "Chemical biomarker weight",
+                       guide = guide_colorbar(title.vjust = 1.2),
+                       breaks = c(-0.2, 0, 0.2)) 
 
 ```
 
 #export figure
 ```{r}
-ggsave("E:/BBK17/pj/data_2023apr/results/qgcomp/gcomp_29chem/gcomp_29chem_weight.tiff", 
+ggsave("E:/BBK17/pj/data_2023apr/results/qgcomp/qgcomp_pcs_wo_wisc/gcomp_pcs_wo_wisc_weight.tiff", 
        width = 11,height = 6,
        dpi=300)
 ```

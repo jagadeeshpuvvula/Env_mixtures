@@ -524,6 +524,31 @@ write_csv(pip_df, "E:/BBK17/pj/data_2023apr/results/bkmr/lasso_pos14chem/lasso_1
 ```
 
 
+#Publishing pips shiny object
+# Shiny data format
+```{r}
+pos_pip_df<- read_csv("E:/BBK17/pj/data_2023apr/results/bkmr/lasso_pos14chem/lasso_14chem.csv") |>
+  mutate(chemical_set="LASSO_PCS")
+
+neg_pip_df<- read_csv("E:/BBK17/pj/data_2023apr/results/bkmr/lasso_15chem/lasso_neg_pips.csv")|>
+  mutate(chemical_set="LASSO_NCS")
+
+all_chem_pip_df<- read_csv("E:/BBK17/pj/data_2023apr/results/bkmr/29_chem/29_chem.csv") |>
+  mutate(chemical_set="All_29_chemicals")
+
+pip_df<- bind_rows(pos_pip_df, neg_pip_df, all_chem_pip_df) |>
+  mutate(comps = str_remove(file_name, "bkmr_")) |>
+  separate(comps, c("gender", "cohort", "wppsi", "outcome"), sep = "_") |>
+  mutate(outcome=toupper(outcome),
+         cohort = recode(cohort, "all" = "Pooled","home" = "HOME","mirec" = "MIREC"),
+         gender = recode(gender, "all" = "Pooled","male" = "Male","female" = "Female"))|>
+  rename(Chemical_group = "group", Environmental_chemical = "variable")
+
+remove(pos_pip_df, neg_pip_df, all_chem_pip_df)
+
+write_csv(pip_df, "bkmr_pips.csv")
+```
+
 
 
 #for description the paper

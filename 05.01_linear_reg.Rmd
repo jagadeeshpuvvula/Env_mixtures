@@ -163,6 +163,7 @@ write_csv(lm_reas, "E:/BBK17/pj/data_2023apr/results/lm/lm_single_chem.csv")
 dat_lm_res<- lm_reas |>
   rename(chemical="independent_variable", outcome="dependent_variable")|>
   mutate(p_sig= if_else(p_value<0.05, "sig", "non_sig"),
+         ci_null = (ci_lower <=0 & ci_upper >=0),
          chemical=gsub("log_", "", chemical),
          cohort_level = fct_recode(cohort_level, "Pooled" = "all",
                              "HOME" = "home",
@@ -184,31 +185,34 @@ dat_lm_res$chemical <- factor(dat_lm_res$chemical,
 
 # visualization of lm results
 ```{r}
-ggplot(dat_lm_res, aes(x = cohort_level  , y = chemical, fill = coefficient))+
-  geom_tile()+
+ggplot(dat_lm_res, aes(x = cohort_level, y = chemical)) +
+  geom_tile(aes(fill = coefficient, alpha = ifelse(ci_null == "FALSE", 1, 0))) +
   geom_text(aes(label = round(coefficient, 2),
-                fontface = ifelse(p_sig == "sig", "bold", "plain")),
+                fontface = ifelse(ci_null == "FALSE", "bold", "plain")),
             color = "black", size = 3, show.legend = FALSE) +
-  labs(x = "", y = "", fill = "coefficient")+
-  facet_grid(.~outcome+sex_level, scales = "free_y", space = "free_y", switch = "both")+
-  theme_bw()+
-  theme(axis.text=element_text(size=10), 
-        axis.title=element_text(size=10,face="bold"),
-        strip.text = element_text(size=10),
+  labs(x = "", y = "", fill = "coefficient") +
+  facet_grid(.~outcome + sex_level, scales = "free_y", space = "free_y", switch = "both") +
+  theme_bw() +
+  theme(axis.text = element_text(size = 10), 
+        axis.title = element_text(size = 10, face = "bold"),
+        strip.text = element_text(size = 10),
         panel.grid.minor = element_blank(),
         panel.grid.major = element_blank(),
         panel.grid.major.y = element_blank(),
         axis.text.x = element_text(angle = 35, hjust = 1, vjust = 1, size = 10),
         axis.text.y = element_text(size = 10), 
-        panel.spacing.x=unit(0.02, "lines"),
-        panel.spacing.y=unit(0.02, "lines"),
-        strip.text.y = element_blank())+
-  guides(fill=FALSE)+
-  scale_fill_gradient2(low = "red", mid = "gray", high = "blue", 
-                       midpoint = 0, name = "Weight",
-                       guide = guide_colorbar(title.position = "top",
-                                              title.hjust = 0.5))
-
+        panel.spacing.x = unit(0.02, "lines"),
+        panel.spacing.y = unit(0.02, "lines"),
+        strip.text.y = element_blank(),
+        legend.position = "bottom", legend.box = "horizontal",
+        legend.key.width = unit(0.8, "cm"),
+        legend.key.height = unit(0.5, "cm")) +
+  scale_fill_gradient2(low = "red", high = "royalblue", 
+                       midpoint = 0, name = expression(beta[italic(lm)]),
+                       guide = guide_colorbar(title.position = "left",
+                                              title.hjust = 1,
+                                              title.vjust = 1)) +
+  scale_alpha_continuous(range = c(0, 1), guide = "none")  # Remove alpha legend
 
 ```
 

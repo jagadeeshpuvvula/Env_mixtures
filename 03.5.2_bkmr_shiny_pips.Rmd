@@ -7,39 +7,12 @@ output: pdf_document
 
 ```{r, echo=FALSE, message=FALSE}
 library(pacman)
-pacman::p_load(tidyverse, janitor, shiny)
+pacman::p_load(tidyverse, janitor, shiny, rsconnect)
 ```
-#skip until line 41 - data formatted and exported 
-
-
-# Shiny data format
-```{r}
-pos_pip_df<- read_csv("E:/BBK17/pj/data_2023apr/results/bkmr/lasso_pos14chem/lasso_14chem.csv") |>
-  mutate(chemical_set="LASSO_PCS")
-
-neg_pip_df<- read_csv("E:/BBK17/pj/data_2023apr/results/bkmr/lasso_15chem/lasso_neg_pips.csv")|>
-  mutate(chemical_set="LASSO_NCS")
-
-all_chem_pip_df<- read_csv("E:/BBK17/pj/data_2023apr/results/bkmr/29_chem/29_chem.csv") |>
-  mutate(chemical_set="All_29_chemicals")
-
-pip_df<- bind_rows(pos_pip_df, neg_pip_df, all_chem_pip_df) |>
-  mutate(comps = str_remove(file_name, "bkmr_")) |>
-  separate(comps, c("gender", "cohort", "wppsi", "outcome"), sep = "_") |>
-  mutate(outcome=toupper(outcome),
-         cohort = recode(cohort, "all" = "Pooled","home" = "HOME","mirec" = "MIREC"),
-         gender = recode(gender, "all" = "Pooled","male" = "Male","female" = "Female"))|>
-  rename(Chemical_group = "group", Environmental_chemical = "variable")
-
-remove(pos_pip_df, neg_pip_df, all_chem_pip_df)
-
-write_csv(pip_df, "E:/BBK17/pj/data_2023apr/results/bkmr/bkmr_pips.csv")
-```
-
 
 #read data to generate the page
 ```{r}
-pip_df<- read_csv("E:/BBK17/pj/data_2023apr/results/bkmr/bkmr_pips.csv")
+pip_df<- read_csv("bkmr_pips.csv")
 ```
 
 #shiny user interface

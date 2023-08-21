@@ -186,7 +186,7 @@ dat_lm_res$chemical <- factor(dat_lm_res$chemical,
 # visualization of lm results
 ```{r}
 ggplot(dat_lm_res, aes(x = cohort_level, y = chemical)) +
-  geom_tile(aes(fill = coefficient, alpha = ifelse(ci_null == "FALSE", 1, 0))) +
+  geom_tile(aes(fill = coefficient)) + #, alpha = ifelse(ci_null == "FALSE", 1, 0) #to remove fill color if ns
   geom_text(aes(label = round(coefficient, 2),
                 fontface = ifelse(ci_null == "FALSE", "bold", "plain")),
             color = "black", size = 3, show.legend = FALSE) +

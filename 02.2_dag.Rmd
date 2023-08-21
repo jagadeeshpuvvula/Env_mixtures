@@ -1,0 +1,67 @@
+---
+title: "02.2_dag"
+author: "Jagadeesh Puvvula"
+date: "2023-08-09"
+output: pdf_document
+---
+
+```{r}
+library(ggdag)
+library(tidyverse)
+```
+
+#Y = outcome (upsilon) ; X = exposure; L = confounder; U: unmeasured factors; M = mediator
+#L1 = race
+#L2 = maternal education
+#L3 = Maternal age at delivery
+#L4 = parity
+#L5 = Cotinine
+#L6 = child gender
+#L7 = HOME score
+#L8 = Cohort
+#L9 = City
+#U = unmeasured confounder
+```{r}
+tidy_ggdag<- dagify(
+  out ~ exp ,
+  exp ~ race + edu + coti + cohort + city,
+  out ~ sex + age + HOME + pari + cohort+ city,
+  sex ~ coti+ pari,
+  coti ~ race+ edu,
+  pari ~ race+ edu+ age ,
+  HOME ~ edu+ race,
+
+  exposure = "exp",
+  outcome = "out",
+  coords = list(x= c(exp= 3, out= 9, race= 4, edu= 5, age= 7,  pari= 7, coti= 3, sex= 9, HOME= 4, cohort= 7, city = 6),
+                y=c(exp= 2, out= 2, race= 3, edu= 3, age= 4,  pari= 6, coti= 5, sex= 8.5, HOME= 9, cohort= 0, city = 0)),
+  labels = c("out" = "Child \ncognitive \nabilities",
+             "exp" = "Prenatal \nchemical \nbiomarkers",
+             "race" = "Race",
+             "edu" = "Maternal \neducation",
+             "age" = "Maternal \nage at \ndelivery",
+             "pari" = "Parity",
+             "coti" = "Cotinine",
+             "sex" = "Child \nsex",
+             "HOME" = "HOME \nscore",
+             "cohort" = "Cohort",
+             "city" = "City",
+             "U" = "Unmeasured \nconfounder"))
+```
+
+
+```{r}
+tidy_ggdag |> ggdag_status(#controlling_for = c("coti", "HOME", "sex", "age", "pari", "race"),
+                               text=F, use_labels= "label") +
+  theme_dag()+
+  guides(color= "none", shape= "none")
+```
+
+
+```{r}
+ggsave("E:/BBK17/pj/data_2023apr/results/dag.tiff", 
+       width = 7,height = 5,
+       dpi=300)
+```
+
+

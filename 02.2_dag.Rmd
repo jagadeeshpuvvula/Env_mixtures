@@ -24,19 +24,21 @@ library(tidyverse)
 ```{r}
 tidy_ggdag<- dagify(
   out ~ exp ,
-  exp ~ race + edu + coti + cohort + city,
-  out ~ sex + age + HOME + pari + cohort+ city,
-  sex ~ coti+ pari,
+  exp ~ race + edu + coti + cohort + city+ age,
+  out ~ sex + age + HOME + pari + cohort+ city+ coti+ edu+ race,
+  #sex ~ coti+ pari,
   coti ~ race+ edu,
   pari ~ race+ edu+ age ,
   HOME ~ edu+ race,
 
   exposure = "exp",
   outcome = "out",
-  coords = list(x= c(exp= 3, out= 9, race= 4, edu= 5, age= 7,  pari= 7, coti= 3, sex= 9, HOME= 4, cohort= 7, city = 6),
-                y=c(exp= 2, out= 2, race= 3, edu= 3, age= 4,  pari= 6, coti= 5, sex= 8.5, HOME= 9, cohort= 0, city = 0)),
+  coords = list(x= c(exp= 3, out= 9, race= 4, edu= 5, age= 7,  
+                     pari= 7, coti= 3, sex= 9, HOME= 4, cohort= 7, city = 6),
+                y=c(exp= 2, out= 2, race= 6, edu= 3.5, age= 4,  pari= 6, 
+                    coti= 4, sex= 5.5, HOME= 8, cohort= 0, city = 0)),
   labels = c("out" = "Child \ncognitive \nabilities",
-             "exp" = "Prenatal \nchemical \nbiomarkers",
+             "exp" = "Prenatal \nchemical biomarkers",
              "race" = "Race",
              "edu" = "Maternal \neducation",
              "age" = "Maternal \nage at \ndelivery",
@@ -49,14 +51,12 @@ tidy_ggdag<- dagify(
              "U" = "Unmeasured \nconfounder"))
 ```
 
-
 ```{r}
 tidy_ggdag |> ggdag_status(#controlling_for = c("coti", "HOME", "sex", "age", "pari", "race"),
-                               text=F, use_labels= "label") +
-  theme_dag()+
-  guides(color= "none", shape= "none")
-```
+                               text=F, use_labels= "label", node = T) +
+  guides(color= "none", shape= "none") + theme_dag()
 
+```
 
 ```{r}
 ggsave("E:/BBK17/pj/data_2023apr/results/dag.tiff", 

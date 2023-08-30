@@ -65,37 +65,9 @@ dat <- dat |>
 dat_mirec <- dat |> filter(cohort=="2")
 ```
 
-
-#for 16 chemicals
-```{r}
-chemicals_16<- c("Pb","Hg", 
-              "DDE", "PBDE_47","PCB_118","PCB_138", "PCB_153","PCB_180",
-              "MBP","MBZP","MCPP", "sigma_DEHP","MEP","MIBP",
-              "M_PB", "P_PB")
-chem_group_16<- c(rep(1,times=2), rep(2,times=6), rep(3, times=6),
-               rep(4,times=2))
-outcomes<-c("wppsi_fsiq","wppsi_viq", "wppsi_piq")
-covariates<- c("cotinine", "home_score_total", "mom_age", "cohort",
-                           "city", "sex", "race", "mom_edu_cat", "parity_n" )
-
-# for all chemicals select 1:32
-dat <- dat |>
-  select(c(chemicals_16, covariates, outcomes)) |>
-  drop_na()|>
-  mutate_at(vars(1:17), ~log10(.+0.0000001)) |>
-  drop_na() |>
-  mutate_all(as.numeric)
-
-table(dat$sex, dat$cohort)
-
-
-dat_mirec <- dat |> filter(cohort=="2")
-```
-
-
 #grpreg LASSO with neg coef for at least one outcome: 15 chem
 ```{r}
-chemicals_15<- c("Pb", "PFHxS", "P_PB", "di_Methyl_OP",
+chemicals_15<- c("Pb", "PFHxS", "P_PB", "di_Ethyl_OP",
                  "BDCPP", "DPhP", 
                  "TCS", "BPA",
                  "PBDE_47","PCB_138","PCB_153",
@@ -290,32 +262,6 @@ bkmr_cohort(data=dat,
           include_cohort = TRUE)
 ```
 
-#16 chemicals
-```{r}
-bkmr_sex(data=dat, 
-          folder_path = "E:/BBK17/pj/data_2023apr/results/bkmr/16_chem", 
-          ln_mixture_vars= chemicals_16,
-          groups=chem_group_16,
-          outcome_vars=outcomes, 
-          covariate_vars=covariates, 
-          include_sex = TRUE)
-#gender sepcific estimates only for mirec
-bkmr_sex(data=dat_mirec, 
-          folder_path = "E:/BBK17/pj/data_2023apr/results/bkmr/16_chem/mirec_sex", 
-          ln_mixture_vars= chemicals_16,
-          groups=chem_group_16,
-          outcome_vars=outcomes, 
-          covariate_vars=covariates, 
-          include_sex = TRUE)
-
-bkmr_cohort(data=dat, 
-          folder_path = "E:/BBK17/pj/data_2023apr/results/bkmr/16_chem", 
-          ln_mixture_vars= chemicals_16,
-          groups=chem_group_16,
-          outcome_vars=outcomes, 
-          covariate_vars=covariates, 
-          include_cohort = TRUE)
-```
 
 #grpreg LASSO neg. coef: 15 chemicals
 ```{r}
@@ -494,7 +440,7 @@ ggplot(overall_risk, aes(overall_risk_df_quantile, overall_risk_df_est,
 
 #save effect estimate plots
 ```{r}
-ggsave("E:/BBK17/pj/data_2023apr/results/bkmr/29_chem/29_chem_est.tiff", 
+ggsave("E:/BBK17/pj/data_2023apr/results/bkmr/lasso_15chem/ncs_est.tiff", 
        width = 16,height = 10,
        dpi=300)
 ```
@@ -519,8 +465,8 @@ extract_pips <- function(folder_location) {
 
 # extract pips
 ```{r}
-pip_df<- extract_pips("E:/BBK17/pj/data_2023apr/results/bkmr/lasso_pos14chem")
-write_csv(pip_df, "E:/BBK17/pj/data_2023apr/results/bkmr/lasso_pos14chem/lasso_14chem.csv")
+pip_df<- extract_pips("E:/BBK17/pj/data_2023apr/results/bkmr/lasso_15chem")
+write_csv(pip_df, "E:/BBK17/pj/data_2023apr/results/bkmr/lasso_15chem/lasso_neg_pips.csv")
 ```
 
 
@@ -546,7 +492,7 @@ pip_df<- bind_rows(pos_pip_df, neg_pip_df, all_chem_pip_df) |>
 
 remove(pos_pip_df, neg_pip_df, all_chem_pip_df)
 
-write_csv(pip_df, "bkmr_pips.csv")
+write_csv(pip_df, "E:/BBK17/pj/wppsi_bkmr_pips/bkmr_pips.csv")
 ```
 
 

@@ -159,6 +159,7 @@ write_csv(lm_reas, "E:/BBK17/pj/data_2023apr/results/lm/lm_single_chem.csv")
 ```
 
 #data prep for visualization
+
 ```{r}
 dat_lm_res<- lm_reas |>
   rename(chemical="independent_variable", outcome="dependent_variable")|>
@@ -172,14 +173,18 @@ dat_lm_res<- lm_reas |>
          outcome =fct_recode(outcome, "FSIQ"= "wppsi_fsiq",
                              "VIQ" = "wppsi_viq",
                              "PIQ" = "wppsi_piq"))
-  
+
+#format chemical name apperance
+dat_lm_res<- dat_lm_res |>
+  mutate(chemical = toupper(str_replace_all(chemical, "_(?=[A-Z])", " ")),
+         chemical = str_replace_all(chemical, "_(?=[0-9])", ""))
 
 # specify the order of levels in a factor variable
 dat_lm_res$chemical <- factor(dat_lm_res$chemical,
-                      levels = c("Pb", "Hg", "DMA", "DDE", "PBDE_47", "PCB_118", "PCB_138", "PCB_153", "PCB_180",
-                                 "PFHxS", "PFOA", "PFOS", "BCEtP", "BDCPP", "DBuP", "DPhP", "TCS", "BPA", "MBP",
-                                 "MBZP", "MCPP", "sigma_DEHP", "MEP", "MIBP", "di_Ethyl_OP", "di_Methyl_OP", 
-                                 "B_PB", "M_PB", "P_PB"))
+                      levels = c("PB", "HG", "DMA", "DDE", "PBDE47", "PCB118", "PCB138", "PCB153", "PCB180",
+                                 "PFHXS", "PFOA", "PFOS", "BCETP", "BDCPP", "DBUP", "DPHP", "TCS", "BPA", "MBP",
+                                 "MBZP", "MCPP", "SIGMA DEHP", "MEP", "MIBP", "DI ETHYL OP", "DI METHYL OP",
+                                 "B PB", "M PB", "P PB"))
 ```
 
 

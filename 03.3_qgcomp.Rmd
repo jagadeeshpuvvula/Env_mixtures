@@ -48,7 +48,7 @@ dat<- dat |>
           MCPP, sigma_DEHP, MEP, MIBP, di_Ethyl_OP, di_Methyl_OP, 
           B_PB, M_PB, P_PB, cotinine, home_score_total, mom_age, 
           cohort, city, sex, race_bin,  mom_edu_cat, parity_n, 
-           wppsi_fsiq, wppsi_viq, wppsi_piq,)) 
+           wppsi_fsiq, wppsi_viq, wppsi_piq)) 
 
 dat<- dat |> 
   mutate(across(all_of(c("cohort", "city", "sex", "race_bin", 

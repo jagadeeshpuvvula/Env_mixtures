@@ -8,10 +8,11 @@ output: pdf_document
 ```{r, echo=FALSE, message=FALSE}
 
 library(pacman)
-pacman::p_load(tidyverse, janitor, cowplot)
+pacman::p_load(tidyverse, janitor, scales, cowplot)
 path <- "E:/BBK17/pj/data_2023apr/obs_w_outcome/"
 
-dat<- read_csv(paste0(path, "wppsi_f_analy.csv")) |> drop_na()
+dat<- read_csv(paste0(path, "wppsi_f_analy.csv")) |> 
+  drop_na()
 ```
 
 #preliminary data
@@ -32,7 +33,8 @@ dt<- dat |>
   rename_at(vars(4:33, 43:45), toupper) |>
   mutate(cohort = ifelse(cohort == "1", "HOME", "MIREC")) |>
   select(1,2, 4:32, 43:45) |>
-  pivot_longer(cols = -c(1,2), names_to = "measure", values_to = "value") 
+  pivot_longer(cols = -c(1,2), names_to = "measure", values_to = "value") |>
+  mutate(across(where(is.numeric), ~ if_else(measure == "PB" & cohort == "HOME", . * 10, .)))
 
 #plot formatting
 # Generate summary table by cohort level
@@ -41,8 +43,7 @@ summary_by_cohort <- dt |>
   summarise(
     median = median(value),
     q25 = quantile(value, 0.25),
-    q75 = quantile(value, 0.75)) |>
-  mutate(across(where(is.numeric), ~ if_else(measure == "PB" & cohort == "HOME", . * 10, .)))
+    q75 = quantile(value, 0.75)) 
 
 # Generate summary table for all levels combined
 summary_combined <- dt |>
@@ -98,303 +99,76 @@ for (i in seq_along(dt$measure)) {
 }
 ```
 
+# Define a function to process each group
+```{r}
+process_group <- function(group_name) {
+  df_group <- st |>
+    filter(group == group_name) |>
+    mutate(measure = str_replace_all(measure, "_(?=[A-Z])", " "))
 
-pops
-```{r, echo=FALSE, message=FALSE}
-dt_pops<- st |> filter(group=="POPs")
+  df_group_mean <- df_group |>
+    group_by(measure) |>
+    summarize(mean_val = mean(median))
 
-pops_mean <- dt_pops |> 
-  group_by(measure) |> 
-  summarize(mean_val = mean(median))
-
-pops<-ggplot(dt_pops, aes(y = as.factor(cohort), x = median, xmin = q25, xmax = q75)) + 
-  geom_pointrange(aes(col = cohort), position=position_dodge(width=1),size = 1) +
-    scale_color_manual(values = c("HOME" = "#0072B2", 
-                                  "MIREC" = "#D55E00", "Pooled" = "#000000"))+
+  gg <- ggplot(df_group, aes(y = as.factor(cohort), x = median, xmin = q25, xmax = q75)) +
+    geom_pointrange(aes(col = cohort), position = position_dodge(width = 1), size = 1) +
+    scale_color_manual(values = c("HOME" = "#0072B2", "MIREC" = "#D55E00", "Pooled" = "#000000")) +
     ylab("") +
-    ggtitle("")+
-    xlab("")+
-    theme_bw()+
-    theme(panel.border = element_blank(),
-          panel.grid.major = element_blank(),
-          panel.grid.minor = element_blank(),
-          axis.line.x = element_line(colour = "black"),
-          axis.line.y = element_blank(),
-          axis.text.y = element_blank(),
-          axis.ticks.y = element_blank(),
-          legend.position="none",
-          strip.text.x=element_text(size=10,angle=0),
-          strip.placement = "top",
-          strip.background = element_rect(fill="transparent", 
-                                          colour = "transparent"))+
-  facet_wrap(measure ~ ., scales = "free")
+    ggtitle("") +
+    xlab("") +
+    theme_bw() +
+    theme(
+      panel.border = element_blank(),
+      panel.grid.major = element_blank(),
+      panel.grid.minor = element_blank(),
+      axis.line.x = element_line(colour = "black"),
+      axis.line.y = element_blank(),
+      axis.text.x = element_text(size=8, angle = 45, hjust=1),
+      axis.text.y = element_blank(),
+      axis.ticks.y = element_blank(),
+      legend.position = "none",
+      strip.text.x = element_text(size = 10, angle = 0),
+      strip.placement = "top",
+      strip.background = element_rect(fill = "transparent", colour = "transparent")
+    ) +
+    scale_x_continuous(trans = log10_trans(), breaks = pretty_breaks(n = 3)) +
+    facet_wrap(measure ~ ., scales = "free")
+
+  return(list(data = df_group, mean_data = df_group_mean, plot = gg))
+}
 ```
 
-metal
-```{r, echo=FALSE, message=FALSE}
-dt_metal<- st |> filter(group=="Metals")
+# Process the plot for each group
+```{r}
+groups <- c("Metals", "POPs", "PFAS", 
+            "Parabens", "OPFR", "TCS_BPA", 
+            "OP_pest", "Phthalates", "Outcome")
 
-metal_mean <- dt_metal |> 
-  group_by(measure) |> 
-  summarize(mean_val = mean(median))
-
-metal<-ggplot(dt_metal, aes(y = as.factor(cohort), x = median, xmin = q25, xmax = q75)) + 
-  geom_pointrange(aes(col = cohort), position=position_dodge(width=1),size = 1) +
-    scale_color_manual(values = c("HOME" = "#0072B2", 
-                                  "MIREC" = "#D55E00", "Pooled" = "#000000"))+
-    ylab("") +
-    ggtitle("")+
-    xlab("")+
-    theme_bw()+
-    theme(panel.border = element_blank(),
-          panel.grid.major = element_blank(),
-          panel.grid.minor = element_blank(),
-          axis.line.x = element_line(colour = "black"),
-          axis.line.y = element_blank(),
-          axis.text.y = element_blank(),
-          axis.ticks.y = element_blank(),
-          legend.position="none",
-          strip.text.x=element_text(size=10,angle=0),
-          strip.placement = "top",
-          strip.background = element_rect(fill="transparent", 
-                                          colour = "transparent"))+
-  facet_wrap(measure ~ ., scales = "free")
+results <- lapply(groups, process_group)
+names(results) <- groups
 ```
 
-pfas
-```{r, echo=FALSE, message=FALSE}
-dt_pfas<- st |> filter(group=="PFAS")
-
-pfas_mean <- dt_pfas |> 
-  group_by(measure) |> 
-  summarize(mean_val = mean(median))
-
-pfas<-ggplot(dt_pfas, aes(y = as.factor(cohort), x = median, xmin = q25, xmax = q75)) + 
-  geom_pointrange(aes(col = cohort), position=position_dodge(width=1),size = 1) +
-    scale_color_manual(values = c("HOME" = "#0072B2", 
-                                  "MIREC" = "#D55E00", "Pooled" = "#000000"))+
-    ylab("") +
-    ggtitle("")+
-    xlab("")+
-    theme_bw()+
-    theme(panel.border = element_blank(),
-          panel.grid.major = element_blank(),
-          panel.grid.minor = element_blank(),
-          axis.line.x = element_line(colour = "black"),
-          axis.line.y = element_blank(),
-          axis.text.y = element_blank(),
-          axis.ticks.y = element_blank(),
-          legend.position="none",
-          strip.text.x=element_text(size=10,angle=0),
-          strip.placement = "top",
-          strip.background = element_rect(fill="transparent", 
-                                          colour = "transparent"))+
-  facet_wrap(measure ~ ., scales = "free")
-```
-
-opfr
-```{r, echo=FALSE, message=FALSE}
-dt_opfr<- st |> filter(group=="OPFR")
-
-opfr_mean <- dt_opfr |> 
-  group_by(measure) |> 
-  summarize(mean_val = mean(median))
-
-opfr<-ggplot(dt_opfr, aes(y = as.factor(cohort), x = median, xmin = q25, xmax = q75)) + 
-  geom_pointrange(aes(col = cohort), position=position_dodge(width=1),size = 1) +
-    scale_color_manual(values = c("HOME" = "#0072B2", 
-                                  "MIREC" = "#D55E00", "Pooled" = "#000000"))+
-    ylab("") +
-    ggtitle("")+
-    xlab("")+
-    theme_bw()+
-    theme(panel.border = element_blank(),
-          panel.grid.major = element_blank(),
-          panel.grid.minor = element_blank(),
-          axis.line.x = element_line(colour = "black"),
-          axis.line.y = element_blank(),
-          axis.text.y = element_blank(),
-          axis.ticks.y = element_blank(),
-          legend.position="none",
-          strip.text.x=element_text(size=10,angle=0),
-          strip.placement = "top",
-          strip.background = element_rect(fill="transparent", 
-                                          colour = "transparent"))+
-  facet_wrap(measure ~ ., scales = "free")
-```
-
-paraben
-```{r, echo=FALSE, message=FALSE}
-dt_paraben<- st |> filter(group=="Parabens")
-
-paraben_mean <- dt_paraben |> 
-  group_by(measure) |> 
-  summarize(mean_val = mean(median))
-
-paraben<-ggplot(dt_paraben, aes(y = as.factor(cohort), x = median, xmin = q25, xmax = q75))+ 
-  geom_pointrange(aes(col = cohort), position=position_dodge(width=1),size = 1) +
-    scale_color_manual(values = c("HOME" = "#0072B2", 
-                                  "MIREC" = "#D55E00", "Pooled" = "#000000"))+
-    ylab("") +
-    ggtitle("")+
-    xlab("")+
-    theme_bw()+
-    theme(panel.border = element_blank(),
-          panel.grid.major = element_blank(),
-          panel.grid.minor = element_blank(),
-          axis.line.x = element_line(colour = "black"),
-          axis.line.y = element_blank(),
-          axis.text.y = element_blank(),
-          axis.ticks.y = element_blank(),
-          legend.position="none",
-          strip.text.x=element_text(size=10,angle=0),
-          strip.placement = "top",
-          strip.background = element_rect(fill="transparent", 
-                                          colour = "transparent"))+
-  facet_wrap(measure ~ ., scales = "free")
-```
-
-tcs_bpa
-```{r, echo=FALSE, message=FALSE}
-dt_tcs_bpa<- st |> filter(group=="TCS_BPA")
-
-tcs_bpa_mean <- dt_tcs_bpa |> 
-  group_by(measure) |> 
-  summarize(mean_val = mean(median))
-
-tcs_bpa<-ggplot(dt_tcs_bpa, aes(y = as.factor(cohort), x = median, xmin = q25, xmax = q75)) + 
-  geom_pointrange(aes(col = cohort), position=position_dodge(width=1),size = 1) +
-    scale_color_manual(values = c("HOME" = "#0072B2", 
-                                  "MIREC" = "#D55E00", "Pooled" = "#000000"))+
-    ylab("") +
-    ggtitle("")+
-    xlab("")+
-    theme_bw()+
-    theme(panel.border = element_blank(),
-          panel.grid.major = element_blank(),
-          panel.grid.minor = element_blank(),
-          axis.line.x = element_line(colour = "black"),
-          axis.line.y = element_blank(),
-          axis.text.y = element_blank(),
-          axis.ticks.y = element_blank(),
-          legend.position="none",
-          strip.text.x=element_text(size=10,angle=0),
-          strip.placement = "top",
-          strip.background = element_rect(fill="transparent", 
-                                          colour = "transparent"))+
-  facet_wrap(measure ~ ., scales = "free")
-```
-
-phthalate
-```{r, echo=FALSE, message=FALSE}
-dt_phthalate<- st |> filter(group=="Phthalates")
-
-phthalate_mean <- dt_phthalate |> 
-  group_by(measure) |> 
-  summarize(mean_val = mean(median))
-
-phthalate<-ggplot(dt_phthalate, aes(y = as.factor(cohort), x = median, xmin = q25, xmax = q75)) + 
-  geom_pointrange(aes(col = cohort), position=position_dodge(width=1),size = 1) +
-    scale_color_manual(values = c("HOME" = "#0072B2", 
-                                  "MIREC" = "#D55E00", "Pooled" = "#000000"))+
-    ylab("") +
-    ggtitle("")+
-    xlab("")+
-    theme_bw()+
-    theme(panel.border = element_blank(),
-          panel.grid.major = element_blank(),
-          panel.grid.minor = element_blank(),
-          axis.line.x = element_line(colour = "black"),
-          axis.line.y = element_blank(),
-          axis.text.y = element_blank(),
-          axis.ticks.y = element_blank(),
-          legend.position="none",
-          strip.text.x=element_text(size=10,angle=0),
-          strip.placement = "top",
-          strip.background = element_rect(fill="transparent", 
-                                          colour = "transparent"))+
-  facet_wrap(measure ~ ., scales = "free")
-```
-
-op_pest
-```{r, echo=FALSE, message=FALSE}
-dt_op_pest<- st |> filter(group=="OP_pest")
-
-op_pest_mean <- dt_op_pest |> 
-  group_by(measure) |> 
-  summarize(mean_val = mean(median))
-
-op_pest<-ggplot(dt_op_pest, aes(y = as.factor(cohort), x = median, xmin = q25, xmax = q75)) + 
-  geom_pointrange(aes(col = cohort), position=position_dodge(width=1),size = 1) +
-    scale_color_manual(values = c("HOME" = "#0072B2", 
-                                  "MIREC" = "#D55E00", "Pooled" = "#000000"))+
-    ylab("") +
-    ggtitle("")+
-    xlab("")+
-    theme_bw()+
-    theme(panel.border = element_blank(),
-          panel.grid.major = element_blank(),
-          panel.grid.minor = element_blank(),
-          axis.line.x = element_line(colour = "black"),
-          axis.line.y = element_blank(),
-          axis.text.y = element_blank(),
-          axis.ticks.y = element_blank(),
-          legend.position="none",
-          strip.text.x=element_text(size=10,angle=0),
-          strip.placement = "top",
-          strip.background = element_rect(fill="transparent", 
-                                          colour = "transparent"))+
-  facet_wrap(measure ~ ., scales = "free")
-```
-
-outcome
-```{r, echo=FALSE, message=FALSE}
-dt_outcome<- st |> filter(group=="Outcome")
-
-outcome_mean <- dt_outcome |> 
-  group_by(measure) |> 
-  summarize(mean_val = mean(median))
-
-outcome<-ggplot(dt_outcome, aes(y = as.factor(cohort), x = median, xmin = q25, xmax = q75)) + 
-  geom_pointrange(aes(col = cohort), position=position_dodge(width=1),size = 1) +
-    scale_color_manual(values = c("HOME" = "#0072B2", 
-                                  "MIREC" = "#D55E00", "Pooled" = "#000000"))+
-    ylab("") +
-    ggtitle("")+
-    xlab("")+
-    theme_bw()+
-    theme(panel.border = element_blank(),
-          panel.grid.major = element_blank(),
-          panel.grid.minor = element_blank(),
-          axis.line.x = element_line(colour = "black"),
-          axis.line.y = element_blank(),
-          axis.text.y = element_blank(),
-          axis.ticks.y = element_blank(),
-          legend.position="none",
-          strip.text.x=element_text(size=10,angle=0),
-          strip.placement = "top",
-          strip.background = element_rect(fill="transparent", 
-                                          colour = "transparent"))+
-  facet_wrap(measure ~ ., scales = "free")
-```
-
+#generate merged plot
 ```{r, echo=FALSE, message=FALSE, fig.height=12, fig.width=12, dpi=300}
-merged_plt<- plot_grid(metal, pops,pfas,
-          paraben,opfr,tcs_bpa,
-          op_pest,phthalate, outcome,
-          labels = c("Metals (ng/ml)", "POPs (ng/g lipid)", 
-                     "PFAS (ng/ml)", 
-                     "Parabens (ng/ml)", "OPFR (ng/ml)", "TCS & BPA (ng/ml)",
-                     "OP_Pesticides (ng/ml)", "Phthalates (ng/ml)", "WPPSI-Scale"),
-          rel_widths = c(1.6,1.8,1.6,
-                         1.6,1.8,1.6,
-                         1.6,1.8,1.6),
-          label_size = 10,
-          nrow = 3,
-          ncol = 3)
+# Create a list of plots from the results object
+plot_list <- lapply(groups, function(group_name) results[[group_name]]$plot)
+
+# Merge the plots using plot_grid
+merged_plt <- plot_grid(
+  plotlist = plot_list,
+  labels = c("Metals (ng/ml)", "POPs (ng/g lipid)", "PFAS (ng/ml)",
+             "Parabens (ng/ml)", "OPFR (ng/ml)", "TCS & BPA (ng/ml)",
+             "OP Pesticides (ng/ml)", "Phthalates (ng/ml)", "WPPSI-Scale"),
+  rel_widths = c(1.6, 1.8, 1.6, 
+                 1.6, 1.8, 1.6, 
+                 1.6, 1.8, 1.6),
+  label_size = 10,
+  nrow = 3,
+  ncol = 3
+)
 
 # extract a legend that is laid out horizontally
-legend_b <- get_legend(paraben + 
+legend_b <- get_legend(plot_list[[1]] + 
     guides(color = guide_legend(nrow = 1)) +
     theme(legend.position = "bottom"))
 

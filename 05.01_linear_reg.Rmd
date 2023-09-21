@@ -179,6 +179,15 @@ dat_lm_res<- dat_lm_res |>
   mutate(chemical = toupper(str_replace_all(chemical, "_(?=[A-Z])", " ")),
          chemical = str_replace_all(chemical, "_(?=[0-9])", ""))
 
+#overlapping outcomes
+dat_lm_res <- dat_lm_res %>%
+  group_by(outcome, chemical, sex_level) %>%
+  mutate(coh_olap = ifelse(all(cohort_level != "Pooled") && (all(coefficient >= 0) | all(coefficient <= 0)), 1, 0)) %>%
+  ungroup() %>%
+  group_by(outcome, chemical, cohort_level) %>%
+  mutate(sex_olap = ifelse(all(sex_level != "All") && (all(coefficient >= 0) | all(coefficient <= 0)), 1, 0)) %>%
+  ungroup()
+
 # specify the order of levels in a factor variable
 dat_lm_res$chemical <- factor(dat_lm_res$chemical,
                       levels = c("PB", "HG", "DMA", "DDE", "PBDE47", "PCB118", "PCB138", "PCB153", "PCB180",

@@ -1,182 +1,83 @@
----
-title: "99_99_scratch"
-author: "Puvvula"
-date: "2023-03-24"
-output: pdf_document
----
-
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
-
 ```{r}
-set.seed(123)
-
-# Simulate predictor variables
-sex <- sample(c("Female", "Male"), 100, replace = TRUE)
-cohort <- sample(c("1", "2"), 100, replace = TRUE)
-city <- sample(c("Montreal", "Toronto", "Vancouver"), 100, replace = TRUE)
-race_bin <- sample(c(0, 1), 100, replace = TRUE)
-cotinine <- rnorm(100, mean = 5, sd = 2)
-mom_edu_cat <- sample(c("Less than high school", "High school", "College"), 100, replace = TRUE)
-home_score_total <- rnorm(100, mean = 20, sd = 5)
-parity_n <- sample(0:5, 100, replace = TRUE)
-mom_age <- rnorm(100, mean = 35, sd = 5)
-
-# Simulate predictor variables for mixture
-mixture <- c("log_DDE", "log_PBDE_47", "log_TCS", "log_BPA")
-set.seed(456)
-mixture_data <- matrix(rnorm(400, mean = 0, sd = 1), nrow = 100)
-colnames(mixture_data) <- mixture
-
-# Combine predictor variables into a dataframe
-dat <- data.frame(sex = sex, cohort = cohort, city = city, race_bin = race_bin, cotinine = cotinine, mom_edu_cat = mom_edu_cat, home_score_total = home_score_total, parity_n = parity_n, mom_age = mom_age, mixture_data)
-
-# Simulate outcome variable
-set.seed(789)
-dat$outcome1 <- rnorm(100, mean = 50, sd = 10)
-dat$outcome2 <- rnorm(100, mean = 50, sd = 10)
-dat$outcome3 <- rnorm(100, mean = 50, sd = 10)
-
-# Randomly assign 10% of missing data per column
-dat[sample(length(dat), length(dat)*0.1)] <- NA
-
-# Convert all character variables to factors
-dat[, sapply(dat, is.character)] <- lapply(dat[, sapply(dat, is.character)], factor)
-```
-
-```{r}
-library(mice)
-library(qgcomp)
-
-qgcomp_func <- function(outcomes, dat, folder_path){
-  for (sex_level in c("all", "Female", "Male")) {
-    if (sex_level == "all") {
-      sex_data <- dat
-      sex_formula <- "sex + "
-    } else {
-      sex_data <- subset(dat, sex == sex_level)
-      sex_formula <- ""
-    }
-    for (cohort_level in c("all", "home", "mirec")) {
-      if (cohort_level == "all") {
-        cohort_data <- sex_data
-        cohort_formula <- "cohort + city+"
-        filename_prefix <- paste0(sex_level, "_all")
-      } else if (cohort_level == "home") {
-        cohort_data <- subset(sex_data, cohort == "1")
-        cohort_formula <- ""
-        filename_prefix <- paste0(sex_level, "_home")
-      } else if (cohort_level == "mirec") {
-        cohort_data <- subset(sex_data, cohort == "2")
-        cohort_formula <- "city +"
-        filename_prefix <- paste0(sex_level, "_mirec")
+wqs_func <- function(outcomes, dat, output_folder, covariates,
+                     include_sex = TRUE, include_cohort = TRUE, q,
+                     b1_pos, b1_constr, rh) {
+  
+  for (sex_level in c("all", 1, 2)) {
+    if (include_sex) {
+      if (sex_level == "all") {
+        sex_data <- dat
+        sex_formula <- "sex + "
+        filename_prefix_sex <- "all"
       } else {
-        stop("Invalid cohort level")
+        sex_data <- subset(dat, sex == sex_level)
+        sex_formula <- ""
+        if (sex_level == 1) {
+          filename_prefix_sex <- "male"
+        } else if (sex_level == 2) {
+          filename_prefix_sex <- "female"
+        } else {
+          filename_prefix_sex <- as.character(sex_level)
+        }
+      }
+    } else {
+      sex_data <- dat
+      sex_formula <- ""
+      filename_prefix_sex <- "all"
+    }
+    
+    for (cohort_level in c("all", 1, 2)) {
+      if (include_cohort) {
+        if (cohort_level == "all") {
+          cohort_data <- sex_data
+          cohort_formula <- "cohort + city+"
+          filename_prefix_cohort <- "all"
+        } else {
+          cohort_data <- subset(sex_data, cohort == cohort_level)
+          cohort_formula <- ""
+          if (cohort_level == 1) {
+            filename_prefix_cohort <- "HOME"
+          } else if (cohort_level == 2) {
+            filename_prefix_cohort <- "MIREC"
+          } else {
+            filename_prefix_cohort <- as.character(cohort_level)
+          }
+        }
+      } else {
+        cohort_data <- sex_data
+        cohort_formula <- ""
+        filename_prefix_cohort <- "all"
       }
       
-      for(outcome in outcomes){
-        formula <- as.formula(paste(outcome, "~ log_DDE + log_PBDE_47 + log_TCS + log_BPA +", sex_formula, cohort_formula,"race_bin + cotinine +mom_edu_cat + home_score_total + parity_n + mom_age"))
+      for (outcome in outcomes) {
+        # Construct the formula
+        formula <- as.formula(paste(outcome, "~ wqs+", sex_formula, cohort_formula, paste(covariates, collapse = " + ")))
         
-        # Impute missing values using MICE package
-        imp_data <- mice(cohort_data, m=5, maxit=50, seed=2022)
-        imp_data <- complete(imp_data, "long", include=TRUE)
-        imp_data <- as.data.frame(imp_data)
-        
-        # Run qgcomp function for each of the 50 samples
-        for (iter in 1:50) {
-          imp_data$iter_number <- iter
-          nb <- qgcomp.noboot(formula, expnms = mixture, data = imp_data, family= gaussian(), q=10)
-          boot <- qgcomp.boot(formula, expnms = mixture, data = imp_data, family= gaussian(), q=10, B = 250, seed = iter)
-          save(nb, file = paste0(folder_path, "/", "nb_", filename_prefix, "_", outcome, "_iter", iter, ".rda"))
-          save(boot, file = paste0(folder_path, "/", "boot_", filename_prefix, "_", outcome, "_iter", iter, ".rda"))
-        }
+        tryCatch({
+          # Fit the models
+          wqs <- gwqs(formula, mix_name = mixture, data = cohort_data, family = "gaussian", q = 4, b = 100, validation = 0.3, seed = 2023, b1_pos = b1_pos, b1_constr = b1_constr)
+          wqsrh <- gwqsrh(formula, mix_name = mixture, data = cohort_data, family = "gaussian", q = 4, b = 100, validation = 0.3, seed = 2023, b1_pos = b1_pos, b1_constr = b1_constr, rh = rh)
+          
+          # Define the filename prefix based on sex and cohort levels
+          filename_prefix <- paste0(filename_prefix_sex, "_cohort_", filename_prefix_cohort)
+          
+          # Save the models
+          save(wqs, file = paste0(output_folder, "/", "wqs_", filename_prefix, "_", outcome, ".rda"))
+          save(wqsrh, file = paste0(output_folder, "/", "wqsrh_", filename_prefix, "_", outcome, ".rda"))
+        }, error = function(e) {
+          cat("An error occurred for outcome", outcome, "with sex level", sex_level, "and cohort level", cohort_level, ":\n")
+          message("Error message:", e$message, "\n")
+          cat("Moving to the next combination.\n")
+        })
       }
     }
   }
 }
 
-```
-
-
-
-```{r}
-qgcomp_func(outcomes=c("outcome1", "outcome2", "outcome3"), dat, 
-            folder_path="/Users/jpuvvula/Desktop/test/")
 
 ```
 
-```{r}
-# Load necessary packages
-library(qgcomp)
-library(mice)
 
-# Define function to combine estimates using Rubin's rule
-combine_estimates <- function(outcomes, dat, folder_path){
-  
-  # Initialize list to store all estimates
-  all_estimates <- list()
-  
-  # Loop through all combinations of sex and cohort levels
-  for (sex_level in c("all", "Female", "Male")) {
-    for (cohort_level in c("all", "home", "mirec")) {
-      
-      # Initialize list to store estimates for this combination of sex and cohort levels
-      estimates <- list()
-      
-      # Loop through all outcomes
-      for(outcome in outcomes){
-        
-        # Initialize empty data frame to store estimates for this outcome
-        estimates_df <- data.frame(matrix(ncol = 3, nrow = 0))
-        colnames(estimates_df) <- c("coefficient", "mean", "variance")
-        
-        # Loop through all iterations
-        for (iter in 1:50) {
-          
-          # Load nb and boot files for this iteration
-          nb <- readRDS(paste0(folder_path, "/", "nb_", paste0(sex_level, "_", cohort_level), "_", outcome, "_iter", iter, ".rda"))
-          boot <- readRDS(paste0(folder_path, "/", "boot_", paste0(sex_level, "_", cohort_level), "_", outcome, "_iter", iter, ".rda"))
-          
-          # Extract mean and variance estimates from nb and boot
-          mean_estimates <- nb$beta
-          variance_estimates <- apply(boot$beta, 2, var)
-          
-          # Combine mean and variance estimates into data frame
-          iteration_df <- data.frame(coefficient = colnames(mean_estimates),
-                                     mean = mean_estimates,
-                                     variance = variance_estimates)
-          
-          # Append iteration data frame to estimates data frame
-          estimates_df <- rbind(estimates_df, iteration_df)
-        }
-        
-        # Calculate pooled mean and variance estimates for each coefficient using Rubin's rule
-        pooled_estimates <- as.data.frame(apply(estimates_df[, -1], 2, function(x) {
-          list(mean = weighted.mean(x, estimates_df$variance),
-               variance = sum(estimates_df$variance) / nrow(estimates_df))
-        }))
-        
-        # Add outcome name as a column to the estimates data frame
-        pooled_estimates$coefficient <- rownames(pooled_estimates)
-        pooled_estimates$outcome <- outcome
-        
-        # Append estimates data frame to list of all estimates
-        estimates[[outcome]] <- pooled_estimates
-      }
-      
-      # Combine all estimates for this combination of sex and cohort levels into a single data frame
-      all_estimates[[paste0(sex_level, "_", cohort_level)]] <- do.call(rbind, estimates)
-    }
-  }
-  
-  # Return list of all estimates
-  return(all_estimates)
-}
 
-# Call the function to combine estimates
-combined_estimates <- combine_estimates(outcomes = c("y1", "y2", "y3"), dat = your_data, folder_path = "path/to/folder")
-
-```
 
 

@@ -1,0 +1,79 @@
+---
+title: "02.1.2_adding_fish_var.Rmd"
+author: "Jagadeesh Puvvula"
+date: "2023-11-01"
+output: pdf_document
+---
+
+```{r}
+library(pacman)
+p_load(tidyverse, readxl, janitor)
+```
+
+# regroup into 1=no consumed; 2: 1-3 times a month; 3: greater than three times a month
+#HOME legend
+#1= Almost every day (daily)
+#2= 4 to 6 times a week (16-24 times a month)
+#3= 1 to 3 times a week (4-12 times a month)
+#4= 1 to 3 times a month
+#5= less than once a month
+#6= not at all
+
+#MIREC legend
+#0 = "None" - h6
+#1 = ">0 and <=1/month" - h5
+#2 = ">1 and <=2/month" - h6
+#3 = ">2 and <=3/month" - h6
+#4 = ">3 and <=4/month"
+#5 = ">4 and <=5/month"
+#6 = ">5 and <=6/month"
+#7 = ">6 and <=7/month"
+#8 = ">7 and <=8/month"
+#9 = ">8 and <=9/month"
+#10 = ">9/month"
+```{r}
+home_fish<- read_csv("E:/BBK17/pj/data_2023apr/home_fish_var.csv") |>
+  mutate(fish_int_pm = case_when(
+    fish_consumption_cd == 6 ~ 1,
+    fish_consumption_cd %in% c(4, 5) ~ 2,
+    fish_consumption_cd %in% c(1, 2, 3) ~ 3,
+    TRUE ~ NA_integer_),
+    subject_id = as.character(subject_id)) |>
+  select(subject_id, fish_int_pm)
+
+################
+mirec_fish<- read_xlsx("E:/BBK17/8. BBK17_extra MIREC DVs_Oct26 2023/BBK17_MIREC_MOTHER_DVs_Yes_to_MIREC_BBK_Sept28 2023.xlsx") |>
+  clean_names() |>
+  select(subject_id, v1_general_fish_mthly_c) |>
+  mutate(fish_int_pm = case_when(
+    v1_general_fish_mthly_c == 0 ~ 1,
+    v1_general_fish_mthly_c %in% c(1, 2, 3) ~ 2,
+    v1_general_fish_mthly_c %in% c(4, 5, 6, 7, 8, 9, 10) ~ 3,
+    TRUE ~ NA_integer_
+  ))|>
+  select(subject_id, fish_int_pm)
+```
+
+#append two datasets and export
+```{r}
+fish_intake<- bind_rows(home_fish, mirec_fish) |>
+  mutate(fish_int_pm = replace_na(fish_int_pm, 2))
+```
+
+#add fish to final dataset
+```{r}
+dt<- read_csv("E:/BBK17/pj/data_2023apr/obs_w_outcome/wppsi_f_analy.csv")|>
+  mutate(pb = if_else(cohort == "1", pb * 10, pb))
+
+
+dt_w_fish<- left_join(dt, fish_intake, by="subject_id")
+```
+
+#export final dataset
+```{r}
+write_csv(dt_w_fish, "E:/BBK17/pj/data_2023apr/obs_w_outcome/wppsi_f_analy.csv")
+```
+
+
+
+

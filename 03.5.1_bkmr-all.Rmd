@@ -19,7 +19,6 @@ dat<- read_csv(paste0(path, "wppsi_f_analy.csv"))
 dat<- dat |>
   mutate_if(is.numeric, round, 4) |>
   clean_names() |>
-  mutate(pb = if_else(cohort == "1", pb * 10, pb))|>
   rename(Pb=pb, Hg=hg, DMA=dma, DDE= dde, PBDE_47 = pbde47,
          PCB_118=pcb118, PCB_138=pcb138, PCB_153=pcb153,
          PCB_180=pcb180, PFHxS=pfhxs, PFOA=pfoa, PFOS=pfos,

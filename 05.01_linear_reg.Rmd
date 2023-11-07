@@ -31,12 +31,12 @@ dat<- dat |>
           PFHxS, PFOA, PFOS, BCEtP, BDCPP, DBuP, DPhP, TCS, BPA, MBP, MBZP,
           MCPP, sigma_DEHP, MEP, MIBP, di_Ethyl_OP, di_Methyl_OP, 
           B_PB, M_PB, P_PB, cotinine, home_score_total, mom_age, 
-          cohort, city, sex, race_bin,  mom_edu_cat, parity_n, 
-           wppsi_fsiq, wppsi_viq, wppsi_piq,))
+          cohort, city, sex, race_bin,  mom_edu_cat, parity_n, fish_int_pm,
+          wppsi_fsiq, wppsi_viq, wppsi_piq))
 
 dat<- dat |> 
   mutate(across(all_of(c("cohort", "city", "sex", "race_bin", 
-                         "parity_n", "mom_edu_cat")), as.factor))
+                         "parity_n", "mom_edu_cat", "fish_int_pm")), as.factor))
 
 ```
 
@@ -44,98 +44,11 @@ for 29 chemicals
 ```{r}
 # for all chemicals select 1:32
 dat <- dat |>
-  select(1:41) |>
+  select(1:42) |>
   drop_na()|>
   mutate_at(vars(1:30), ~log10(.+0.0000001)) |>
   rename_with(~ paste0("log_", .x), 1:30) |>
   drop_na()
-```
-
-# linear regression model for 29 chemicals - one chemical per iteration - also includes strata option
-```{r}
-lm_func <- function(dependent_vars, independent_vars, covariates, data, include_sex = TRUE, include_cohort = TRUE, conf_level = 0.95) {
-  # create empty lists to store results
-  dependent_list <- list()
-  independent_list <- list()
-  sex_level_list <- list()
-  cohort_level_list <- list()
-  coef_list <- list()
-  p_value_list <- list()
-  ci_lower_list <- list()
-  ci_upper_list <- list()
-
-  for (sex_level in c("all", "Female", "Male")) {
-    if (include_sex) {
-      if (sex_level == "all") {
-        sex_data <- data
-        sex_formula <- "+sex"
-      } else {
-        sex_data <- subset(data, sex == sex_level)
-        sex_formula <- ""
-      }
-    } else {
-      sex_data <- data
-      sex_formula <- ""
-    }
-
-    for (cohort_level in c("all", "home", "mirec")) {
-      if (include_cohort) {
-        if (cohort_level == "all") {
-          cohort_data <- sex_data
-          cohort_formula <- "+cohort + city"
-        } else if (cohort_level == "home") {
-          cohort_data <- subset(sex_data, cohort == "1")
-          cohort_formula <- ""
-        } else if (cohort_level == "mirec") {
-          cohort_data <- subset(sex_data, cohort == "2")
-          cohort_formula <- "+city"
-        } else {
-          stop("Invalid cohort level")
-        }
-      } else {
-        cohort_data <- sex_data
-        cohort_formula <- ""
-      }
-
-      # loop through all combinations of dependent and independent variables
-      for (i in 1:length(dependent_vars)) {
-        for (j in 1:length(independent_vars)) {
-          # run linear regression with covariates
-          formula <- as.formula(paste(dependent_vars[i], "~", paste(independent_vars[j], "+log_cotinine+home_score_total+mom_age+race_bin+mom_edu_cat+parity_n", sex_formula, cohort_formula)))
-          model <- lm(formula, cohort_data)
-          
-          # calculate confidence interval
-          ci <- confint(model, parm = independent_vars[j], level = conf_level)
-
-          # store results in lists
-          dependent_list[[length(dependent_list) + 1]] <- dependent_vars[i]
-          independent_list[[length(independent_list) + 1]] <- independent_vars[j]
-          sex_level_list[[length(sex_level_list) + 1]] <- sex_level
-          cohort_level_list[[length(cohort_level_list) + 1]] <- cohort_level
-          coef_list[[length(coef_list) + 1]] <- coef(model)[independent_vars[j]]
-          p_value_list[[length(p_value_list) + 1]] <- summary(model)$coefficients[independent_vars[j], 4]
-          ci_lower_list[[length(ci_lower_list) + 1]] <- ci[1]
-          ci_upper_list[[length(ci_upper_list) + 1]] <- ci[2]
-        }
-      }
-    }
-  }
-
-  # create dataframe with results
-  results <- data.frame(
-    dependent_variable = unlist(dependent_list),
-    independent_variable = unlist(independent_list),
-    sex_level = unlist(sex_level_list),
-    cohort_level = unlist(cohort_level_list),
-    coefficient = unlist(coef_list),
-    p_value = unlist(p_value_list),
-    ci_lower = unlist(ci_lower_list),
-    ci_upper = unlist(ci_upper_list)
-  )
-
-  # return dataframe
-  return(results)
-}
 ```
 
 #Get lm results using the function
@@ -147,9 +60,9 @@ lm_reas<- lm_func(dependent_vars = c("wppsi_fsiq", "wppsi_viq", "wppsi_piq"),
                                "log_DBuP", "log_DPhP", "log_TCS", "log_BPA", "log_MBP",
                                "log_MBZP", "log_MCPP", "log_sigma_DEHP", "log_MEP", "log_MIBP",
                                "log_di_Ethyl_OP", "log_di_Methyl_OP", "log_B_PB", "log_M_PB", "log_P_PB"),
-            covariates = c("log_cotinine", "home_score_total", "mom_age", "cohort", "city", "sex",
-                           "race_bin", "mom_edu_cat", "parity_n"),
-            dat = dat, include_sex = TRUE, include_cohort = TRUE)
+            covariates = c("log_cotinine", "home_score_total", "mom_age",
+                           "race_bin", "mom_edu_cat", "parity_n", "fish_int_pm"),
+            data = dat, include_sex = TRUE, include_cohort = TRUE)
 ```
 
 # Save lm results
@@ -195,31 +108,40 @@ dat_lm_res$chemical <- factor(dat_lm_res$chemical,
                                  "B PB", "M PB", "P PB"))
 ```
 
+#filter only pooled results
+```{r}
+dat_lm_res <- dat_lm_res |>
+  filter(cohort_level == "Pooled")
+```
+
+
 
 # visualization of lm results
 ```{r}
-ggplot(dat_lm_res, aes(x = cohort_level, y = chemical)) +
+ggplot(dat_lm_res, aes(x = sex_level, y = chemical)) +
   geom_tile(aes(fill = coefficient)) + #, alpha = ifelse(ci_null == "FALSE", 1, 0) #to remove fill color if ns
   geom_text(aes(label = round(coefficient, 2),
                 fontface = ifelse(ci_null == "FALSE", "bold", "plain")),
             color = "black", size = 3, show.legend = FALSE) +
   labs(x = "", y = "", fill = "coefficient") +
-  facet_grid(.~outcome + sex_level, scales = "free_y", space = "free_y", switch = "both") +
+  facet_grid(.~ outcome, scales = "free_y", space = "free_y") +
   theme_bw() +
   theme(axis.text = element_text(size = 10), 
         axis.title = element_text(size = 10, face = "bold"),
-        strip.text = element_text(size = 10),
         panel.grid.minor = element_blank(),
         panel.grid.major = element_blank(),
         panel.grid.major.y = element_blank(),
-        axis.text.x = element_text(angle = 35, hjust = 1, vjust = 1, size = 10),
+        axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 1, size = 10),
         axis.text.y = element_text(size = 10), 
         panel.spacing.x = unit(0.02, "lines"),
         panel.spacing.y = unit(0.02, "lines"),
         strip.text.y = element_blank(),
+        strip.text.x = element_text(face= "bold", size = 10),
+        strip.background.x = element_rect(fill =  "transparent"),
         legend.position = "bottom", legend.box = "horizontal",
         legend.key.width = unit(0.8, "cm"),
-        legend.key.height = unit(0.5, "cm")) +
+        legend.key.height = unit(0.3, "cm"),
+        legend.spacing = unit(0, "cm")) +
   scale_fill_gradient2(low = "red", high = "royalblue", 
                        midpoint = 0, name = expression(beta[italic(lm)]),
                        guide = guide_colorbar(title.position = "left",
@@ -232,7 +154,7 @@ ggplot(dat_lm_res, aes(x = cohort_level, y = chemical)) +
 #export lm visualization
 ```{r}
 ggsave("E:/BBK17/pj/data_2023apr/results/lm/lm_coef.tiff", 
-       width = 11,height = 6,
+       width = 7,height = 6,
        dpi=300)
 ```
 

@@ -228,7 +228,7 @@ write_csv(qgcomp_weights, "E:/BBK17/pj/data_2023apr/results/qgcomp/qgcomp_9chem/
 
 # load chemical weights
 ```{r}
-qgcomp_weights<- read_csv("E:/BBK17/pj/data_2023apr/results/qgcomp/lasso_29chem/chem_weight.csv")
+qgcomp_weights<- read_csv("E:/BBK17/pj/data_2023apr/results/qgcomp/qgcomp_29chem/chem_weight.csv")
 ```
 
 #data prep for visualization
@@ -248,10 +248,17 @@ dat <- qgcomp_weights |>
          chem_grp = ifelse(grepl("psi", direction), "psi", "chem")) |>
   filter(cohort== "Pooled")
 
+dat$chemical <- fct_recode(
+  dat$chemical,
+  "BDCIPP" = "BDCPP",
+  "BCEP" = "BCETP",
+  "DNBP" = "DBUP"
+)
+
 # specify the order of levels in a factor variable
 dat$chemical <- factor(dat$chemical,
                       levels = c("PB", "HG", "DMA", "DDE", "PBDE47", "PCB118", "PCB138", "PCB153", "PCB180",
-                                 "PFHXS", "PFOA", "PFOS", "BCETP", "BDCPP", "DBUP", "DPHP", "TCS", "BPA", "MBP",
+                                 "PFHXS", "PFOA", "PFOS", "BCEP", "BDCIPP", "DNBP", "DPHP", "TCS", "BPA", "MBP",
                                  "MBZP", "MCPP", "SIGMA DEHP", "MEP", "MIBP", "DI ETHYL OP", "DI METHYL OP",
                                  "B PB", "M PB", "P PB", "NEG.PSI", "POS.PSI", "PSI1"))
 dat$chem_grp<- factor(dat$chem_grp, levels = c("psi", "chem"))
@@ -292,7 +299,7 @@ ggplot(dat, aes(y = chemical, x = gender, fill = ifelse(chem_grp == "chem", weig
 
 #export figure
 ```{r}
-ggsave("E:/BBK17/pj/data_2023apr/results/qgcomp/qgcomp_9chem/gcomp_9chem_weight.tiff", 
+ggsave("E:/BBK17/pj/data_2023apr/results/qgcomp/qgcomp_29chem/gcomp_29chem_weight.tiff", 
        width = 5.5,height = 6,
        dpi=300)
 ```

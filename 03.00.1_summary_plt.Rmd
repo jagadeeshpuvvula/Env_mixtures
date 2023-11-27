@@ -33,8 +33,7 @@ dt<- dat |>
   rename_at(vars(4:33, 43:45), toupper) |>
   mutate(cohort = ifelse(cohort == "1", "HOME", "MIREC")) |>
   select(1,2, 4:32, 43:45) |>
-  pivot_longer(cols = -c(1,2), names_to = "measure", values_to = "value") |>
-  mutate(across(where(is.numeric), ~ if_else(measure == "PB" & cohort == "HOME", . * 10, .)))
+  pivot_longer(cols = -c(1,2), names_to = "measure", values_to = "value") 
 
 #plot formatting
 # Generate summary table by cohort level
@@ -81,7 +80,7 @@ group_dict <- list(
   "Metals" = c("PB", "HG", "DMA"),
   "POPs" = c("DDE", "PBDE47", "PCB118", "PCB138", "PCB153", "PCB180"),
   "PFAS" = c("PFHXS", "PFOA", "PFOS"),
-  "OPEs" = c("BCETP","BDCPP", "DBUP", "DPHP"),
+  "OPEs" = c("BCEP","BDCIPP", "DNBP", "DPHP"),
   "Parabens" = c("B_PB", "M_PB", "P_PB"),
   "TCS_BPA" = c("BPA", "TCS"),
   "Phthalates" = c("MBP", "MBZP", "MCPP", "SIGMA_DEHP", "MEP", "MIBP"),

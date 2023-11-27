@@ -14,7 +14,7 @@ path <- "E:/BBK17/pj/data_2023apr/obs_w_outcome/"
 dat<- read_csv(paste0(path, "wppsi_f_analy.csv"))
 ```
 
-#Sensitivity analysis: Remove WISC suppliment
+#Sensitivity analysis: Remove WISC suppliment - Will not be used for publication
 ```{r}
 rm_wppsi<- read_csv("E:/BBK17/pj/data_2023apr/only_wppsi_filter/only_wppsi.csv")
 
@@ -23,7 +23,7 @@ dat <- dat |>
 
 ```
 
-
+#formatting and renaming variables
 ```{r, echo=FALSE, message=FALSE}
 dat<- dat |>
   mutate_if(is.numeric, round, 4) |>
@@ -51,7 +51,7 @@ dat<- dat |>
 ```
 
 
-for 29 chemicals
+#for 29 chemicals
 ```{r}
 # for all chemicals select 1:32
 dat <- dat |>
@@ -66,7 +66,7 @@ mixture<- names(dat[c(1:29)])
 ```
 
 
-for group lasso assist - 15 chemicals negtive coef -grpreg
+#for group lasso assist - 15 chemicals negtive coef -grpreg - "Will not be used for publication"
 ```{r}
 dat <- dat |>
   select(c(1,5,7,8,10,14,16:21,23,25,29:42)) |> #add 8 for pcb153
@@ -79,7 +79,7 @@ mixture<- names(dat[c(1:15)])
 ```
 
 
-for group lasso assist - 14 chemicals positive coef -grpreg
+#for group lasso assist - 14 chemicals positive coef -grpreg - "Will not be used for publication"
 ```{r}
 dat <- dat |>
   select(c(2,3,4,6,9,11,12,13,15,22,24,26,27,28,30:41)) |>
@@ -90,6 +90,19 @@ dat <- dat |>
 
 mixture<- names(dat[c(1:14)])
 ```
+
+#for subset of chemicals that are statistically significantly associated while using 80% CI in single chemical LM model
+```{r}
+dat <- dat |>
+  select(c(2,5,10,11,12,14,19,21,29:42)) |>
+  drop_na()|>
+  mutate_at(vars(1:10), ~log10(.+0.0000001)) |>
+  rename_with(~ paste0("log_", .x), 1:10) |>
+  drop_na()
+
+mixture<- names(dat[c(1:9)])
+```
+
 
 
 #for analyzing 29 cheimcals - Nov 2023
@@ -114,12 +127,30 @@ qgcomp_func(outcomes = c("wppsi_fsiq", "wppsi_viq", "wppsi_piq"),
             q = 10, b=400, seed = 2022)
 ```
 
+#for analyzing 9 chemicals finalized from 80% CI LM results - Nov 2023 (n=703)
+```{r}
+dat |>
+  group_by(cohort, sex) |>
+  summarise(n = n())
+
+qgcomp_func(outcomes = c("wppsi_piq"), 
+            data = dat,
+            output_folder = "E:/BBK17/pj/data_2023apr/results/qgcomp/qgcomp_9chem", 
+            include_sex = TRUE, 
+            include_cohort = TRUE, 
+            chemicals = list( "log_Hg", "log_PBDE_47", "log_PFHxS", "log_PFOA",
+                              "log_PFOS", "log_BDCPP", "log_MBP", "log_MCPP", "log_P_PB"),
+            covariates = list("race_bin", "log_cotinine", "mom_edu_cat", 
+                              "home_score_total", "parity_n", "mom_age", "fish_int_pm"),
+            q = 10, b=400, seed = 2022)
+```
+
 
 #extract and export results
 ```{r}
-results<- get_gcomp_estimates(results_folder = "E:/BBK17/pj/data_2023apr/results/qgcomp/qgcomp_29chem")
+results<- get_gcomp_estimates(results_folder = "E:/BBK17/pj/data_2023apr/results/qgcomp/qgcomp_9chem")
 
-write_csv(results, "E:/BBK17/pj/data_2023apr/results/qgcomp/qgcomp_29chem/r_obj_summ.csv")
+write_csv(results, "E:/BBK17/pj/data_2023apr/results/qgcomp/qgcomp_9chem/r_obj_summ.csv")
 ```
 
 #data prep for visualizing estimates and CI
@@ -191,8 +222,8 @@ ggsave("E:/BBK17/pj/data_2023apr/results/qgcomp/qgcomp_29chem/qgcomp_29chem.tiff
 
 #extract chemical weights 
 ```{r}
-qgcomp_weights <- extract_weights("E:/BBK17/pj/data_2023apr/results/qgcomp/qgcomp_29chem")
-write_csv(qgcomp_weights, "E:/BBK17/pj/data_2023apr/results/qgcomp/qgcomp_29chem/chem_weight.csv")
+qgcomp_weights <- extract_weights("E:/BBK17/pj/data_2023apr/results/qgcomp/qgcomp_9chem")
+write_csv(qgcomp_weights, "E:/BBK17/pj/data_2023apr/results/qgcomp/qgcomp_9chem/chem_weight.csv")
 ```
 
 # load chemical weights
@@ -256,12 +287,12 @@ ggplot(dat, aes(y = chemical, x = gender, fill = ifelse(chem_grp == "chem", weig
     scale_fill_gradient2(low = "red", high = "royalblue", midpoint = 0,
                          name = "Chemical biomarker weight",
                          guide = guide_colorbar(title.vjust = 1.2),
-                         breaks = c(-0.2, 0, 0.2))
+                         breaks = c(-0.4, 0, 0.9))
 ```
 
 #export figure
 ```{r}
-ggsave("E:/BBK17/pj/data_2023apr/results/qgcomp/qgcomp_29chem/gcomp_29chem_weight.tiff", 
+ggsave("E:/BBK17/pj/data_2023apr/results/qgcomp/qgcomp_9chem/gcomp_9chem_weight.tiff", 
        width = 5.5,height = 6,
        dpi=300)
 ```

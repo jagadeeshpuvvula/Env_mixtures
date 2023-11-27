@@ -81,7 +81,7 @@ group_dict <- list(
   "Metals" = c("PB", "HG", "DMA"),
   "POPs" = c("DDE", "PBDE47", "PCB118", "PCB138", "PCB153", "PCB180"),
   "PFAS" = c("PFHXS", "PFOA", "PFOS"),
-  "OPFR" = c("BCETP","BDCPP", "DBUP", "DPHP"),
+  "OPEs" = c("BCETP","BDCPP", "DBUP", "DPHP"),
   "Parabens" = c("B_PB", "M_PB", "P_PB"),
   "TCS_BPA" = c("BPA", "TCS"),
   "Phthalates" = c("MBP", "MBZP", "MCPP", "SIGMA_DEHP", "MEP", "MIBP"),
@@ -141,7 +141,7 @@ process_group <- function(group_name) {
 # Process the plot for each group
 ```{r}
 groups <- c("Metals", "POPs", "PFAS", 
-            "Parabens", "OPFR", "TCS_BPA", 
+            "Parabens", "OPEs", "TCS_BPA", 
             "OP_pest", "Phthalates", "Outcome")
 
 results <- lapply(groups, process_group)
@@ -157,7 +157,7 @@ plot_list <- lapply(groups, function(group_name) results[[group_name]]$plot)
 merged_plt <- plot_grid(
   plotlist = plot_list,
   labels = c("Metals (ng/ml)", "POPs (ng/g lipid)", "PFAS (ng/ml)",
-             "Parabens (ng/ml)", "OPFR (ng/ml)", "TCS & BPA (ng/ml)",
+             "Parabens (ng/ml)", "OPEs (ng/ml)", "TCS & BPA (ng/ml)",
              "OP Pesticides (ng/ml)", "Phthalates (ng/ml)", "WPPSI-Scale"),
   rel_widths = c(1.6, 1.8, 1.6, 
                  1.6, 1.8, 1.6, 
@@ -176,10 +176,12 @@ legend_b <- get_legend(plot_list[[1]] +
 # of the height of one plot (via rel_heights).
 plot_grid(merged_plt, legend_b, ncol = 1, rel_heights = c(1, .05))
 
+```
+
+```{r}
 ggsave("E:/BBK17/pj/data_2023apr/results/iq_paper/summary.tiff",
        width=13, height= 10, dpi=300)
 ```
-
 
 
 

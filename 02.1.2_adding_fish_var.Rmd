@@ -69,8 +69,13 @@ dt<- read_csv("E:/BBK17/pj/data_2023apr/obs_w_outcome/wppsi_f_analy.csv")|>
 dt_w_fish<- left_join(dt, fish_intake, by="subject_id")
 ```
 
-#export final dataset
+#export final dataset (As suggested by Aimin, renamed variables on Nov 27, 2023)
 ```{r}
+dt_w_fish<- read_csv("E:/BBK17/pj/data_2023apr/obs_w_outcome/wppsi_f_analy.csv") |>
+  rename( "bcep" = "bcetp",
+         "bdcipp" = "bdcpp",
+         "dnbp" = "dbup")
+
 write_csv(dt_w_fish, "E:/BBK17/pj/data_2023apr/obs_w_outcome/wppsi_f_analy.csv")
 ```
 

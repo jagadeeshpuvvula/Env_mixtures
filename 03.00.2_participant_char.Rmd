@@ -18,16 +18,16 @@ dat<- read_csv(paste0(path, "wppsi_f_analy.csv")) |>
 ```{r}
 summaries_overall <- summarize_variables(continuous_variables= c("cotinine", "mom_age", "home_score_total", 
                                                          "gest_age", "b_wght", "b_length"),
-                                 categorical_variables= c("sex", "parity_n", "edu3", "fish_int_pm"),
+                                 categorical_variables= c("sex", "parity_n", "edu3", "fish_int_pm", "race"),
                                  data= dat)
 
 summaries_cohort1 <- summarize_variables(continuous_variables= c("cotinine", "mom_age", "home_score_total", 
                                                          "gest_age", "b_wght", "b_length"),
-                                 categorical_variables= c("sex", "parity_n", "edu3", "fish_int_pm"),
+                                 categorical_variables= c("sex", "parity_n", "edu3", "fish_int_pm", "race"),
                                  subset(dat, cohort == "1"))
 summaries_cohort2 <- summarize_variables(continuous_variables= c("cotinine", "mom_age", "home_score_total", 
                                                          "gest_age", "b_wght", "b_length"),
-                                 categorical_variables= c("sex", "parity_n", "edu3", "fish_int_pm"),
+                                 categorical_variables= c("sex", "parity_n", "edu3", "fish_int_pm", "race"),
                                  subset(dat, cohort == "2"))
 ```
 

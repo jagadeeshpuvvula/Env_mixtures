@@ -1,0 +1,34 @@
+---
+title: "03.00.2_participant_char"
+author: "Jagadeesh Puvvula"
+date: "2023-11-27"
+output: pdf_document
+---
+
+```{r, echo=FALSE, message=FALSE}
+
+library(pacman)
+pacman::p_load(tidyverse, janitor, scales, cowplot)
+path <- "E:/BBK17/pj/data_2023apr/obs_w_outcome/"
+
+dat<- read_csv(paste0(path, "wppsi_f_analy.csv")) |> 
+  drop_na()
+```
+
+```{r}
+summaries_overall <- summarize_variables(continuous_variables= c("cotinine", "mom_age", "home_score_total", 
+                                                         "gest_age", "b_wght", "b_length"),
+                                 categorical_variables= c("sex", "parity_n", "edu3", "fish_int_pm"),
+                                 data= dat)
+
+summaries_cohort1 <- summarize_variables(continuous_variables= c("cotinine", "mom_age", "home_score_total", 
+                                                         "gest_age", "b_wght", "b_length"),
+                                 categorical_variables= c("sex", "parity_n", "edu3", "fish_int_pm"),
+                                 subset(dat, cohort == "1"))
+summaries_cohort2 <- summarize_variables(continuous_variables= c("cotinine", "mom_age", "home_score_total", 
+                                                         "gest_age", "b_wght", "b_length"),
+                                 categorical_variables= c("sex", "parity_n", "edu3", "fish_int_pm"),
+                                 subset(dat, cohort == "2"))
+```
+
+

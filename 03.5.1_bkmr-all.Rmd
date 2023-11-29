@@ -22,14 +22,14 @@ dat<- dat |>
   rename(Pb=pb, Hg=hg, DMA=dma, DDE= dde, PBDE_47 = pbde47,
          PCB_118=pcb118, PCB_138=pcb138, PCB_153=pcb153,
          PCB_180=pcb180, PFHxS=pfhxs, PFOA=pfoa, PFOS=pfos,
-         BCEtP=bcetp, BDCPP=bdcpp, DBuP=dbup, DPhP=dphp,
+         BCEP=bcep, BDCIPP=bdcipp, DNBP=dnbp, DPhP=dphp,
          TCS=tcs, BPA=bpa, MBP=mbp, MBZP=mbzp, MCPP=mcpp,
          sigma_DEHP=dehp, MEP=mep, MIBP=mibp, di_Ethyl_OP=op_de,
          di_Methyl_OP=op_dm, B_PB=b_pb, M_PB=m_pb, P_PB=p_pb, city=center,
          mom_edu_cat=edu3)|>
   mutate(race_bin = ifelse(race == "white", 1, 2))|>
   select(c(Pb, Hg, DMA, DDE, PBDE_47, PCB_118, PCB_138, PCB_153, PCB_180,
-          PFHxS, PFOA, PFOS, BCEtP, BDCPP, DBuP, DPhP, TCS, BPA, MBP, MBZP,
+          PFHxS, PFOA, PFOS, BCEP, BDCIPP, DNBP, DPhP, TCS, BPA, MBP, MBZP,
           MCPP, sigma_DEHP, MEP, MIBP, di_Ethyl_OP, di_Methyl_OP, 
           B_PB, M_PB, P_PB, cotinine, home_score_total, mom_age, 
           cohort, city, sex, race_bin,  mom_edu_cat, parity_n, fish_int_pm,
@@ -198,7 +198,7 @@ ggplot(overall_risk, aes(overall_risk_df_quantile, overall_risk_df_est,
        title = "",
        caption = "")+
   theme_bw()+
-    facet_grid(gender~outcome, scales = "free", space = "free")+
+    facet_wrap(gender~outcome, scales = "free")+
     theme(axis.line = element_line(colour = "black"),
           axis.text=element_text(size=10), 
           axis.title=element_text(size=10,face="bold"),
@@ -236,15 +236,15 @@ ggplot(overall_risk, aes(overall_risk_df_quantile, overall_risk_df_est,
 #save effect estimate plots
 ```{r}
 ggsave("E:/BBK17/pj/data_2023apr/results/bkmr/29_chem/29_chem.tiff", 
-       width = 16,height = 10,
+       width = 10,height = 6,
        dpi=300)
 ```
 
 
 # extract pips
 ```{r}
-pip_df<- extract_pips("E:/BBK17/pj/data_2023apr/results/bkmr/29_chem")
-write_csv(pip_df, "E:/BBK17/pj/data_2023apr/results/bkmr/29_chem/29chem_pips.csv")
+pip_df<- extract_pips("E:/BBK17/pj/data_2023apr/results/bkmr/9_chem")
+write_csv(pip_df, "E:/BBK17/pj/data_2023apr/results/bkmr/9_chem/9chem_pips.csv")
 ```
 
 
@@ -288,7 +288,132 @@ overall_risk<- results[2] |> as.data.frame() |>
 ```
 
 
+################################################################################
+################################################################################
+#manual bkmr for PIQ in males
+```{r}
+dat<- dat |>
+  filter(sex=="1")
+
+chemicals_9<- c("Hg", "P_PB",
+                 "PBDE_47",  "PFHxS", "PFOA", "PFOS",
+                 "BDCIPP", "MBP", "MCPP")
+
+chem_group_9<- c(rep(1,times=2), rep(2,times=4), rep(3, times=3))
+outcomes<-c( "wppsi_piq")
+covariates<- c("cotinine", "home_score_total", "mom_age", "cohort","city",
+               "race_bin", "mom_edu_cat", "parity_n", "fish_int_pm")
+
+# for all chemicals select 1:32
+dat_set <- dat |>
+  select(c(chemicals_9, covariates, outcomes)) |>
+  drop_na()|>
+  mutate_at(vars(1:10), ~log10(.+0.0000001)) |>
+  drop_na() |>
+  mutate_all(as.numeric)
+
+#table(dat_set$sex, dat_set$cohort)
+```
+#manual bkmr run for PIQ in males
+```{r}
+bkmr_cohort(data=dat_set, 
+          folder_path = "E:/BBK17/pj/data_2023apr/results/bkmr/9_chem", 
+          ln_mixture_vars= chemicals_9,
+          groups=chem_group_9,
+          iter = 50000,
+          outcome_vars= outcomes, 
+          covariate_vars= covariates,  
+          include_cohort = FALSE)
+```
+
+#getting additional plots
+```{r}
+load("E:/BBK17/pj/data_2023apr/results/bkmr/9_chem/bkmr_all_all_wppsi_piq.rda")
+```
+
+#univariate plot
+```{r}
+pred.resp.univar <- PredictorResponseUnivar(fit = bkmr)
+
+ggplot(pred.resp.univar, aes(z, est, ymin = est - 1.96*se, ymax = est + 1.96*se)) + 
+    geom_smooth(stat = "identity", color="black", fill="grey85", linewidth=0.5) + 
+    facet_wrap(~ variable, scales = "free") +
+  ylab("h(z)")+ 
+  theme_bw()+
+  theme(axis.line = element_line(colour = "black"),
+          axis.text=element_text(size=10), 
+          axis.title=element_text(size=10,face="bold"),
+          strip.text = element_text(size=10),
+          axis.text.x = element_text(angle = 0, hjust = 1, vjust = 1, size = 10),
+          axis.text.y = element_text(size = 10), 
+          panel.spacing.x=unit(0.5, "lines"),
+          panel.spacing.y=unit(0.5, "lines"),
+          panel.grid.minor = element_blank(),
+          panel.grid.major = element_blank(),
+          panel.grid.major.y = element_blank(),
+          plot.caption = element_text(size = 6),
+          plot.title=element_text(size = 10, hjust = 0),
+          panel.border = element_blank(),
+          text=element_text(size=10),
+          axis.ticks.x=element_blank(),
+          strip.text.x=element_text(size=10,angle=0),
+          strip.text.y = element_text(size=10),
+          strip.placement = "outside",
+          strip.background = element_rect(fill =  "transparent"),
+          legend.box.just = "center",
+          legend.spacing = unit(0, "cm"),
+          legend.position = "bottom",
+          legend.box = "horizontal",
+          legend.direction = "horizontal",
+          legend.text = element_text(size = 8))
+```
+
+#interaction plot
+```{r}
+ln_mixture <- as.matrix(dat_set[, chemicals_9])
+
+pred.resp.bivar <- PredictorResponseBivar(fit = bkmr, min.plot.dist = 1)
+
+pred.resp.bivar.levels <- PredictorResponseBivarLevels(
+  pred.resp.df = pred.resp.bivar, Z = ln_mixture, qs = c(0.1, 0.5, 0.9))
 
 
+ggplot(pred.resp.bivar.levels, aes(z1, est)) + 
+    geom_smooth(aes(col = quantile), stat = "identity") + 
+    facet_grid(variable2 ~ variable1) +
+    ggtitle("h(expos1 | quantiles of expos2)") +
+    xlab("expos1")+ 
+    theme_bw()+
+    theme(axis.line = element_line(colour = "black"),
+          axis.text=element_text(size=10), 
+          axis.title=element_text(size=10,face="bold"),
+          strip.text = element_text(size=10),
+          axis.text.x = element_text(angle = 0, hjust = 1, vjust = 1, size = 10),
+          axis.text.y = element_text(size = 10), 
+          panel.spacing.x=unit(0.5, "lines"),
+          panel.spacing.y=unit(0.5, "lines"),
+          panel.grid.minor = element_blank(),
+          panel.grid.major = element_blank(),
+          panel.grid.major.y = element_blank(),
+          plot.caption = element_text(size = 6),
+          plot.title=element_text(size = 10, hjust = 0),
+          panel.border = element_blank(),
+          text=element_text(size=10),
+          axis.ticks.x=element_blank(),
+          strip.text.x=element_text(size=10,angle=0),
+          strip.text.y = element_text(size=10),
+          strip.placement = "outside",
+          strip.background = element_rect(fill =  "transparent"),
+          legend.box.just = "center",
+          legend.spacing = unit(0, "cm"),
+          legend.position = "bottom",
+          legend.box = "horizontal",
+          legend.direction = "horizontal",
+          legend.text = element_text(size = 8))
+```
+
+
+################################################################################
+################################################################################
 
 

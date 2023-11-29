@@ -294,7 +294,7 @@ ggplot(dat, aes(y = chemical, x = gender, fill = ifelse(chem_grp == "chem", weig
     scale_fill_gradient2(low = "red", high = "royalblue", midpoint = 0,
                          name = "Chemical biomarker weight",
                          guide = guide_colorbar(title.vjust = 1.2),
-                         breaks = c(-0.4, 0, 0.9))
+                         breaks = c(-0.3, 0, 0.3))
 ```
 
 #export figure

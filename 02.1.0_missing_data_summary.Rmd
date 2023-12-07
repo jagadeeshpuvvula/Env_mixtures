@@ -1,0 +1,117 @@
+---
+title: "02.1.0_missing_data_summary"
+author: "Jagadeesh Puvvula"
+date: "2023-12-07"
+output: pdf_document
+---
+
+```{r}
+library(pacman)
+pacman::p_load(tidyverse, janitor, naniar)
+```
+
+#Data with any one enrolled in HOME and MIREC
+```{r}
+dat_mirec <- read_csv("E:/BBK17/pj/data_2023apr/all_obs/mirec_1trim.csv") |>
+  select(1, 2:28, 29:36, 46:48) |>
+  clean_names() |>
+  mutate_if(is.numeric, ~ round(., 3)) |>
+  mutate(center = str_sub(subject_id, 1, 2), cohort= "2") |>
+  rename_all(~ str_replace(., "(_sg|sg|_lp)", ""))|>
+  rename(pfhxs=pf_hx_spl, pfoa=pfoapl, pfos=pfospl, basc_inz=basc_int,
+         wppsi_viq=viq, wppsi_piq=piq, wppsi_fsiq=fsiq)
+
+dat_home <- read_csv("E:/BBK17/pj/data_2023apr/all_obs/home_1trim.csv") |>
+  select(1, 2:31, 34:41) |>
+  clean_names() |>
+  mutate(pb=pb*10,
+         subject_id = as.character(subject_id),
+         center = "999", cohort= "1") |>
+  mutate_if(is.numeric, ~ round(., 3)) |>
+  rename_all(~ str_replace(., "(_sg|sg|_lp)", ""))|>
+  select(names(dat_mirec))
+
+combined_data<- bind_rows(dat_mirec, dat_home)
+```
+
+```{r}
+combined_data<- combined_data |>
+  rename(sigma_DEHP=dehp, di_Ethyl_OP=op_de, di_Methyl_OP=op_dm, 
+         bcep = bcetp, bdcipp=bdcpp, dnbp=dbup)|>
+  rename_at(vars(2:39), toupper) |>
+  mutate(cohort = ifelse(cohort == "1", "HOME", "MIREC")) |>
+  select(c(PB, HG, DMA, 
+           DDE, PBDE47, PCB118, PCB138, PCB153, PCB180,
+           PFHXS, PFOA, PFOS, 
+           BCEP, BDCIPP, DNBP, DPHP, 
+           B_PB, M_PB, P_PB,
+           TCS, BPA, 
+           MBP, MBZP, MCPP, SIGMA_DEHP, MEP, MIBP,
+           DI_ETHYL_OP, DI_METHYL_OP,
+           WPPSI_FSIQ, WPPSI_VIQ, WPPSI_PIQ, cohort))|> 
+  rename_with(~ gsub("_", " ", .), everything())
+```
+
+```{r}
+# Define the desired order for y-axis labels
+custom_order <- c(
+  "PB", "HG", "DMA", "DDE", "PBDE47", "PCB118", "PCB138", "PCB153", "PCB180",
+  "PFHXS", "PFOA", "PFOS", "BCEP", "BDCIPP", "DNBP", "DPHP", "TCS", "BPA", "MBP",
+  "MBZP", "MCPP", "SIGMA DEHP", "MEP", "MIBP", "DI ETHYL OP", "DI METHYL OP",
+  "B PB", "M PB", "P PB", "WPPSI FSIQ", "WPPSI VIQ", "WPPSI PIQ")
+
+
+# Assuming combined_data is your dataset
+missing_data <- is.na(combined_data)
+missing_data_df <- as.data.frame(missing_data)
+
+# Adding row numbers as a column
+missing_data_df$Observations <- seq_len(nrow(missing_data_df))
+
+# Converting the data to long format
+missing_data_long <- pivot_longer(
+  missing_data_df,
+  cols = -Observations,
+  names_to = "Variables",
+  values_to = "Missing"
+)
+
+# Calculate percentage of missing values per variable
+missing_percentage <- missing_data_long |>
+  group_by(Variables) |>
+  summarize(MissingPercentage = mean(Missing, na.rm = TRUE) * 100) |>
+  arrange(desc(MissingPercentage))
+
+missing_data_long_filtered <- missing_data_long |>
+  filter(!is.na(Variables)) |>
+  mutate(Variables = factor(Variables, levels = custom_order))
+
+# Remaining code for creating the heatmap with ggplot
+ggplot(missing_data_long_filtered, aes(x = Observations, y = reorder(Variables, -as.numeric(Missing)), fill = Missing)) +
+  geom_tile() +
+  scale_fill_manual(values = c("TRUE" = "royalblue", "FALSE" = "gray90"), na.value = "gray90") +
+  labs(title = "", x = "", y = "Variables") +
+  theme_bw() +
+  theme(
+    legend.position = "bottom",
+    axis.text.x = element_blank(),  # Remove x-axis text
+    axis.ticks.x = element_blank(),
+    panel.border = element_blank(),
+    panel.grid.major = element_blank(),
+    panel.grid.minor = element_blank(),
+    axis.line = element_line(colour = "black"),
+    legend.key.width = unit(0.8, "cm"),
+    legend.key.height = unit(0.3, "cm")
+  ) +
+  geom_vline(xintercept = 1933, color = "black", linetype = "solid", size = 2) +
+  guides(fill = guide_legend(direction = "horizontal",  title.hjust = 0.5, title="Unmeasured")) +
+  scale_y_discrete(labels = function(x) paste0(x, " (", round(missing_percentage$MissingPercentage[match(x, missing_percentage$Variables)], 1), "%)"))
+```
+
+```{r}
+ggsave("E:/BBK17/pj/data_2023apr/results/missing_pattern_full_data.tiff", 
+       width = 8,height = 5,
+       dpi=300)
+```
+
+

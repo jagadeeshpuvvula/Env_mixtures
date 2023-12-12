@@ -292,4 +292,154 @@ qgcomp_func(outcomes = c("wppsi_viq"),
             q = 10, b=400, seed = 2022)
 ```
 
+#==============================================================================#
+#==============================================================================#
+
+#extract results
+```{r}
+results<- get_gcomp_estimates(results_folder = "E:/BBK17/pj/data_2023apr/results/qgcomp/qgcomp_subset")
+write_csv(results, "E:/BBK17/pj/data_2023apr/results/qgcomp/qgcomp_subset/r_obj_summ.csv")
+```
+
+#data prep for visualizing estimates and CI
+```{r}
+res<- results |>
+  rename(bootstrap=boot_strp) |>
+  mutate(p_value = if_else(p_value <= 0.05, "<0.05", ">0.05"),
+         ci_null = (lower_ci <=0 & upper_ci >=0)) |>
+  mutate(cohort = fct_recode(as.factor(cohort), Pooled = "all", HOME = "home", MIREC = "mirec")) |>
+  mutate(outcome = fct_recode(as.factor(outcome), FSIQ = "fsiq", VIQ = "viq", PIQ = "piq")) |>
+  mutate(gender = fct_recode(as.factor(gender), All = "all", Female = "Female", Male = "Male")) |>
+  mutate(bootstrap = fct_recode(as.factor(bootstrap), Yes = "boot", No = "nb")) |>
+  filter(abs(lower_ci) <= 40 & abs(upper_ci) <= 40,
+         cohort == "Pooled")
+
+#res$cohort<- factor(res$cohort, levels = c("Pooled", "HOME", "MIREC"))
+res$bootstrap<- factor(res$bootstrap, levels = c("Yes", "No"))
+
+cbbPalette <- c("black", "#0072B2")
+```
+
+#visualizing estimates and CI
+```{r, echo=FALSE, message=FALSE, fig.height=4, fig.width=6, dpi=300}
+ggplot(res, aes(x = as.factor(outcome), y = estimate, ymin = lower_ci, ymax = upper_ci)) + 
+  geom_pointrange(aes(col = as.factor(ci_null), shape=bootstrap), 
+                  position=position_dodge(width=0.5),size = 0.6) +
+  geom_hline(aes(yintercept = 0), linetype="dashed") + 
+  scale_colour_manual(values=cbbPalette) +
+  labs(x=NULL,
+       y=expression(paste(beta[Q-gcomp]," [95% CI]")),
+       title = "",
+       caption = "")+
+  theme_bw()+
+  theme(axis.line = element_line(colour = "black"))+
+  theme(plot.caption = element_text(size = 6),
+        plot.title=element_text(size = 10, hjust = 0),
+        panel.border = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.minor = element_blank(),
+        axis.line = element_line(colour = "black"),
+        text=element_text(size=10),
+        axis.text = element_text(size = 10),
+        axis.text.x=element_text(size=10,angle=0),
+        axis.ticks.x=element_blank(),
+        strip.text.x=element_text(size=10,angle=0),
+        strip.text.y = element_text(size=10),
+        strip.placement = "outside",
+        strip.background = element_rect(fill=NULL, colour = NULL),
+        legend.box.just = "center",
+        legend.spacing = unit(0, "cm"),
+        legend.position = "bottom",
+        legend.box = "horizontal",
+        legend.direction = "horizontal",
+        legend.text = element_text(size = 8),
+        legend.key = element_blank(),
+        legend.key.height = unit(3, "mm"))+
+  guides(col="none",
+         shape=guide_legend(title = "Bootstrap"))+
+  facet_grid(gender~., scales = "free", switch = "x", space = "free_x")
+```
+
+#export figure
+```{r}
+ggsave("E:/BBK17/pj/data_2023apr/results/qgcomp/qgcomp_subset/qgcomp_subset.tiff", 
+       width = 4,height = 6,
+       dpi=300)
+```
+
+#==============================================================================#
+#==============================================================================#
+
+#extract chemical weights 
+```{r}
+qgcomp_weights <- extract_weights("E:/BBK17/pj/data_2023apr/results/qgcomp/qgcomp_subset")
+write_csv(qgcomp_weights, "E:/BBK17/pj/data_2023apr/results/qgcomp/qgcomp_subset/chem_weight.csv")
+```
+
+#data prep for visualization
+```{r}
+dat <- qgcomp_weights |> 
+  mutate(file_name = str_remove(file_name, "nb_")) |>
+  separate(file_name, c("gender", "cohort", "wppsi", "outcome"), sep = "_") |>
+  mutate(weight= if_else(direction=="neg", weight*-1, weight),
+         chemical=gsub("log_", "", chemical),
+         outcome = str_to_upper(outcome),
+         cohort = fct_recode(cohort, "Pooled" = "all",
+                             "HOME" = "home",
+                             "MIREC" = "mirec"),
+         gender =fct_recode(gender, "All"= "all"),
+         chemical = toupper(str_replace_all(chemical, "_(?=[A-Z])", " ")),
+         chemical = str_replace_all(chemical, "_(?=[0-9])", ""),
+         chem_grp = ifelse(grepl("psi", direction), "psi", "chem")) |>
+  filter(cohort== "Pooled")
+
+# specify the order of levels in a factor variable
+dat$chemical <- factor(dat$chemical,
+                      levels = c("PB", "HG", "DMA", "DDE", "PBDE47", "PCB118", "PCB138", "PCB153", "PCB180",
+                                 "PFHXS", "PFOA", "PFOS", "BCEP", "BDCIPP", "DNBP", "DPHP", "TCS", "BPA", "MBP",
+                                 "MBZP", "MCPP", "SIGMA DEHP", "MEP", "MIBP", "DI ETHYL OP", "DI METHYL OP",
+                                 "B PB", "M PB", "P PB", "NEG.PSI", "POS.PSI", "PSI1"))
+dat$chem_grp<- factor(dat$chem_grp, levels = c("psi", "chem"))
+```
+
+
+#visualize chemical weights
+```{r}
+ggplot(dat, aes(y = chemical, x = gender, fill = ifelse(chem_grp == "chem", weight, NA))) + 
+  geom_tile() +
+  geom_tile(data = dat %>% filter(chem_grp == "psi"), fill = "white") +
+  geom_text(aes(label = round(weight, 3)),
+              color = "black", size = 2.5, fontface = "bold", show.legend = FALSE) +
+  labs(x = "", y = "", fill = "weight") +
+    facet_grid(chem_grp ~ outcome, scales = "free_y", space = "free_y") +
+    theme_bw() +
+    theme(axis.text = element_text(size = 10), 
+        axis.title = element_text(size = 10, face = "bold"),
+        panel.grid.minor = element_blank(),
+        panel.grid.major = element_blank(),
+        panel.grid.major.y = element_blank(),
+        axis.text.x = element_text(angle = 0, hjust = 0.5, vjust = 1, size = 10),
+        axis.text.y = element_text(size = 10), 
+        panel.spacing.x = unit(0.02, "lines"),
+        panel.spacing.y = unit(0.02, "lines"),
+        strip.text.y = element_blank(),
+        strip.text.x = element_text(face= "bold", size = 10),
+        strip.background.x = element_rect(fill =  "transparent"),
+        legend.position = "bottom", legend.box = "horizontal",
+        legend.key.width = unit(0.8, "cm"),
+        legend.key.height = unit(0.3, "cm"),
+        legend.spacing = unit(0, "cm")) +
+    scale_fill_gradient2(low = "red", high = "royalblue", midpoint = 0,
+                         name = "Chemical biomarker weight",
+                         guide = guide_colorbar(title.vjust = 1.2),
+                         breaks = c(-0.5, 0, 0.5))
+```
+
+#export figure
+```{r}
+ggsave("E:/BBK17/pj/data_2023apr/results/qgcomp/qgcomp_subset/qgcomp_subset_weight.tiff", 
+       width = 5.5,height = 6,
+       dpi=300)
+```
+
 

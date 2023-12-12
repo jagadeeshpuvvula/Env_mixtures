@@ -20,7 +20,7 @@ dat<- dat |>
   rename(Pb=pb, Hg=hg, DMA=dma, DDE= dde, PBDE_47 = pbde47,
          PCB_118=pcb118, PCB_138=pcb138, PCB_153=pcb153,
          PCB_180=pcb180, PFHxS=pfhxs, PFOA=pfoa, PFOS=pfos,
-         BCEtP=bcetp, BDCPP=bdcpp, DBuP=dbup, DPhP=dphp,
+         BCEP=bcep, BDCIPP=bdcipp, DNBP=dnbp, DPhP=dphp,
          TCS=tcs, BPA=bpa, MBP=mbp, MBZP=mbzp, MCPP=mcpp,
          sigma_DEHP=dehp, MEP=mep, MIBP=mibp, di_Ethyl_OP=op_de,
          di_Methyl_OP=op_dm, B_PB=b_pb, M_PB=m_pb, P_PB=p_pb, city=center,
@@ -28,7 +28,7 @@ dat<- dat |>
   mutate(race_bin = ifelse(race == "white", 1, 2))|>
   mutate(sex = ifelse(sex == "1", "Male", "Female"))|>
   select(c(Pb, Hg, DMA, DDE, PBDE_47, PCB_118, PCB_138, PCB_153, PCB_180,
-          PFHxS, PFOA, PFOS, BCEtP, BDCPP, DBuP, DPhP, TCS, BPA, MBP, MBZP,
+          PFHxS, PFOA, PFOS, BCEP, BDCIPP, DNBP, DPhP, TCS, BPA, MBP, MBZP,
           MCPP, sigma_DEHP, MEP, MIBP, di_Ethyl_OP, di_Methyl_OP, 
           B_PB, M_PB, P_PB, cotinine, home_score_total, mom_age, 
           cohort, city, sex, race_bin,  mom_edu_cat, parity_n, fish_int_pm,
@@ -37,7 +37,6 @@ dat<- dat |>
 dat<- dat |> 
   mutate(across(all_of(c("cohort", "city", "sex", "race_bin", 
                          "parity_n", "mom_edu_cat", "fish_int_pm")), as.factor))
-
 ```
 
 for 29 chemicals
@@ -101,18 +100,12 @@ dat_lm_res<- lm_reas |>
                              "VIQ" = "wppsi_viq",
                              "PIQ" = "wppsi_piq"))
 
-#format chemical name apperance
+#format chemical name appearance
 dat_lm_res<- dat_lm_res |>
   mutate(chemical = toupper(str_replace_all(chemical, "_(?=[A-Z])", " ")),
          chemical = str_replace_all(chemical, "_(?=[0-9])", "")) |>
   mutate(chemical = as.character(chemical))
 
-dat_lm_res$chemical <- fct_recode(
-  dat_lm_res$chemical,
-  "BDCIPP" = "BDCPP",
-  "BCEP" = "BCETP",
-  "DNBP" = "DBUP"
-)
 ```
 
 

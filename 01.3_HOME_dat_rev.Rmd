@@ -9,7 +9,7 @@ output: pdf_document
 library(tidyverse)
 library(haven)
 library(janitor)
-library(naniar)
+#library(naniar)
 ```
 
 ```{r}

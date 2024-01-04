@@ -7,7 +7,7 @@ output: pdf_document
 
 ```{r}
 library(tidyverse)
-library(skimr)
+#library(skimr)
 library(haven)
 library(janitor)
 library(naniar)

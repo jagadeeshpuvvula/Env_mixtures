@@ -31,7 +31,7 @@ dat<- dat |>
   rename(Pb=pb, Hg=hg, DMA=dma, DDE= dde, PBDE_47 = pbde47,
          PCB_118=pcb118, PCB_138=pcb138, PCB_153=pcb153,
          PCB_180=pcb180, PFHxS=pfhxs, PFOA=pfoa, PFOS=pfos,
-         BCEtP=bcetp, BDCPP=bdcpp, DBuP=dbup, DPhP=dphp,
+         BCEP=bcep, BDCIPP=bdcipp, DNBP=dnbp, DPhP=dphp,
          TCS=tcs, BPA=bpa, MBP=mbp, MBZP=mbzp, MCPP=mcpp,
          sigma_DEHP=dehp, MEP=mep, MIBP=mibp, di_Ethyl_OP=op_de,
          di_Methyl_OP=op_dm, B_PB=b_pb, M_PB=m_pb, P_PB=p_pb, city=center,
@@ -39,7 +39,7 @@ dat<- dat |>
   mutate(race_bin = ifelse(race == "white", 1, 2))|>
   mutate(sex = ifelse(sex == "1", "Male", "Female"))|>
   select(c(Pb, Hg, DMA, DDE, PBDE_47, PCB_118, PCB_138, PCB_153, PCB_180,
-          PFHxS, PFOA, PFOS, BCEtP, BDCPP, DBuP, DPhP, TCS, BPA, MBP, MBZP,
+          PFHxS, PFOA, PFOS, BCEP, BDCIPP, DNBP, DPhP, TCS, BPA, MBP, MBZP,
           MCPP, sigma_DEHP, MEP, MIBP, di_Ethyl_OP, di_Methyl_OP, 
           B_PB, M_PB, P_PB, cotinine, home_score_total, mom_age, 
           cohort, city, sex, race_bin,  mom_edu_cat, parity_n, fish_int_pm,
@@ -116,7 +116,7 @@ qgcomp_func(outcomes = c("wppsi_fsiq", "wppsi_viq", "wppsi_piq"),
                              "log_DDE", "log_PBDE_47", 
                              "log_PCB_118", "log_PCB_138", "log_PCB_153", "log_PCB_180", 
                              "log_PFHxS", "log_PFOA", "log_PFOS", 
-                             "log_BCEtP", "log_BDCPP", "log_DBuP", "log_DPhP", 
+                             "log_BCEP", "log_BDCIPP", "log_DNBP", "log_DPhP", 
                              "log_TCS", "log_BPA", 
                              "log_MBP", "log_MBZP", "log_MCPP", "log_sigma_DEHP", 
                              "log_MEP", "log_MIBP", 
@@ -139,7 +139,7 @@ qgcomp_func(outcomes = c("wppsi_piq"),
             include_sex = TRUE, 
             include_cohort = TRUE, 
             chemicals = list( "log_Hg", "log_PBDE_47", "log_PFHxS", "log_PFOA",
-                              "log_PFOS", "log_BDCPP", "log_MBP", "log_MCPP", "log_P_PB"),
+                              "log_PFOS", "log_BDCIPP", "log_MBP", "log_MCPP", "log_P_PB"),
             covariates = list("race_bin", "log_cotinine", "mom_edu_cat", 
                               "home_score_total", "parity_n", "mom_age", "fish_int_pm"),
             q = 10, b=400, seed = 2022)
@@ -247,13 +247,6 @@ dat <- qgcomp_weights |>
          chemical = str_replace_all(chemical, "_(?=[0-9])", ""),
          chem_grp = ifelse(grepl("psi", direction), "psi", "chem")) |>
   filter(cohort== "Pooled")
-
-dat$chemical <- fct_recode(
-  dat$chemical,
-  "BDCIPP" = "BDCPP",
-  "BCEP" = "BCETP",
-  "DNBP" = "DBUP"
-)
 
 # specify the order of levels in a factor variable
 dat$chemical <- factor(dat$chemical,

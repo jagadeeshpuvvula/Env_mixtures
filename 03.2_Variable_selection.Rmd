@@ -18,7 +18,6 @@ res<- "E:/BBK17/pj/data_2023apr/results/iq_paper/"
 dat <- read_csv(paste0(path, "wppsi_f_analy.csv")) |> drop_na() |>
   filter( cohort == "1" | cohort == "2" ) |> # 1- for HOME
   mutate_if(is.numeric, round, 4)|>
-  mutate(pb = if_else(cohort == "HOME", pb * 10, pb)) |>
   clean_names() |>
   rename(sigma_DEHP=dehp, di_Ethyl_OP=op_de, di_Methyl_OP=op_dm, city=center)|>
   rename_at(vars(4:32), toupper) |>

@@ -1,0 +1,76 @@
+---
+title: "participant_char_table_suggested by ann"
+author: "Jagadeesh Puvvula"
+date: "2023-12-13"
+output: pdf_document
+---
+
+```{r}
+library(pacman)
+pacman::p_load(tidyverse, janitor, naniar)
+```
+
+```{r}
+dat_mirec <- read_csv("E:/BBK17/pj/data_2023apr/all_obs/mirec_1trim.csv") |>
+  select(1, 5, 37:45) |>
+  clean_names() |>
+  mutate_if(is.numeric, ~ round(., 3)) |>
+  mutate(center = str_sub(subject_id, 1, 2), cohort= "2") |>
+  rename(gest_age = gest_age_dv) |>
+  left_join(mirec_fish, by="subject_id")
+
+dat_home <- read_csv("E:/BBK17/pj/data_2023apr/all_obs/home_1trim.csv") |>
+  select(1, 13, 42:44, 49:53, 57,58) |>
+  clean_names() |>
+  mutate(fish_int_pm = case_when(
+    fish_consumption_cd == 6 ~ 1,
+    fish_consumption_cd %in% c(4, 5) ~ 2,
+    fish_consumption_cd %in% c(1, 2, 3) ~ 3,
+    TRUE ~ NA_integer_),
+    subject_id = as.character(subject_id),
+    cohort = as.character(1),
+    center = as.character(999)) |>
+  select(-c("fish_consumption_cd")) |>
+  rename(mom_age = mom_age_deliv,
+         race = race_cd)|>
+  select(all_of(names(dat_mirec)))
+
+combined_data<- bind_rows(dat_mirec, dat_home)
+```
+
+#remove 617 subjects being used in the main analysis
+```{r}
+data_filtered <- combined_data |>
+  anti_join(dat, by = "subject_id") #load dat from any of the mixture analysis rmd files
+```
+
+```{r}
+set.seed(123)  # For reproducibility, set a seed
+dat_filtered_x <- data_filtered |>
+  filter(!(cohort == 1 & row_number() %in% sample(which(cohort == 1), 9))) |>
+  filter(!(cohort == 2 & row_number() %in% sample(which(cohort == 2), 23)))
+```
+
+
+```{r}
+summaries_overall <- summarize_variables(continuous_variables= c("cotinine", "mom_age", "home_score_total", 
+                                                         "gest_age", "b_wght", "b_length"),
+                                 categorical_variables= c("sex", "parity_n", "edu3", "fish_int_pm", "race"),
+                                 data= dat_filtered_x)
+
+summaries_cohort1 <- summarize_variables(continuous_variables= c("cotinine", "mom_age", "home_score_total", 
+                                                         "gest_age", "b_wght", "b_length"),
+                                 categorical_variables= c("sex", "parity_n", "edu3", "fish_int_pm", "race"),
+                                 data= subset(dat_filtered_x, cohort == "1"))
+summaries_cohort2 <- summarize_variables(continuous_variables= c("cotinine", "mom_age", "home_score_total", 
+                                                         "gest_age", "b_wght", "b_length"),
+                                 categorical_variables= c("sex", "parity_n", "edu3", "fish_int_pm", "race"),
+                                 data= subset(dat_filtered_x, cohort == "2"))
+```
+
+
+
+
+
+
+

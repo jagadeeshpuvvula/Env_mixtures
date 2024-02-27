@@ -177,3 +177,23 @@ ggsave("E:/BBK17/pj/data_2023apr/results/lm/lm_coef.tiff",
        dpi=300)
 ```
 
+#======================================================#
+#converting lm results to table - suggested by Michael
+```{r}
+lm_res_tbl <- dat_lm_res |>
+  filter(cohort_level == "Pooled") |>
+  mutate(result = sprintf("%.3f (%.3f, %.3f)", coefficient, ci_lower, ci_upper)) |>
+  select(-c(4:10)) |>
+  pivot_wider(names_from = c(outcome, sex_level),
+              values_from = result ) |>
+  select(
+    chemical,
+    FSIQ_All, FSIQ_Female, FSIQ_Male,  
+    VIQ_All, VIQ_Female, VIQ_Male,
+    PIQ_All, PIQ_Female, PIQ_Male)
+
+write_csv(lm_res_tbl, "E:/BBK17/pj/data_2023apr/results/lm/lm_res_fmt.csv")
+```
+
+
+

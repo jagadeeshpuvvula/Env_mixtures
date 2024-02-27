@@ -228,7 +228,7 @@ write_csv(qgcomp_weights, "E:/BBK17/pj/data_2023apr/results/qgcomp/qgcomp_9chem/
 
 # load chemical weights
 ```{r}
-qgcomp_weights<- read_csv("E:/BBK17/pj/data_2023apr/results/qgcomp/qgcomp_29chem/chem_weight.csv")
+qgcomp_weights<- read_csv("E:/BBK17/pj/data_2023apr/results/qgcomp/qgcomp_subset/chem_weight.csv")
 ```
 
 #data prep for visualization
@@ -246,14 +246,21 @@ dat <- qgcomp_weights |>
          chemical = toupper(str_replace_all(chemical, "_(?=[A-Z])", " ")),
          chemical = str_replace_all(chemical, "_(?=[0-9])", ""),
          chem_grp = ifelse(grepl("psi", direction), "psi", "chem")) |>
-  filter(cohort== "Pooled")
+  filter(cohort== "Pooled") |>
+  mutate(chemical = fct_recode(chemical, 
+                               "BCEP" = "BCETP", "BDCIPP" = "BDCPP", "DNBP" = "DBUP"))
 
 # specify the order of levels in a factor variable
 dat$chemical <- factor(dat$chemical,
-                      levels = c("PB", "HG", "DMA", "DDE", "PBDE47", "PCB118", "PCB138", "PCB153", "PCB180",
-                                 "PFHXS", "PFOA", "PFOS", "BCEP", "BDCIPP", "DNBP", "DPHP", "TCS", "BPA", "MBP",
-                                 "MBZP", "MCPP", "SIGMA DEHP", "MEP", "MIBP", "DI ETHYL OP", "DI METHYL OP",
-                                 "B PB", "M PB", "P PB", "NEG.PSI", "POS.PSI", "PSI1"))
+                      levels = c("PB", "HG", "DMA", 
+                                 "DDE", "PBDE47", "PCB118", "PCB138", "PCB153", "PCB180",
+                                 "PFHXS", "PFOA", "PFOS", 
+                                 "BCEP", "BDCIPP", "DNBP", "DPHP", 
+                                 "TCS", "BPA", "MBP",
+                                 "MBZP", "MCPP", "SIGMA DEHP", "MEP", "MIBP",
+                                 "DI ETHYL OP", "DI METHYL OP",
+                                 "B PB", "M PB", "P PB", 
+                                 "NEG.PSI", "POS.PSI", "PSI1"))
 dat$chem_grp<- factor(dat$chem_grp, levels = c("psi", "chem"))
 ```
 
@@ -297,6 +304,45 @@ ggsave("E:/BBK17/pj/data_2023apr/results/qgcomp/qgcomp_29chem/gcomp_29chem_weigh
        dpi=300)
 ```
 
+#=========================================================#
+#converting to table as suggested by michael
+```{r}
+results<- read_csv("E:/BBK17/pj/data_2023apr/results/qgcomp/qgcomp_subset/r_obj_summ.csv") |>
+  filter(cohort == "all" & boot_strp == "nb") |>
+  mutate(result = sprintf("%.3f (%.3f, %.3f)", estimate, lower_ci, upper_ci)) 
+```
+
+
+#print a table using qgcomp results
+```{r}
+custom_order <- c("PSI1", "NEG.PSI", "POS.PSI", "PB", "HG", "DMA", "DDE", "PBDE47", "PCB118", "PCB138", "PCB153", "PCB180",
+                  "PFHXS", "PFOA", "PFOS", "BCEP", "BDCIPP", "DNBP", "DPHP",
+                  "TCS", "BPA", "MBP", "MBZP", "MCPP", "SIGMA DEHP", "MEP", "MIBP",
+                  "DI ETHYL OP", "DI METHYL OP", "B PB", "M PB", "P PB")
+
+dat_tbl <- dat |>
+  mutate(chemical = factor(chemical, levels = custom_order)) |>
+  arrange(chemical) |>
+  select(-c(3,6,8)) |>
+  pivot_wider(names_from = c("gender", "cohort", "outcome"), values_from = "weight") |>
+  select(
+    chemical,
+    starts_with("All") & contains("FSIQ"),
+    starts_with("Female") & contains("FSIQ"),
+    starts_with("Male") & contains("FSIQ"),
+    starts_with("All") & contains("PIQ"),
+    starts_with("Female") & contains("PIQ"),
+    starts_with("Male") & contains("PIQ"),
+    starts_with("All") & contains("VIQ"),
+    starts_with("Female") & contains("VIQ"),
+    starts_with("Male") & contains("VIQ")
+  ) |>
+  mutate_if(is.numeric, ~ round(., 3)) |>
+  rename_all(~sub("_Pooled", "", .))
+
+
+write_csv(dat_tbl, "E:/BBK17/pj/data_2023apr/results/qgcomp/qgcomp_subset/gcomp_subset_weight.csv")
+```
 
 
 

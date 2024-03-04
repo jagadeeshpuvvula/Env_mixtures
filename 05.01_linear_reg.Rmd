@@ -182,7 +182,7 @@ ggsave("E:/BBK17/pj/data_2023apr/results/lm/lm_coef.tiff",
 ```{r}
 lm_res_tbl <- dat_lm_res |>
   filter(cohort_level == "Pooled") |>
-  mutate(result = sprintf("%.3f (%.3f, %.3f)", coefficient, ci_lower, ci_upper)) |>
+  mutate(result = sprintf("%.2f (%.2f, %.2f)", coefficient, ci_lower, ci_upper)) |>
   select(-c(4:10)) |>
   pivot_wider(names_from = c(outcome, sex_level),
               values_from = result ) |>

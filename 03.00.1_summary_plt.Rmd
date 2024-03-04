@@ -182,5 +182,25 @@ ggsave("E:/BBK17/pj/data_2023apr/results/iq_paper/summary.tiff",
        width=13, height= 10, dpi=300)
 ```
 
+#converting figure to tables - to mask <LOD values
+```{r}
+custom_order <- c("PB", "HG", "DMA", "DDE", "PBDE47", "PCB118", "PCB138", "PCB153", "PCB180",
+                  "PFHXS", "PFOA", "PFOS", "BCEP", "BDCIPP", "DNBP", "DPHP",
+                  "TCS", "BPA", "MBP", "MBZP", "MCPP", "SIGMA_DEHP", "MEP", "MIBP",
+                  "DI_ETHYL_OP", "DI_METHYL_OP", "B_PB", "M_PB", "P_PB",
+                  "WPPSI_FSIQ", "WPPSI_PIQ", "WPPSI_VIQ")
+
+dat_tbl<- bind_rows(summary_combined, summary_by_cohort) |>
+  mutate(across(where(is.numeric), ~round(., 2)))|>
+  mutate(summary = paste(median, " (", q25, ",", q75, ")", sep = "")) |>
+  select(-c(2:4)) |>
+  pivot_wider(
+    names_from = cohort,
+    values_from = summary
+  ) |>
+  mutate(measure = factor(measure, levels = custom_order))
+
+write_csv(dat_tbl, "E:/BBK17/pj/data_2023apr/results/iq_paper/summary.csv")
+```
 
 

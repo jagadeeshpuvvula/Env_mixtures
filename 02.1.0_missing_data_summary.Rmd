@@ -39,15 +39,19 @@ combined_data<- combined_data |>
   rename(sigma_DEHP=dehp, di_Ethyl_OP=op_de, di_Methyl_OP=op_dm, 
          bcep = bcetp, bdcipp=bdcpp, dnbp=dbup)|>
   rename_at(vars(2:39), toupper) |>
+  rename(Pb=PB, Hg=HG,
+          "Butyl paraben" = B_PB ,  "Methyl paraben" = M_PB, "Propyl paraben"= P_PB,
+         "Di-ethyl organophosphate" = DI_ETHYL_OP, "Di-methyl organophosphate" = DI_METHYL_OP,
+         "Triclosan" = TCS,  "Bisphenol-A" =BPA) |>
   mutate(cohort = ifelse(cohort == "1", "HOME", "MIREC")) |>
-  select(c(PB, HG, DMA, 
+  select(c(Pb, Hg, DMA, 
            DDE, PBDE47, PCB118, PCB138, PCB153, PCB180,
            PFHXS, PFOA, PFOS, 
-           BCEP, BDCIPP, DNBP, DPHP, 
-           B_PB, M_PB, P_PB,
-           TCS, BPA, 
+           BCEP, BDCIPP, DNBP, DPHP,
+           Triclosan, "Bisphenol-A", 
            MBP, MBZP, MCPP, SIGMA_DEHP, MEP, MIBP,
-           DI_ETHYL_OP, DI_METHYL_OP,
+           "Di-ethyl organophosphate", "Di-methyl organophosphate",
+           "Butyl paraben", "Methyl paraben", "Propyl paraben",
            WPPSI_FSIQ, WPPSI_VIQ, WPPSI_PIQ, cohort))|> 
   rename_with(~ gsub("_", " ", .), everything())
 ```
@@ -55,10 +59,15 @@ combined_data<- combined_data |>
 ```{r}
 # Define the desired order for y-axis labels
 custom_order <- c(
-  "PB", "HG", "DMA", "DDE", "PBDE47", "PCB118", "PCB138", "PCB153", "PCB180",
-  "PFHXS", "PFOA", "PFOS", "BCEP", "BDCIPP", "DNBP", "DPHP", "TCS", "BPA", "MBP",
-  "MBZP", "MCPP", "SIGMA DEHP", "MEP", "MIBP", "DI ETHYL OP", "DI METHYL OP",
-  "B PB", "M PB", "P PB", "WPPSI FSIQ", "WPPSI VIQ", "WPPSI PIQ")
+  "Pb", "Hg", "DMA",
+  "DDE", "PBDE47", "PCB118", "PCB138", "PCB153", "PCB180",
+  "PFHXS", "PFOA", "PFOS", 
+  "BCEP", "BDCIPP", "DNBP", "DPHP", 
+  "Triclosan", "Bisphenol-A", 
+  "MBP", "MBZP", "MCPP", "SIGMA DEHP", "MEP", "MIBP", 
+  "Di-ethyl organophosphate", "Di-methyl organophosphate",
+  "Butyl paraben", "Methyl paraben", "Propyl paraben", 
+  "WPPSI FSIQ", "WPPSI VIQ", "WPPSI PIQ")
 
 
 # Assuming combined_data is your dataset
@@ -84,12 +93,15 @@ missing_percentage <- missing_data_long |>
 
 missing_data_long_filtered <- missing_data_long |>
   filter(!is.na(Variables)) |>
-  mutate(Variables = factor(Variables, levels = custom_order))
+  mutate(Variables = factor(Variables, levels = custom_order)) |>
+  mutate(Missing = factor(Missing))|>
+  mutate(Missing = recode(Missing, "TRUE" = "Unmeasured", "FALSE" = "Measured")) |>
+  drop_na()
 
 # Remaining code for creating the heatmap with ggplot
 ggplot(missing_data_long_filtered, aes(x = Observations, y = reorder(Variables, -as.numeric(Missing)), fill = Missing)) +
   geom_tile() +
-  scale_fill_manual(values = c("TRUE" = "royalblue", "FALSE" = "gray90"), na.value = "gray90") +
+  scale_fill_manual(values = c("Unmeasured" = "royalblue", "Measured" = "gray90")) +
   labs(title = "", x = "", y = "Variables") +
   theme_bw() +
   theme(
@@ -104,7 +116,7 @@ ggplot(missing_data_long_filtered, aes(x = Observations, y = reorder(Variables, 
     legend.key.height = unit(0.3, "cm")
   ) +
   geom_vline(xintercept = 1933, color = "black", linetype = "solid", size = 2) +
-  guides(fill = guide_legend(direction = "horizontal",  title.hjust = 0.5, title="Unmeasured")) +
+  guides(fill = guide_legend(direction = "horizontal",  title.hjust = 0.5, title="")) +
   scale_y_discrete(labels = function(x) paste0(x, " (", round(missing_percentage$MissingPercentage[match(x, missing_percentage$Variables)], 1), "%)"))
 ```
 

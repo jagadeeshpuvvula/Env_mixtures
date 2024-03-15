@@ -33,19 +33,25 @@ dat <- read_csv(paste0(path, "wppsi_f_analy.csv")) |> drop_na() |>
            B_PB, M_PB, P_PB,
            TCS, BPA, 
            MBP, MBZP, MCPP, SIGMA_DEHP, MEP, MIBP,
-           DI_ETHYL_OP, DI_METHYL_OP))
+           DI_ETHYL_OP, DI_METHYL_OP)) |>
+  rename(Pb=PB, Hg=HG,
+          "Butyl paraben" = B_PB ,  "Methyl paraben" = M_PB, "Propyl paraben"= P_PB,
+         "Di-ethyl organophosphate" = DI_ETHYL_OP, "Di-methyl organophosphate" = DI_METHYL_OP,
+         "Triclosan" = TCS,  "Bisphenol-A" =BPA)
 ```
 
 correlation
 ```{r, echo=FALSE, message=FALSE, fig.height=10, fig.width=6.5, dpi=300}
-desired_order<- c("PB", "HG", "DMA", 
-                  "DDE", "PBDE47", "PCB118", "PCB138", "PCB153", "PCB180",
-                  "PFHXS", "PFOA", "PFOS", 
-                  "BCEP", "BDCIPP", "DNBP", "DPHP", 
-                  "TCS", "BPA", 
-                  "MBP", "MBZP", "MCPP", "SIGMA DEHP", "MEP", "MIBP",
-                  "DI ETHYL OP", "DI METHYL OP",
-                  "B PB", "M PB", "P PB")
+desired_order<-  c(
+  "Pb", "Hg", "DMA",
+  "DDE", "PBDE47", "PCB118", "PCB138", "PCB153", "PCB180",
+  "PFHXS", "PFOA", "PFOS", 
+  "BCEP", "BDCIPP", "DNBP", "DPHP", 
+  "Triclosan", "Bisphenol-A", 
+  "MBP", "MBZP", "MCPP", "SIGMA DEHP", "MEP", "MIBP", 
+  "Di-ethyl organophosphate", "Di-methyl organophosphate",
+  "Butyl paraben", "Methyl paraben", "Propyl paraben", 
+  "WPPSI FSIQ", "WPPSI VIQ", "WPPSI PIQ")
 
 
 dat_cor<- dat |> select(-c(cohort))
@@ -54,7 +60,7 @@ cormat <- round(x=cor(dat_cor, method = "spearman", use = "complete.obs"), digit
   melt() |> 
   clean_names() |>
   mutate_at(vars(var1, var2), ~str_replace_all(., "_(?=[A-Z])", " ")) |>
-  mutate_at(vars(var1, var2), ~factor(., levels = desired_order))
+  mutate_at(vars(var1, var2), ~factor(., levels = rev(desired_order)))
 
 ggplot(cormat, aes(x = var2, y = var1, fill = value)) + #, label = value
   geom_tile(color = "white") +

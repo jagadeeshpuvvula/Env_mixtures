@@ -38,7 +38,7 @@ tidy_ggdag<- dagify(
                 y=c(exp= 2, out= 2, race= 6, edu= 3.5, age= 4,  pari= 6, fish =6,
                     coti= 4, sex= 5.5, HOME= 8, cohort= 0, city = 0)),
   labels = c("out" = "Child \ncognitive \nabilities",
-             "exp" = "Prenatal \nchemical biomarkers",
+             "exp" = "Gestational \nchemical biomarkers",
              "race" = "Race",
              "edu" = "Maternal \neducation",
              "age" = "Maternal \nage at \ndelivery",

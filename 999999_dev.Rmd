@@ -1,0 +1,237 @@
+---
+title: "dev"
+author: "Jagadeesh Puvvula"
+date: "2023-10-02"
+output: pdf_document
+---
+
+```{r}
+compile_excel_data <- function(folder_path) {
+  # List all files in the specified folder
+  all_files <- list.files(path = folder_path, full.names = TRUE)
+  
+  # Filter out non-Excel files
+  excel_files <- all_files[grepl("\\.xlsx$", tolower(all_files))]
+  
+  # Function to read an Excel file, extract rows 11 to 60, and add the file name
+  process_excel_file <- function(file_path) {
+    tryCatch({
+      # Read the specified range of rows from the Excel file
+      data <- read_excel(file_path, range = cell_rows(11:60), col_names = FALSE)
+      
+      # Add the file name as a variable
+      data$file_name <- as.character(basename(file_path))
+      
+      # Coerce all columns to character
+      data <- as.data.frame(lapply(data, as.character), stringsAsFactors = FALSE)
+      
+      # Rename columns based on specified variable names
+      colnames(data) <- c(
+        "Identification",
+        "Client reference #",
+        "CTQ reference #",
+        "Insurance #",
+        "Patient Folder #",
+        "Test date",
+        "Matrix",
+        "MBzP",
+        "MCHP",
+        "MCHpP",
+        "MCiNP",
+        "MCiOP",
+        "MCMHP",
+        "MCPP",
+        "MECPP",
+        "MEHHP",
+        "MEHP",
+        "MEOHP",
+        "MEP",
+        "MHBP",
+        "MHiDP",
+        "MHiNP",
+        "MiBP",
+        "MiDP",
+        "MiNP",
+        "MMP",
+        "MnBP",
+        "MnOP",
+        "MOiDP",
+        "MOiNP",
+        "2-OH-MiBP"
+      )
+      
+      return(data)
+    }, error = function(e) {
+      warning(paste("Error reading file:", file_path, "- Skipping. Error:", conditionMessage(e)))
+      return(NULL)
+    })
+  }
+  
+  # Read and process each valid Excel file, then combine the data into a single dataframe
+  combined_data <- excel_files %>%
+    map_df(process_excel_file)
+  
+  return(combined_data)
+}
+
+```
+
+#round numeric values if the variable has mixed input
+```{r}
+round_numeric <- function(value) {
+  ifelse(
+    !grepl("[^0-9.<]", value),
+    as.character(round(as.numeric(value), 2)),  # Round to 2 decimal points
+    value  # Leave special characters unchanged
+  )
+}
+```
+
+lm function
+```{r}
+lm_func <- function(dependent_vars, independent_vars, data, covariates, include_sex = TRUE, include_cohort = TRUE, conf_level = 0.95) {
+  # Create empty lists to store results
+  dependent_list <- list()
+  independent_list <- list()
+  sex_level_list <- list()
+  cohort_level_list <- list()
+  coef_list <- list()
+  p_value_list <- list()
+  ci_lower_list <- list()
+  ci_upper_list <- list()
+
+  sex_levels <- if (include_sex) c("all", "Female", "Male") else "all"
+  cohort_levels <- if (include_cohort) c("all", "home", "mirec") else "all"
+
+  for (sex_level in sex_levels) {
+    if (sex_level == "all") {
+      sex_data <- data
+      sex_formula <- "+sex"
+    } else {
+      sex_data <- subset(data, sex == sex_level)
+      sex_formula <- ""
+    }
+
+    for (cohort_level in cohort_levels) {
+      if (cohort_level == "all") {
+        cohort_data <- sex_data
+        cohort_formula <- "+cohort + city"
+      } else if (cohort_level == "home") {
+        cohort_data <- subset(sex_data, cohort == "1")
+        cohort_formula <- ""
+      } else if (cohort_level == "mirec") {
+        cohort_data <- subset(sex_data, cohort == "2")
+        cohort_formula <- "+city"
+      } else {
+        stop("Invalid cohort level")
+      }
+
+      # Loop through all combinations of dependent and independent variables
+      for (i in 1:length(dependent_vars)) {
+        for (j in 1:length(independent_vars)) {
+          # Create the covariates formula dynamically based on the covariates argument
+          covariate_formula <- paste(covariates, collapse = " + ")
+
+          # Run linear regression with dynamic covariates
+          formula <- as.formula(paste(dependent_vars[i], "~", independent_vars[j], "+", covariate_formula, sex_formula, cohort_formula))
+          model <- lm(formula, cohort_data)
+
+          # Calculate confidence interval
+          ci <- confint(model, parm = independent_vars[j], level = conf_level)
+          
+
+          # Store results in lists
+          dependent_list[[length(dependent_list) + 1]] <- dependent_vars[i]
+          independent_list[[length(independent_list) + 1]] <- independent_vars[j]
+          sex_level_list[[length(sex_level_list) + 1]] <- sex_level
+          cohort_level_list[[length(cohort_level_list) + 1]] <- cohort_level
+          coef_list[[length(coef_list) + 1]] <- coef(model)[independent_vars[j]]
+          p_value_list[[length(p_value_list) + 1]] <- summary(model)$coefficients[independent_vars[j], 4]
+          ci_lower_list[[length(ci_lower_list) + 1]] <- ci[1]
+          ci_upper_list[[length(ci_upper_list) + 1]] <- ci[2]
+        }
+      }
+    }
+  }
+
+  # Create a dataframe with results
+  results <- data.frame(
+    dependent_variable = unlist(dependent_list),
+    independent_variable = unlist(independent_list),
+    sex_level = unlist(sex_level_list),
+    cohort_level = unlist(cohort_level_list),
+    coefficient = unlist(coef_list),
+    p_value = unlist(p_value_list),
+    ci_lower = unlist(ci_lower_list),
+    ci_upper = unlist(ci_upper_list)
+  )
+
+  # Return the dataframe
+  return(results)
+}
+
+```
+
+
+```{r}
+summarize_variables <- function(data, continuous_variables, categorical_variables) {
+  # Convert categorical variables to factors if they are not already
+  data[categorical_variables] <- lapply(data[categorical_variables], as.factor)
+  
+  # Summary for categorical variables
+  summarize_categorical <- function(data, categorical_vars) {
+    variable_names <- c()
+    summary_values <- c()
+  
+    for (var in categorical_vars) {
+      counts <- table(data[[var]], useNA = "always")
+      percentages <- prop.table(counts) * 100
+      percentages_rounded <- sprintf("%.2f", round(percentages, 2))
+      
+      summary_string <- paste(counts, "(",percentages_rounded,")")
+      
+      variable_names <- c(variable_names, paste(var, names(counts), sep = "_"))
+      summary_values <- c(summary_values, summary_string)
+    }
+  
+    categorical_summary_df <- data.frame(Variable = variable_names, Value = summary_values)
+    return(categorical_summary_df)
+  }
+  
+  # Summary for continuous variables
+  summarize_continuous <- function(data, continuous_vars) {
+    variable_names <- c()
+    summary_values <- c()
+    
+    for (var in continuous_vars) {
+      na_count <- sum(is.na(data[[var]]))
+      na_percent <- sprintf("%.2f", sum(is.na(data[[var]])) / length(data[[var]]) * 100)
+      median_val <- sprintf("%.2f", round(median(data[[var]], na.rm = TRUE), 2))
+      q1_val <- sprintf("%.2f", round(quantile(data[[var]], 0.25, na.rm = TRUE), 2))
+      q3_val <- sprintf("%.2f", round(quantile(data[[var]], 0.75, na.rm = TRUE), 2))
+      
+      summary_string <- paste("NA:", na_count, "(",na_percent,")",
+      "Median:", median_val,
+      "(",q1_val, ", ", q3_val,")"
+    )
+      
+      variable_names <- c(variable_names, var)
+      summary_values <- c(summary_values, summary_string)
+    }
+  
+    continuous_summary_df <- data.frame(Variable = variable_names, Value = summary_values)
+    return(continuous_summary_df)
+  }
+  
+  # Generating summaries
+  categorical_summary <- summarize_categorical(data, categorical_variables)
+  continuous_summary <- summarize_continuous(data, continuous_variables)
+  
+  # Return summaries in separate data frames
+  return(list(categorical_summary = categorical_summary, continuous_summary = continuous_summary))
+}
+
+```
+
+
+

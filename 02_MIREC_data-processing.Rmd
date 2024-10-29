@@ -387,4 +387,29 @@ parab_full<- bind_rows(parab, parab_home)
 write_csv(parab_full, "E:/BBK17/pj/add_parabens/parab_sg_all.csv")
 ```
 
+#April 19, 2024- generating paraben summary for aimin
+```{r}
+paraben_sept<- read_excel("E:\\BBK17\\5. BBK17_Lab results code 001-05_Feb7 2023\\Merged file from Ammanie_Sept1 2023\\BBK17_Parabens_For exploration (Ammanie).xlsx") |>
+  select(c(1, 8:13, 15:17)) |>
+  mutate_all(~if_else(. == "No result" | grepl("^<", .), NA, .)) |>
+  mutate_all(as.numeric) |>
+  pivot_longer(cols = everything(), 
+               names_to = "variable", 
+               values_to = "value")
+
+summary_stats <- x |>
+  group_by(variable) |>
+  summarise(
+    count_lt_LOD = sum(is.na(value)),
+    count_detected = sum(!is.na(value)),
+    min = sprintf("%.2f", min(value, na.rm = TRUE)),
+    max = sprintf("%.2f", max(value, na.rm = TRUE)),
+    `25th percentile` = sprintf("%.2f", quantile(value, 0.25, na.rm = TRUE)),
+    `50th percentile` = sprintf("%.2f", quantile(value, 0.50, na.rm = TRUE)),
+    `75th percentile` = sprintf("%.2f", quantile(value, 0.75, na.rm = TRUE)),
+    average = sprintf("%.2f", mean(value, na.rm = TRUE))
+  )
+
+write_csv(summary_stats, "E:/BBK17/pj/paraben_summary.csv")
+```
 

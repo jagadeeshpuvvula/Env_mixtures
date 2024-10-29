@@ -7,7 +7,6 @@ output: pdf_document
 
 ```{r, echo=FALSE, message=FALSE}
 
-library(pacman)
 pacman::p_load(tidyverse, janitor, bkmr, Matrix, fields, bindrcpp)
 path <- "E:/BBK17/pj/data_2023apr/obs_w_outcome/"
 
@@ -428,4 +427,8 @@ pip_dat<- read_csv("E:/BBK17/pj/data_2023apr/results/bkmr/29_chem/29chem_pips.cs
 write_csv(pip_dat, "E:/BBK17/pj/data_2023apr/results/bkmr/29_chem/29chem_pips_tbl.csv")
 ```
 
+#adding content for revision
+```{r}
+load("E:/BBK17/pj/data_2023apr/results/bkmr/9_chem/bkmr_all_all_wppsi_piq.rda)
+```
 

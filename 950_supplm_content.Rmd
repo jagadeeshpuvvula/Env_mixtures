@@ -1,0 +1,93 @@
+---
+title: "950_supplm_content"
+author: "Jagadeesh Puvvula"
+date: "2024-10-30"
+output: pdf_document
+---
+
+#sensitivity analysis - drop fish intake variable
+```{r}
+load("E:/BBK17/pj/data_2023apr/results/archive/qgcomp/gcomp_29chem/boot_all_all_wppsi_fsiq.rda")
+qgcomp_weights<- read_csv("E:/BBK17/pj/data_2023apr/results/archive/qgcomp/gcomp_29chem/chem_weight.csv")
+```
+
+#without WISC variable
+```{r}
+load("E:/BBK17/pj/data_2023apr/results/archive/qgcomp/qgcomp_29chem_wo_wisc/boot_all_all_wppsi_fsiq.rda")
+qgcomp_weights<- read_csv("E:/BBK17/pj/data_2023apr/results/archive/qgcomp/qgcomp_29chem_wo_wisc/chem_weight.csv")
+```
+
+
+```{r}
+results<- read_csv("E:/BBK17/pj/data_2023apr/results/archive/qgcomp/qgcomp_29chem_wo_wisc/r_obj_summ.csv") |>
+  filter(cohort == "all" & boot_strp == "nb" & gender == "all") |>
+  mutate(result = sprintf("%.2f (%.2f, %.2f)", estimate, lower_ci, upper_ci)) 
+
+custom_order <- c("PSI1", "NEG.PSI", "POS.PSI", "PB", "HG", "DMA", "DDE", "PBDE47", "PCB118", "PCB138", "PCB153", "PCB180",
+                  "PFHXS", "PFOA", "PFOS", "BCEP", "BDCIPP", "DNBP", "DPHP",
+                  "TCS", "BPA", "MBP", "MBZP", "MCPP", "SIGMA DEHP", "MEP", "MIBP",
+                  "DI ETHYL OP", "DI METHYL OP", "B PB", "M PB", "P PB")
+
+dat_tbl <- dat |>
+  mutate(chemical = factor(chemical, levels = custom_order)) |>
+  arrange(chemical) |>
+  select(-c(3,6,8)) |>
+  pivot_wider(names_from = c("gender", "cohort", "outcome"), values_from = "weight") |>
+  select(
+    chemical,
+    starts_with("All") & contains("FSIQ"),
+    starts_with("Female") & contains("FSIQ"),
+    starts_with("Male") & contains("FSIQ"),
+    starts_with("All") & contains("PIQ"),
+    starts_with("Female") & contains("PIQ"),
+    starts_with("Male") & contains("PIQ"),
+    starts_with("All") & contains("VIQ"),
+    starts_with("Female") & contains("VIQ"),
+    starts_with("Male") & contains("VIQ")
+  ) |>
+  mutate_if(is.numeric, ~ as.numeric(sprintf("%.2f", .))) |>
+  rename_all(~sub("_Pooled", "", .))|>
+  mutate_at(vars(-1), ~ ifelse(is.na(.), "--", .)) |>
+  select(c(1,2,5,8))
+
+write_csv(dat_tbl, "E:/BBK17/pj/data_2023apr/results/archive/qgcomp/qgcomp_29chem_wo_wisc/gcomp_sens_rev.csv")
+
+```
+
+#Transforming outcome as binary
+```{r}
+dat_cat_out <- dat |>
+  mutate(
+    wppsi_fsiq = as.factor(case_when(wppsi_fsiq < 85 ~ 1, TRUE ~ 0)),
+    wppsi_viq = as.factor(case_when(wppsi_viq < 85 ~ 1, TRUE ~ 0)),
+    wppsi_piq = as.factor(case_when(wppsi_piq < 85 ~ 1, TRUE ~ 0))
+  )
+
+```
+
+```{r}
+qgcomp_func(outcomes = c("wppsi_fsiq", "wppsi_viq", "wppsi_piq"), 
+            data = dat_cat_out,
+            output_folder = "E:/BBK17/pj/data_2023apr/results/qgcomp_supplement", 
+            include_sex = TRUE, 
+            include_cohort = TRUE, 
+            chemicals = list("log_Pb", "log_Hg", "log_DMA", 
+                             "log_DDE", "log_PBDE_47", 
+                             "log_PCB_118", "log_PCB_138", "log_PCB_153", "log_PCB_180", 
+                             "log_PFHxS", "log_PFOA", "log_PFOS", 
+                             "log_BCEP", "log_BDCIPP", "log_DNBP", "log_DPhP", 
+                             "log_TCS", "log_BPA", 
+                             "log_MBP", "log_MBZP", "log_MCPP", "log_sigma_DEHP", 
+                             "log_MEP", "log_MIBP", 
+                             "log_di_Ethyl_OP", "log_di_Methyl_OP", 
+                             "log_B_PB", "log_M_PB", "log_P_PB"),
+            covariates = list("race_bin", "log_cotinine", "mom_edu_cat", 
+                              "home_score_total", "parity_n", "mom_age", "fish_int_pm"),
+            q = 4, b=400, seed = 2022)
+```
+
+```{r}
+qgcomp_weights <- extract_weights("E:/BBK17/pj/data_2023apr/results/qgcomp_supplement")
+write_csv(qgcomp_weights, "E:/BBK17/pj/data_2023apr/results/qgcomp_supplement/chem_weight.csv")
+```
+

@@ -429,6 +429,74 @@ write_csv(pip_dat, "E:/BBK17/pj/data_2023apr/results/bkmr/29_chem/29chem_pips_tb
 
 #adding content for revision
 ```{r}
-load("E:/BBK17/pj/data_2023apr/results/bkmr/9_chem/bkmr_all_all_wppsi_piq.rda)
+load("E:/BBK17/pj/data_2023apr/results/bkmr/29_chem/bkmr_all_all_wppsi_piq.rda")
+load("E:/BBK17/pj/data_2023apr/results/bkmr/29_chem/bkmr_all_all_wppsi_viq.rda")
+load("E:/BBK17/pj/data_2023apr/results/bkmr/29_chem/bkmr_all_all_wppsi_fsiq.rda")
+```
+
+```{r}
+risks_fsiq <- bkmr::SingVarRiskSummaries(fit = bkmr_fsiq,
+                                         qs.diff = c(0.25, 0.75), 
+                                         q.fixed = c(0.50),
+                                         method = "exact")
+
+risks_viq <- bkmr::SingVarRiskSummaries(fit = bkmr_viq,
+                                         qs.diff = c(0.25, 0.75), 
+                                         q.fixed = c(0.50),
+                                         method = "exact")
+
+
+risks_piq <- bkmr::SingVarRiskSummaries(fit = bkmr_piq,
+                                         qs.diff = c(0.25, 0.75), 
+                                         q.fixed = c(0.50),
+                                         method = "exact")
+
+
+write_csv(combined_df, "E:/BBK17/pj/data_2023apr/results/bkmr/29_chem/bkmr_50th_pct_res.csv")
+```
+
+#combine results and plot
+```{r}
+combined_df <- bind_rows(FSIQ = risks_fsiq, 
+                         PIQ = risks_piq, 
+                         VIQ = risks_viq, 
+                         .id = "source") |>
+  mutate(variable = recode(variable,
+                           "BCEtP"="BCEP",
+                           "BDCPP"="BDCIPP",
+                           "DBuP"="DNBP"
+                           ))
+
+ggplot(combined_df, 
+       aes(fct_rev(variable), est, 
+           ymin = est - 1.96*sd, 
+           ymax = est + 1.96*sd,
+           color= est<0)) + 
+  geom_hline(aes(yintercept = 0), linetype="dashed", color= "grey50") +
+  scale_color_manual(values = c("TRUE" = "royalblue", "FALSE" = "black"),
+                     name= "Estimate trend",
+                     labels= c("Positive", "Negative")) +
+  labs(y = "Estimate", x = "Biomarker")+
+  geom_pointrange(position = position_dodge(width = 0.75)) + 
+  coord_flip()+
+  facet_grid(.~source, scales = "free_x")+
+  theme_bw()+
+  theme(
+    axis.title = element_text(color = "black", size = 11),
+    axis.text = element_text(color = "black", size = 11),
+    plot.title = element_text(color = "black", size = 11),
+    strip.background = element_rect(fill = "white"),
+    strip.text = element_text(size = 12, face = "bold"),
+    legend.position = "bottom",
+    legend.direction = "horizontal",
+    legend.title = element_text(size = 11, color = "black"),
+    legend.text = element_text(size = 11, color = "black")
+  )
+```
+
+```{r}
+ggsave("E:/BBK17/pj/data_2023apr/results/bkmr/29_chem/50th_pct_plot.tiff", 
+       width = 8,height = 8,
+       dpi=300)
 ```
 

@@ -1,4 +1,4 @@
-## Puvvula J, Hwang WT, McCandless L, Xie C, Braun JM, Vuong AM, Oulhote Y, Schisterman EF, Shinohara RT, Booij L, Bouchard MF, Linn K, Borghese MM, Seguin JR, Zidek A, Till C, Fraser W, Yolton K, Cecil KM, Ashley-Martin J, Arbuckle TE, Lanphear B, Chen A. Gestational exposure to environmental chemical mixtures and cognitive abilities in children: A pooled analysis of two North American birth cohorts. Environ Int. 2025 Feb;196:109298. doi: 10.1016/j.envint.2025.109298. Epub 2025 Jan 29. PMID: 39893913; PMCID: PMC11896093.
+### Puvvula J, Hwang WT, McCandless L, Xie C, Braun JM, Vuong AM, Oulhote Y, Schisterman EF, Shinohara RT, Booij L, Bouchard MF, Linn K, Borghese MM, Seguin JR, Zidek A, Till C, Fraser W, Yolton K, Cecil KM, Ashley-Martin J, Arbuckle TE, Lanphear B, Chen A. Gestational exposure to environmental chemical mixtures and cognitive abilities in children: A pooled analysis of two North American birth cohorts. Environ Int. 2025 Feb;196:109298. doi: 10.1016/j.envint.2025.109298. Epub 2025 Jan 29. PMID: 39893913; PMCID: PMC11896093.
 
 # R Environment
 
